@@ -8,6 +8,35 @@
 
 <h3>聊天记录列表</h3>
 
+<style>
+  .chat-preview {
+    font-size: 0.85em;
+    line-height: 1.3;
+  }
+  
+  .chat-name {
+    color: #007bff;
+    font-weight: 600;
+  }
+  
+  .chat-date {
+    color: #6c757d;
+    font-weight: 500;
+  }
+  
+  .chat-message {
+    color: #495057;
+  }
+  
+  .character-row {
+    transition: background-color 0.2s ease;
+  }
+  
+  .character-row:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+</style>
+
 <div class="row mb-3">
   <div class="col-md-6">
     <div class="input-group">
@@ -45,11 +74,13 @@ else if (chatLogs.Any())
       <tbody>
         @foreach (var log in chatLogs)
         {
-          <tr>
+          <tr class="character-row" style="background-color: @GetCharacterBackgroundColor(log.Name);">
             <td>@log.Id</td>
-            <td>@log.Name</td>
+            <td><strong>@log.Name</strong></td>
             <td>@log.SendDate.ToString("yyyy-MM-dd HH:mm:ss")</td>
-            <td class="text-truncate" style="max-width: 300px;">@log.Preview</td>
+            <td class="text-truncate chat-preview" style="max-width: 300px;">
+              @((MarkupString)FormatPreview(log.Name, log.SendDate, log.Preview))
+            </td>
             <td>
               <button class="btn btn-sm btn-primary" @onclick="() => ViewDetail(log.Id)">
                 查看详情
@@ -121,6 +152,14 @@ else
           </div>
         </div>
         <div class="modal-footer">
+          <div class="me-auto">
+            <button type="button" class="btn btn-outline-secondary me-2" @onclick="GoToPreviousRecord" disabled="@isNavigating">
+              <i class="oi oi-chevron-left"></i> 上一条
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="GoToNextRecord" disabled="@isNavigating">
+              下一条 <i class="oi oi-chevron-right"></i>
+            </button>
+          </div>
           <button type="button" class="btn btn-secondary" @onclick="CloseDetail">关闭</button>
         </div>
       </div>
@@ -134,13 +173,20 @@ else
 
   private List<ChatLogSummary> chatLogs = new();
   private bool isLoading = false;
+  private bool isNavigating = false;
   private int currentPage = 1;
   private int totalCount = 0;
   private int totalPages = 0;
-  private const int pageSize = 20;
+  private const int pageSize = 50;
   private string nameFilter = string.Empty;
   private string currentNameFilter = string.Empty;
   private Novex.Data.Models.ChatLog? selectedChatLog;
+  private readonly Dictionary<string, string> characterColors = new();
+  private readonly string[] backgroundColors = new[]
+  {
+    "#f8f9fa", "#e3f2fd", "#f3e5f5", "#e8f5e8", "#fff3e0",
+    "#fce4ec", "#e0f2f1", "#f1f8e9", "#fff8e1", "#fafafa"
+  };
 
   protected override async Task OnInitializedAsync()
   {
@@ -227,5 +273,70 @@ else
   {
     selectedChatLog = null;
     StateHasChanged();
+  }
+
+  private async Task GoToPreviousRecord()
+  {
+    if (selectedChatLog == null || isNavigating) return;
+
+    isNavigating = true;
+    StateHasChanged();
+
+    try
+    {
+      var previousId = await ChatLogService.GetPreviousChatLogIdAsync(selectedChatLog.Id);
+      if (previousId.HasValue)
+      {
+        selectedChatLog = await ChatLogService.GetChatLogByIdAsync(previousId.Value);
+      }
+    }
+    finally
+    {
+      isNavigating = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task GoToNextRecord()
+  {
+    if (selectedChatLog == null || isNavigating) return;
+
+    isNavigating = true;
+    StateHasChanged();
+
+    try
+    {
+      var nextId = await ChatLogService.GetNextChatLogIdAsync(selectedChatLog.Id);
+      if (nextId.HasValue)
+      {
+        selectedChatLog = await ChatLogService.GetChatLogByIdAsync(nextId.Value);
+      }
+    }
+    finally
+    {
+      isNavigating = false;
+      StateHasChanged();
+    }
+  }
+
+  private string GetCharacterBackgroundColor(string characterName)
+  {
+    if (!characterColors.ContainsKey(characterName))
+    {
+      var index = characterColors.Count % backgroundColors.Length;
+      characterColors[characterName] = backgroundColors[index];
+    }
+    return characterColors[characterName];
+  }
+
+  private string FormatPreview(string name, DateTime sendDate, string preview)
+  {
+    // 提取预览中的消息部分（去掉角色名和时间）
+    var expectedPrefix = $"{name} {sendDate:yyyy-MM-dd HH:mm} ";
+    var message = preview.StartsWith(expectedPrefix) ? preview[expectedPrefix.Length..] : preview;
+    
+    return $"<span class='chat-name'>{name}</span> " +
+           $"<span class='chat-date'>{sendDate:yyyy-MM-dd HH:mm}</span> " +
+           $"<span class='chat-message'>{message}</span>";
   }
 }

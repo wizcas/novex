@@ -15,6 +15,8 @@ public interface IChatLogService
   Task<ChatLog?> GetChatLogByIdAsync(int id);
   Task<int> GetTotalCountAsync();
   Task<int> GetTotalCountByNameAsync(string name);
+  Task<int?> GetPreviousChatLogIdAsync(int currentId);
+  Task<int?> GetNextChatLogIdAsync(int currentId);
 }
 
 public class ImportResult
@@ -176,6 +178,34 @@ public class ChatLogService : IChatLogService
   public async Task<int> GetTotalCountByNameAsync(string name)
   {
     return await _context.ChatLogs.CountAsync(c => c.Name == name);
+  }
+
+  public async Task<int?> GetPreviousChatLogIdAsync(int currentId)
+  {
+    var currentLog = await _context.ChatLogs.FindAsync(currentId);
+    if (currentLog == null) return null;
+
+    var previousLog = await _context.ChatLogs
+        .Where(c => c.SendDate < currentLog.SendDate || (c.SendDate == currentLog.SendDate && c.Id < currentId))
+        .OrderByDescending(c => c.SendDate)
+        .ThenByDescending(c => c.Id)
+        .FirstOrDefaultAsync();
+
+    return previousLog?.Id;
+  }
+
+  public async Task<int?> GetNextChatLogIdAsync(int currentId)
+  {
+    var currentLog = await _context.ChatLogs.FindAsync(currentId);
+    if (currentLog == null) return null;
+
+    var nextLog = await _context.ChatLogs
+        .Where(c => c.SendDate > currentLog.SendDate || (c.SendDate == currentLog.SendDate && c.Id > currentId))
+        .OrderBy(c => c.SendDate)
+        .ThenBy(c => c.Id)
+        .FirstOrDefaultAsync();
+
+    return nextLog?.Id;
   }
 
   private static string GeneratePreview(string name, DateTime sendDate, string mes)
