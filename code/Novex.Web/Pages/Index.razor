@@ -1,0 +1,53 @@
+﻿@page "/"
+
+<PageTitle>Novex - SillyTavern 聊天记录管理</PageTitle>
+
+<h1>欢迎使用 Novex</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">📁 导入聊天记录</h5>
+                <p class="card-text">
+                    从 SillyTavern 导出的 JSONL 文件中导入聊天记录。
+                    支持自动解析角色名、消息内容和发送时间。
+                </p>
+                <a href="/import" class="btn btn-primary">开始导入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">💬 浏览聊天记录</h5>
+                <p class="card-text">
+                    浏览已导入的聊天记录，支持按角色筛选、分页浏览，
+                    并可查看单条记录的完整内容。
+                </p>
+                <a href="/chatlogs" class="btn btn-primary">查看记录</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <h3>功能特点</h3>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+            <strong>智能解析：</strong>只导入包含 name 字段的有效记录
+        </li>
+        <li class="list-group-item">
+            <strong>数据结构化：</strong>提取角色名、消息内容、发送时间，生成预览摘要
+        </li>
+        <li class="list-group-item">
+            <strong>高效查询：</strong>支持按角色筛选和分页浏览
+        </li>
+        <li class="list-group-item">
+            <strong>详情查看：</strong>通过 ID 查询单条记录的完整内容
+        </li>
+        <li class="list-group-item">
+            <strong>本地存储：</strong>使用 SQLite 数据库本地存储，快速可靠
+        </li>
+    </ul>
+</div>

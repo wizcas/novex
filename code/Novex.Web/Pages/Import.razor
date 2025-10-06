@@ -1,0 +1,122 @@
+@page "/import"
+@using Novex.Data.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject IChatLogService ChatLogService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>导入聊天记录</PageTitle>
+
+<h3>导入 SillyTavern 聊天记录</h3>
+
+<div class="mb-3">
+    <div class="alert alert-info">
+        <h5>使用说明：</h5>
+        <ul>
+            <li>选择 SillyTavern 导出的 JSONL 文件</li>
+            <li>文件中每行应该是一个 JSON 对象，包含 name、mes、send_date 字段</li>
+            <li>只有包含 name 字段的记录会被导入</li>
+            <li>导入会替换现有的所有聊天记录</li>
+        </ul>
+    </div>
+</div>
+
+<div class="mb-3">
+    <InputFile OnChange="@OnFileSelected" class="form-control" accept=".jsonl" />
+</div>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ImportFile" disabled="@(selectedFile == null || isImporting)">
+        @if (isImporting)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <text> 导入中...</text>
+        }
+        else
+        {
+            <text>开始导入</text>
+        }
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(isSuccess ? "alert-success" : "alert-danger")">
+        <div>@message</div>
+        @if (!string.IsNullOrEmpty(statisticsMessage))
+        {
+            <div class="mt-2">
+                <pre style="background: none; border: none; color: inherit; margin: 0; padding: 0; white-space: pre-line;">@statisticsMessage</pre>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IBrowserFile? selectedFile;
+    private bool isImporting = false;
+    private string message = string.Empty;
+    private string statisticsMessage = string.Empty;
+    private bool isSuccess = false;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        message = string.Empty;
+        statisticsMessage = string.Empty;
+    }
+
+    private async Task ImportFile()
+    {
+        if (selectedFile == null) return;
+
+        isImporting = true;
+        message = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // 创建临时文件
+            var tempPath = Path.GetTempFileName();
+            
+            await using var stream = selectedFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 100MB限制
+            await using var fileStream = File.Create(tempPath);
+            await stream.CopyToAsync(fileStream);
+            fileStream.Close();
+
+            // 导入数据
+            var result = await ChatLogService.ImportChatLogsFromJsonlAsync(tempPath);
+            
+            // 清理临时文件
+            File.Delete(tempPath);
+
+            if (result.Success)
+            {
+                message = "聊天记录导入成功！";
+                statisticsMessage = $"📊 导入统计：\n" +
+                                   $"• 读取行数: {result.TotalLinesRead}\n" +
+                                   $"• 有效记录: {result.ValidRecordsFound}\n" +
+                                   $"• 成功导入: {result.ImportedRecords}";
+                isSuccess = true;
+            }
+            else
+            {
+                message = $"导入失败：{result.ErrorMessage ?? "未知错误"}";
+                statisticsMessage = $"📊 处理统计：\n" +
+                                   $"• 读取行数: {result.TotalLinesRead}\n" +
+                                   $"• 有效记录: {result.ValidRecordsFound}\n" +
+                                   $"• 成功导入: {result.ImportedRecords}";
+                isSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"导入过程中发生错误：{ex.Message}";
+            isSuccess = false;
+        }
+        finally
+        {
+            isImporting = false;
+            StateHasChanged();
+        }
+    }
+}

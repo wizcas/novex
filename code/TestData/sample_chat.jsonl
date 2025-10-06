@@ -1,0 +1,10 @@
+{"name": "Alice", "mes": "Hello! How are you doing today?", "send_date": 1696723200000}
+{"name": "Bob", "mes": "I'm doing great, thanks for asking! What about you?", "send_date": 1696723260000}
+{"name": "Alice", "mes": "I'm fantastic! I just finished working on a new project.", "send_date": 1696723320000}
+{"name": "Charlie", "mes": "That sounds exciting! What kind of project was it?", "send_date": 1696723380000}
+{"name": "Alice", "mes": "It's a web application for managing chat logs from SillyTavern. The application can import JSONL files, structure the data, and provide a nice interface for browsing through the conversations.", "send_date": 1696723440000}
+{"name": "Bob", "mes": "Wow, that's really cool! Can it handle large files?", "send_date": 1696723500000}
+{"name": "Alice", "mes": "Yes! It supports files up to 100MB and has pagination for efficient browsing.", "send_date": 1696723560000}
+{"invalid_record": "This record should be ignored since it doesn't have a name field", "send_date": 1696723620000}
+{"name": "Charlie", "mes": "I'd love to see a demo of that!", "send_date": 1696723680000}
+{"name": "David", "mes": "This is exactly what I've been looking for! Where can I find it?", "send_date": 1696723740000}
