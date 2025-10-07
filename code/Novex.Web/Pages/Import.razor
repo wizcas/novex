@@ -2,6 +2,7 @@
 @using Novex.Data.Services
 @using Microsoft.AspNetCore.Components.Forms
 @inject IChatLogService ChatLogService
+@inject IBookService BookService
 @inject IJSRuntime JSRuntime
 
 <PageTitle>导入聊天记录</PageTitle>
@@ -21,11 +22,56 @@
 </div>
 
 <div class="mb-3">
+    <label class="form-label">选择书目：</label>
+    <div class="input-group">
+        <input type="text" class="form-control" placeholder="搜索或输入新书目名称..."
+               @bind="bookSearchTerm" @oninput="OnBookSearchInput" @onfocus="ShowBookDropdown" />
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle"
+                @onclick="ToggleBookDropdown" disabled="@isImporting"></button>
+    </div>
+
+    @if (showBookDropdown)
+    {
+        <div class="dropdown-menu show w-100" style="max-height: 200px; overflow-y: auto;">
+            @if (filteredBooks.Any())
+            {
+                @foreach (var book in filteredBooks)
+                {
+                    <a href="#" class="dropdown-item" @onclick="() => SelectBook(book)" @onclick:preventDefault="true">
+                        @book.Name
+                    </a>
+                }
+            }
+
+            @if (!string.IsNullOrWhiteSpace(bookSearchTerm) && !filteredBooks.Any(b => b.Name.Equals(bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
+            {
+                <a href="#" class="dropdown-item text-primary" @onclick="() => SelectNewBook(bookSearchTerm)" @onclick:preventDefault="true">
+                    <i class="oi oi-plus"></i> 创建新书目：@bookSearchTerm
+                </a>
+            }
+
+            @if (!filteredBooks.Any() && string.IsNullOrWhiteSpace(bookSearchTerm))
+            {
+                <div class="dropdown-item-text text-muted">暂无书目</div>
+            }
+        </div>
+    }
+
+    @if (selectedBook != null)
+    {
+        <div class="mt-2">
+            <small class="text-success">已选择书目：<strong>@selectedBook.Name</strong></small>
+        </div>
+    }
+</div>
+
+<div class="mb-3">
+    <label class="form-label">选择JSONL文件：</label>
     <InputFile OnChange="@OnFileSelected" class="form-control" accept=".jsonl" />
 </div>
 
 <div class="mb-3">
-    <button class="btn btn-primary" @onclick="ImportFile" disabled="@(selectedFile == null || isImporting)">
+    <button class="btn btn-primary" @onclick="ImportFile" disabled="@(selectedFile == null || selectedBook == null || isImporting)">
         @if (isImporting)
         {
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -36,6 +82,14 @@
             <text>开始导入</text>
         }
     </button>
+
+    @if (selectedFile == null || selectedBook == null)
+    {
+        <div class="form-text text-muted">
+            @if (selectedBook == null) { <div>请先选择一个书目</div> }
+            @if (selectedFile == null) { <div>请先选择一个JSONL文件</div> }
+        </div>
+    }
 </div>
 
 @if (!string.IsNullOrEmpty(message))
@@ -58,6 +112,24 @@
     private string statisticsMessage = string.Empty;
     private bool isSuccess = false;
 
+    // 书目相关
+    private List<Novex.Data.Models.Book> allBooks = new();
+    private List<Novex.Data.Models.Book> filteredBooks = new();
+    private Novex.Data.Models.Book? selectedBook;
+    private string bookSearchTerm = string.Empty;
+    private bool showBookDropdown = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
+    {
+        allBooks = await BookService.GetAllBooksAsync();
+        filteredBooks = allBooks;
+    }
+
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
@@ -65,9 +137,73 @@
         statisticsMessage = string.Empty;
     }
 
+    private async Task OnBookSearchInput(ChangeEventArgs e)
+    {
+        bookSearchTerm = e.Value?.ToString() ?? string.Empty;
+        await FilterBooks();
+        showBookDropdown = true;
+        StateHasChanged();
+    }
+
+    private void OnDocumentClick()
+    {
+        showBookDropdown = false;
+        StateHasChanged();
+    }
+
+    private Task FilterBooks()
+    {
+        if (string.IsNullOrWhiteSpace(bookSearchTerm))
+        {
+            filteredBooks = allBooks;
+        }
+        else
+        {
+            filteredBooks = allBooks.Where(b => b.Name.Contains(bookSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        return Task.CompletedTask;
+    }
+
+    private void ShowBookDropdown()
+    {
+        showBookDropdown = true;
+        StateHasChanged();
+    }
+
+    private void ToggleBookDropdown()
+    {
+        showBookDropdown = !showBookDropdown;
+        StateHasChanged();
+    }
+
+    private Task SelectBook(Novex.Data.Models.Book book)
+    {
+        selectedBook = book;
+        bookSearchTerm = book.Name;
+        showBookDropdown = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task SelectNewBook(string bookName)
+    {
+        try
+        {
+            var newBook = await BookService.CreateBookAsync(bookName.Trim());
+            await LoadBooks();
+            await SelectBook(newBook);
+        }
+        catch (Exception ex)
+        {
+            message = $"创建书目失败：{ex.Message}";
+            isSuccess = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task ImportFile()
     {
-        if (selectedFile == null) return;
+        if (selectedFile == null || selectedBook == null) return;
 
         isImporting = true;
         message = string.Empty;
@@ -77,15 +213,15 @@
         {
             // 创建临时文件
             var tempPath = Path.GetTempFileName();
-            
+
             await using var stream = selectedFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 100MB限制
             await using var fileStream = File.Create(tempPath);
             await stream.CopyToAsync(fileStream);
             fileStream.Close();
 
             // 导入数据
-            var result = await ChatLogService.ImportChatLogsFromJsonlAsync(tempPath);
-            
+            var result = await ChatLogService.ImportChatLogsFromJsonlAsync(tempPath, selectedBook.Id);
+
             // 清理临时文件
             File.Delete(tempPath);
 

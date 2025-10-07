@@ -1,12 +1,24 @@
-@page "/chatlogs"
-@page "/chatlogs/{page:int?}"
+@page "/chatlogs/{bookId:int}"
+@page "/chatlogs/{bookId:int}/{page:int?}"
 @using Novex.Data.Services
 @inject IChatLogService ChatLogService
+@inject IBookService BookService
 @inject NavigationManager Navigation
 
 <PageTitle>聊天记录</PageTitle>
 
-<h3>聊天记录列表</h3>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h3>聊天记录列表</h3>
+    @if (currentBook != null)
+    {
+      <p class="text-muted mb-0">书目：<strong>@currentBook.Name</strong></p>
+    }
+  </div>
+  <div>
+    <a href="/books" class="btn btn-outline-secondary">返回书目管理</a>
+  </div>
+</div>
 
 <style>
   .chat-preview {
@@ -169,6 +181,7 @@ else
 }
 
 @code {
+  [Parameter] public int BookId { get; set; }
   [Parameter] public int? Page { get; set; }
 
   private List<ChatLogSummary> chatLogs = new();
@@ -181,6 +194,7 @@ else
   private string nameFilter = string.Empty;
   private string currentNameFilter = string.Empty;
   private Novex.Data.Models.ChatLog? selectedChatLog;
+  private Novex.Data.Models.Book? currentBook;
   private readonly Dictionary<string, string> characterColors = new();
   private readonly string[] backgroundColors = new[]
   {
@@ -191,6 +205,7 @@ else
   protected override async Task OnInitializedAsync()
   {
     currentPage = Page ?? 1;
+    currentBook = await BookService.GetBookByIdAsync(BookId);
     await LoadChatLogs();
   }
 
@@ -212,13 +227,13 @@ else
     {
       if (string.IsNullOrWhiteSpace(currentNameFilter))
       {
-        chatLogs = await ChatLogService.GetAllChatLogsAsync(currentPage, pageSize);
-        totalCount = await ChatLogService.GetTotalCountAsync();
+        chatLogs = await ChatLogService.GetAllChatLogsAsync(BookId, currentPage, pageSize);
+        totalCount = await ChatLogService.GetTotalCountAsync(BookId);
       }
       else
       {
-        chatLogs = await ChatLogService.GetChatLogsByNameAsync(currentNameFilter, currentPage, pageSize);
-        totalCount = await ChatLogService.GetTotalCountByNameAsync(currentNameFilter);
+        chatLogs = await ChatLogService.GetChatLogsByNameAsync(currentNameFilter, BookId, currentPage, pageSize);
+        totalCount = await ChatLogService.GetTotalCountByNameAsync(currentNameFilter, BookId);
       }
 
       totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -234,7 +249,7 @@ else
   {
     currentNameFilter = nameFilter;
     currentPage = 1;
-    Navigation.NavigateTo("/chatlogs");
+    Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
   }
 
@@ -243,7 +258,7 @@ else
     nameFilter = string.Empty;
     currentNameFilter = string.Empty;
     currentPage = 1;
-    Navigation.NavigateTo("/chatlogs");
+    Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
   }
 
@@ -259,7 +274,7 @@ else
   {
     if (page >= 1 && page <= totalPages)
     {
-      Navigation.NavigateTo($"/chatlogs/{page}");
+      Navigation.NavigateTo($"/chatlogs/{BookId}/{page}");
     }
   }
 

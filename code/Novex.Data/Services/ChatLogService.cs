@@ -9,12 +9,12 @@ namespace Novex.Data.Services;
 
 public interface IChatLogService
 {
-  Task<ImportResult> ImportChatLogsFromJsonlAsync(string filePath);
-  Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int page = 1, int pageSize = 20);
-  Task<List<ChatLogSummary>> GetAllChatLogsAsync(int page = 1, int pageSize = 20);
+  Task<ImportResult> ImportChatLogsFromJsonlAsync(string filePath, int bookId);
+  Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 20);
+  Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 20);
   Task<ChatLog?> GetChatLogByIdAsync(int id);
-  Task<int> GetTotalCountAsync();
-  Task<int> GetTotalCountByNameAsync(string name);
+  Task<int> GetTotalCountAsync(int bookId);
+  Task<int> GetTotalCountByNameAsync(string name, int bookId);
   Task<int?> GetPreviousChatLogIdAsync(int currentId);
   Task<int?> GetNextChatLogIdAsync(int currentId);
 }
@@ -47,7 +47,7 @@ public class ChatLogService : IChatLogService
     _logger = logger;
   }
 
-  public async Task<ImportResult> ImportChatLogsFromJsonlAsync(string filePath)
+  public async Task<ImportResult> ImportChatLogsFromJsonlAsync(string filePath, int bookId)
   {
     var result = new ImportResult();
 
@@ -91,7 +91,8 @@ public class ChatLogService : IChatLogService
                 Name = record.Name,
                 Mes = mes,
                 SendDate = sendDate.Value,
-                Preview = preview
+                Preview = preview,
+                BookId = bookId
               };
 
               chatLogs.Add(chatLog);
@@ -109,8 +110,9 @@ public class ChatLogService : IChatLogService
       chatLogs = chatLogs.OrderBy(c => c.SendDate).ToList();
       result.ImportedRecords = chatLogs.Count;
 
-      // 清空现有数据并插入新数据
-      _context.ChatLogs.RemoveRange(_context.ChatLogs);
+      // 清空该书目的现有数据并插入新数据
+      var existingChatLogs = await _context.ChatLogs.Where(c => c.BookId == bookId).ToListAsync();
+      _context.ChatLogs.RemoveRange(existingChatLogs);
       await _context.ChatLogs.AddRangeAsync(chatLogs);
       await _context.SaveChangesAsync();
 
@@ -128,12 +130,12 @@ public class ChatLogService : IChatLogService
     }
   }
 
-  public async Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int page = 1, int pageSize = 20)
+  public async Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 20)
   {
     var skip = (page - 1) * pageSize;
 
     return await _context.ChatLogs
-        .Where(c => c.Name == name)
+        .Where(c => c.Name == name && c.BookId == bookId)
         .OrderBy(c => c.SendDate)
         .Skip(skip)
         .Take(pageSize)
@@ -147,11 +149,12 @@ public class ChatLogService : IChatLogService
         .ToListAsync();
   }
 
-  public async Task<List<ChatLogSummary>> GetAllChatLogsAsync(int page = 1, int pageSize = 20)
+  public async Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 20)
   {
     var skip = (page - 1) * pageSize;
 
     return await _context.ChatLogs
+        .Where(c => c.BookId == bookId)
         .OrderBy(c => c.SendDate)
         .Skip(skip)
         .Take(pageSize)
@@ -170,14 +173,14 @@ public class ChatLogService : IChatLogService
     return await _context.ChatLogs.FindAsync(id);
   }
 
-  public async Task<int> GetTotalCountAsync()
+  public async Task<int> GetTotalCountAsync(int bookId)
   {
-    return await _context.ChatLogs.CountAsync();
+    return await _context.ChatLogs.CountAsync(c => c.BookId == bookId);
   }
 
-  public async Task<int> GetTotalCountByNameAsync(string name)
+  public async Task<int> GetTotalCountByNameAsync(string name, int bookId)
   {
-    return await _context.ChatLogs.CountAsync(c => c.Name == name);
+    return await _context.ChatLogs.CountAsync(c => c.Name == name && c.BookId == bookId);
   }
 
   public async Task<int?> GetPreviousChatLogIdAsync(int currentId)

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Novex.Data.Models;
 
@@ -20,4 +21,11 @@ public class ChatLog
   [Required]
   [MaxLength(200)]
   public string Preview { get; set; } = string.Empty;
+
+  [Required]
+  public int BookId { get; set; }
+
+  // 导航属性
+  [ForeignKey("BookId")]
+  public virtual Book Book { get; set; } = null!;
 }

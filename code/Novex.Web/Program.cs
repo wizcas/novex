@@ -16,6 +16,7 @@ builder.Services.AddDbContext<NovexDbContext>(options =>
 
 // 添加服务
 builder.Services.AddScoped<IChatLogService, ChatLogService>();
+builder.Services.AddScoped<IBookService, BookService>();
 
 var app = builder.Build();
 
