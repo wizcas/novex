@@ -5,300 +5,306 @@
 
 <PageTitle>书目管理</PageTitle>
 
-<h3>书目管理</h3>
-
-<div class="row mb-3">
-  <div class="col-md-8">
-    <div class="input-group">
-      <input type="text" class="form-control" placeholder="输入新书目名称..." @bind="newBookName" />
-      <button class="btn btn-primary" @onclick="CreateBook"
-        disabled="@(string.IsNullOrWhiteSpace(newBookName) || isCreating)">
-        @if (isCreating)
-        {
-          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-        }
-        创建书目
-      </button>
+<div class="books-page">
+    <div style="margin-bottom: 24px;">
+        <Title Level="2">
+            <Icon Type="book" style="margin-right: 8px; color: #1890ff;" />
+            书目管理
+        </Title>
     </div>
-  </div>
+
+    <div style="margin-bottom: 24px;">
+        <Row Gutter="16">
+            <AntDesign.Col Span="12">
+                <Input Placeholder="输入新书目名称..." @bind-Value="newBookName" OnPressEnter="CreateBook"
+                    Size="@InputSize.Large">
+                <Prefix>
+                    <Icon Type="plus-circle" />
+                </Prefix>
+                </Input>
+            </AntDesign.Col>
+            <AntDesign.Col Span="6">
+                <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Loading="@isCreating"
+                    Disabled="@(string.IsNullOrWhiteSpace(newBookName) || isCreating)" OnClick="CreateBook">
+                    <Icon Type="plus" />
+                    创建书目
+                </Button>
+            </AntDesign.Col>
+        </Row>
+    </div>
+
+    @if (isLoading)
+    {
+        <div style="text-align: center; padding: 48px;">
+            <Spin Size="@SpinSize.Large" />
+            <div style="margin-top: 16px;">
+                <Text Type="@TextElementType.Secondary">加载中...</Text>
+            </div>
+        </div>
+    }
+    else if (books.Any())
+    {
+        <Table TItem="Novex.Data.Models.Book" DataSource="@books" Size="@TableSize.Middle" Bordered="true">
+            <Column TData="Novex.Data.Models.Book" Title="ID" Width="80px">
+                <Template>
+                    @context.Id
+                </Template>
+            </Column>
+            <Column TData="Novex.Data.Models.Book" Title="书目名称">
+                <Template>
+                    <Text Strong="true">@context.Name</Text>
+                </Template>
+            </Column>
+            <Column TData="Novex.Data.Models.Book" Title="创建时间" Width="180px">
+                <Template>
+                    @context.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")
+                </Template>
+            </Column>
+            <ActionColumn Title="操作" Width="300px">
+                <Template>
+                    <Space Size="@SpaceSize.Small">
+                        <SpaceItem>
+                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
+                                OnClick="() => ViewChatLogs(context.Id)">
+                                <Icon Type="eye" />
+                                查看聊天记录
+                            </Button>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" Danger="false"
+                                Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
+                                <Icon Type="clear" />
+                                清空记录
+                            </Button>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Danger="true"
+                                Disabled="@isOperating" OnClick="() => ShowDeleteConfirm(context)">
+                                <Icon Type="delete" />
+                                删除书目
+                            </Button>
+                        </SpaceItem>
+                    </Space>
+                </Template>
+            </ActionColumn>
+        </Table>
+    }
+    else
+    {
+        <Empty>
+            <DescriptionTemplate>
+                <Text Type="@TextElementType.Secondary">暂无书目</Text>
+                <br />
+                <Text Type="@TextElementType.Secondary">请创建一个新的书目开始使用。</Text>
+            </DescriptionTemplate>
+            <ChildContent>
+                <Button Type="@ButtonType.Primary" OnClick="() => { }">
+                    <Icon Type="plus" />
+                    创建第一个书目
+                </Button>
+            </ChildContent>
+        </Empty>
+    }
+
+    <!-- 确认删除模态框 -->
+    @if (bookToDelete != null)
+    {
+        RenderFragment deleteFooter = @<Template>
+            <Button OnClick="CancelDelete" @key="@("cancel")">取消</Button>
+            <Button OnClick="ConfirmDelete" @key="@("confirm")" Type="ButtonType.Primary" Danger="true"
+                Loading="@isOperating">
+                确认删除
+            </Button>
+        </Template>;
+
+        <Modal Title="确认删除" Visible="true" OnOk="ConfirmDelete" OnCancel="CancelDelete" Footer="@deleteFooter">
+            <p>确定要删除书目 "<Text Strong="true">@bookToDelete.Name</Text>" 吗？</p>
+            <Alert Type="@AlertType.Error" Message="⚠️ 此操作将同时删除该书目下的所有聊天记录，且无法恢复！" ShowIcon="true"
+                Style="margin-top: 16px;" />
+        </Modal>
+    }
+
+    <!-- 确认清空记录模态框 -->
+    @if (bookToClear != null)
+    {
+        RenderFragment clearFooter = @<Template>
+            <Button OnClick="CancelClear" @key="@("cancel-clear")">取消</Button>
+            <Button OnClick="ConfirmClear" @key="@("confirm-clear")" Type="ButtonType.Primary" Danger="true"
+                Loading="@isOperating">
+                确认清空
+            </Button>
+        </Template>;
+
+        <Modal Title="确认清空记录" Visible="true" OnOk="ConfirmClear" OnCancel="CancelClear" Footer="@clearFooter">
+            <p>确定要清空书目 "<Text Strong="true">@bookToClear.Name</Text>" 的所有聊天记录吗？</p>
+            <Alert Type="@AlertType.Warning" Message="⚠️ 此操作将删除该书目下的所有聊天记录，但保留书目本身，且无法恢复！" ShowIcon="true"
+                Style="margin-top: 16px;" />
+        </Modal>
+    }
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div style="margin-bottom: 16px;">
+            <Alert Type="@(isError? AlertType.Error: AlertType.Success)" Message="@message" ShowIcon="true" Closable="true"
+                OnClose="ClearMessage" />
+        </div>
+    }
 </div>
 
-@if (isLoading)
-{
-  <div class="text-center">
-    <div class="spinner-border" role="status">
-      <span class="visually-hidden">加载中...</span>
-    </div>
-  </div>
-}
-else if (books.Any())
-{
-  <div class="table-responsive">
-    <table class="table table-striped table-hover">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>书目名称</th>
-          <th>创建时间</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var book in books)
-        {
-          <tr>
-            <td>@book.Id</td>
-            <td><strong>@book.Name</strong></td>
-            <td>@book.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")</td>
-            <td>
-              <div class="btn-group" role="group">
-                <button class="btn btn-sm btn-primary" @onclick="() => ViewChatLogs(book.Id)">
-                  查看聊天记录
-                </button>
-                <button class="btn btn-sm btn-warning" @onclick="() => ShowClearConfirm(book)" disabled="@isOperating">
-                  清空记录
-                </button>
-                <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirm(book)" disabled="@isOperating">
-                  删除书目
-                </button>
-              </div>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-}
-else
-{
-  <div class="alert alert-info">
-    <h5>暂无书目</h5>
-    <p>请创建一个新的书目开始使用。</p>
-  </div>
-}
-
-<!-- 确认删除模态框 -->
-@if (bookToDelete != null)
-{
-  <div class="modal fade show" style="display: block;" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">确认删除</h5>
-          <button type="button" class="btn-close" @onclick="CancelDelete"></button>
-        </div>
-        <div class="modal-body">
-          <p>确定要删除书目 "<strong>@bookToDelete.Name</strong>" 吗？</p>
-          <p class="text-danger"><small>⚠️ 此操作将同时删除该书目下的所有聊天记录，且无法恢复！</small></p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @onclick="CancelDelete">取消</button>
-          <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isOperating">
-            @if (isOperating)
-            {
-              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-            }
-            确认删除
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal-backdrop fade show"></div>
-}
-
-<!-- 确认清空记录模态框 -->
-@if (bookToClear != null)
-{
-  <div class="modal fade show" style="display: block;" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">确认清空记录</h5>
-          <button type="button" class="btn-close" @onclick="CancelClear"></button>
-        </div>
-        <div class="modal-body">
-          <p>确定要清空书目 "<strong>@bookToClear.Name</strong>" 的所有聊天记录吗？</p>
-          <p class="text-warning"><small>⚠️ 此操作将删除该书目下的所有聊天记录，但保留书目本身，且无法恢复！</small></p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @onclick="CancelClear">取消</button>
-          <button type="button" class="btn btn-warning" @onclick="ConfirmClear" disabled="@isOperating">
-            @if (isOperating)
-            {
-              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-            }
-            确认清空
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal-backdrop fade show"></div>
-}
-
-@if (!string.IsNullOrEmpty(message))
-{
-  <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show mt-3" role="alert">
-    @message
-    <button type="button" class="btn-close" @onclick="ClearMessage"></button>
-  </div>
-}
-
 @code {
-  private List<Novex.Data.Models.Book> books = new();
-  private bool isLoading = false;
-  private bool isCreating = false;
-  private bool isOperating = false;
-  private string newBookName = string.Empty;
-  private string message = string.Empty;
-  private bool isError = false;
-  private Novex.Data.Models.Book? bookToDelete;
-  private Novex.Data.Models.Book? bookToClear;
+    private List<Novex.Data.Models.Book> books = new();
+    private bool isLoading = false;
+    private bool isCreating = false;
+    private bool isOperating = false;
+    private string newBookName = string.Empty;
+    private string message = string.Empty;
+    private bool isError = false;
+    private Novex.Data.Models.Book? bookToDelete;
+    private Novex.Data.Models.Book? bookToClear;
 
-  protected override async Task OnInitializedAsync()
-  {
-    await LoadBooks();
-  }
-
-  private async Task LoadBooks()
-  {
-    isLoading = true;
-    StateHasChanged();
-
-    try
+    protected override async Task OnInitializedAsync()
     {
-      books = await BookService.GetAllBooksAsync();
-    }
-    finally
-    {
-      isLoading = false;
-      StateHasChanged();
-    }
-  }
-
-  private async Task CreateBook()
-  {
-    if (string.IsNullOrWhiteSpace(newBookName)) return;
-
-    isCreating = true;
-    StateHasChanged();
-
-    try
-    {
-      var book = await BookService.CreateBookAsync(newBookName.Trim());
-      await LoadBooks();
-      newBookName = string.Empty;
-      ShowMessage($"书目 \"{book.Name}\" 创建成功", false);
-    }
-    catch (Exception ex)
-    {
-      ShowMessage($"创建书目失败: {ex.Message}", true);
-    }
-    finally
-    {
-      isCreating = false;
-      StateHasChanged();
-    }
-  }
-
-  private void ViewChatLogs(int bookId)
-  {
-    Navigation.NavigateTo($"/chatlogs/{bookId}");
-  }
-
-  private void ShowDeleteConfirm(Novex.Data.Models.Book book)
-  {
-    bookToDelete = book;
-    StateHasChanged();
-  }
-
-  private void CancelDelete()
-  {
-    bookToDelete = null;
-    StateHasChanged();
-  }
-
-  private async Task ConfirmDelete()
-  {
-    if (bookToDelete == null) return;
-
-    isOperating = true;
-    StateHasChanged();
-
-    try
-    {
-      var bookName = bookToDelete.Name;
-      var success = await BookService.DeleteBookAsync(bookToDelete.Id);
-      if (success)
-      {
         await LoadBooks();
-        ShowMessage($"书目 \"{bookName}\" 删除成功", false);
-      }
-      else
-      {
-        ShowMessage("删除书目失败", true);
-      }
     }
-    catch (Exception ex)
+
+    private async Task LoadBooks()
     {
-      ShowMessage($"删除书目失败: {ex.Message}", true);
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            books = await BookService.GetAllBooksAsync();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
-    finally
+
+    private async Task CreateBook()
     {
-      bookToDelete = null;
-      isOperating = false;
-      StateHasChanged();
+        if (string.IsNullOrWhiteSpace(newBookName)) return;
+
+        isCreating = true;
+        StateHasChanged();
+
+        try
+        {
+            var book = await BookService.CreateBookAsync(newBookName.Trim());
+            await LoadBooks();
+            newBookName = string.Empty;
+            ShowMessage($"书目 \"{book.Name}\" 创建成功", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"创建书目失败: {ex.Message}", true);
+        }
+        finally
+        {
+            isCreating = false;
+            StateHasChanged();
+        }
     }
-  }
 
-  private void ShowClearConfirm(Novex.Data.Models.Book book)
-  {
-    bookToClear = book;
-    StateHasChanged();
-  }
-
-  private void CancelClear()
-  {
-    bookToClear = null;
-    StateHasChanged();
-  }
-
-  private async Task ConfirmClear()
-  {
-    if (bookToClear == null) return;
-
-    isOperating = true;
-    StateHasChanged();
-
-    try
+    private void ViewChatLogs(int bookId)
     {
-      var bookName = bookToClear.Name;
-      var count = await BookService.ClearBookChatLogsAsync(bookToClear.Id);
-      ShowMessage($"书目 \"{bookName}\" 的聊天记录清空成功，共删除 {count} 条记录", false);
+        Navigation.NavigateTo($"/chatlogs/{bookId}");
     }
-    catch (Exception ex)
-    {
-      ShowMessage($"清空聊天记录失败: {ex.Message}", true);
-    }
-    finally
-    {
-      bookToClear = null;
-      isOperating = false;
-      StateHasChanged();
-    }
-  }
 
-  private void ShowMessage(string msg, bool error)
-  {
-    message = msg;
-    isError = error;
-    StateHasChanged();
-  }
+    private void ShowDeleteConfirm(Novex.Data.Models.Book book)
+    {
+        bookToDelete = book;
+        StateHasChanged();
+    }
 
-  private void ClearMessage()
-  {
-    message = string.Empty;
-    StateHasChanged();
-  }
+    private void CancelDelete()
+    {
+        bookToDelete = null;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (bookToDelete == null) return;
+
+        isOperating = true;
+        StateHasChanged();
+
+        try
+        {
+            var bookName = bookToDelete.Name;
+            var success = await BookService.DeleteBookAsync(bookToDelete.Id);
+            if (success)
+            {
+                await LoadBooks();
+                ShowMessage($"书目 \"{bookName}\" 删除成功", false);
+            }
+            else
+            {
+                ShowMessage("删除书目失败", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"删除书目失败: {ex.Message}", true);
+        }
+        finally
+        {
+            bookToDelete = null;
+            isOperating = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowClearConfirm(Novex.Data.Models.Book book)
+    {
+        bookToClear = book;
+        StateHasChanged();
+    }
+
+    private void CancelClear()
+    {
+        bookToClear = null;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmClear()
+    {
+        if (bookToClear == null) return;
+
+        isOperating = true;
+        StateHasChanged();
+
+        try
+        {
+            var bookName = bookToClear.Name;
+            var count = await BookService.ClearBookChatLogsAsync(bookToClear.Id);
+            ShowMessage($"书目 \"{bookName}\" 的聊天记录清空成功，共删除 {count} 条记录", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"清空聊天记录失败: {ex.Message}", true);
+        }
+        finally
+        {
+            bookToClear = null;
+            isOperating = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowMessage(string msg, bool error)
+    {
+        message = msg;
+        isError = error;
+        StateHasChanged();
+    }
+
+    private void ClearMessage()
+    {
+        message = string.Empty;
+        StateHasChanged();
+    }
 }

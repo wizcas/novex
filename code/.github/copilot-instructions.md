@@ -97,6 +97,7 @@ Clean up the copilot-instructions.md file in the .github directory by removing a
 
 ## Powershell 下的常用命令
 
+- important! 尽量复用已打开的 powershell 窗口，避免打开过多窗口。
 - 使用 `rg` 代替 `grep` 进行代码或输出搜索, 若没有 rg, 则使用 `Select-String`.
 - 使用 `ls` 代替 `dir` 列出目录内容
 - 使用 `Remove-Item` 代替 `rm` 删除文件或目录
@@ -104,5 +105,5 @@ Clean up the copilot-instructions.md file in the .github directory by removing a
 ## 开发环境下 dotnet 调试命令
 
 - 使用 `--project` 参数来指定项目目录，因为解决方案目录下有多个项目。
-- 优先通过 `dotnet watch run` 来启动项目，以启用热重载功能。
-- 如果 `dotnet build` 或 `dotnet run` 时发现 Novex.Web 是通过 `dotnet watch run` 运行的，则跳过。
+- 必须通过 `dotnet watch run` 来启动项目，以启用热重载功能！！！
+- 如果需要运行 `dotnet build` 或 `dotnet watch run` 或 `dotnet run` 时，发现 Novex.Web 是通过 `dotnet watch run` 运行的，则跳过。

@@ -55,3 +55,25 @@ a {
 .blazor-error-boundary::after {
   content: "An error has occurred.";
 }
+
+/* Books 页面样式 */
+.books-page .ant-table {
+  background: #fff;
+  border-radius: 6px;
+}
+
+.books-page .ant-btn-group .ant-btn {
+  margin-right: 8px;
+}
+
+.books-page .ant-btn-group .ant-btn:last-child {
+  margin-right: 0;
+}
+
+.books-page .book-actions .ant-btn {
+  margin-right: 8px;
+}
+
+.books-page .book-actions .ant-btn:last-child {
+  margin-right: 0;
+}
