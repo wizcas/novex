@@ -16,8 +16,8 @@
     <div style="margin-bottom: 24px;">
         <Row Gutter="16">
             <AntDesign.Col Span="12">
-                <Input Placeholder="输入新书目名称..." @bind-Value="newBookName" OnPressEnter="CreateBook"
-                    Size="@InputSize.Large">
+                <Input Placeholder="输入新书目名称..." @bind-Value="newBookName" OnPressEnter="OnEnterKeyPressed"
+                    OnInput="OnBookNameInput" Size="@InputSize.Large">
                 <Prefix>
                     <Icon Type="plus-circle" />
                 </Prefix>
@@ -199,7 +199,8 @@
 
     private async Task CreateBook()
     {
-        if (string.IsNullOrWhiteSpace(newBookName)) return;
+        // 双重检查防止按钮禁用时仍被点击
+        if (string.IsNullOrWhiteSpace(newBookName) || isCreating) return;
 
         isCreating = true;
         StateHasChanged();
@@ -320,5 +321,19 @@
     {
         message = string.Empty;
         StateHasChanged();
+    }
+
+    private void OnBookNameInput(ChangeEventArgs e)
+    {
+        newBookName = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task OnEnterKeyPressed()
+    {
+        if (!string.IsNullOrWhiteSpace(newBookName) && !isCreating)
+        {
+            await CreateBook();
+        }
     }
 }
