@@ -1,71 +1,230 @@
 ﻿@page "/"
+@using Novex.Data.Services
+@using Novex.Data.Models
+@inject IBookService BookService
+@inject NavigationManager Navigation
 
 <PageTitle>Novex - SillyTavern 聊天记录管理</PageTitle>
 
-<h1>欢迎使用 Novex</h1>
+<Flex Direction="FlexDirection.Vertical" Gap="FlexGap.Middle">
+    <div>
+        <Title Level="1">
+            <Icon Type="home" style="margin-right: 8px; color: #1890ff;" />
+            欢迎使用 Novex
+        </Title>
+        <Text Type="TextElementType.Secondary" style="font-size: 16px; margin-top: 8px;">
+            专业的 SillyTavern 聊天记录管理系统，帮您更好地组织和浏览对话内容
+        </Text>
+    </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">📚 书目管理</h5>
-                <p class="card-text">
-                    管理和组织您的聊天记录集合。创建、查看、删除书目，
-                    并可以清空书目中的聊天记录。
-                </p>
-                <a href="/books" class="btn btn-primary">书目管理</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">📁 导入聊天记录</h5>
-                <p class="card-text">
-                    从 SillyTavern 导出的 JSONL 文件中导入聊天记录到指定书目。
-                    支持自动解析角色名、消息内容和发送时间。
-                </p>
-                <a href="/import" class="btn btn-primary">开始导入</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">💬 浏览聊天记录</h5>
-                <p class="card-text">
-                    浏览指定书目中的聊天记录，支持按角色筛选、分页浏览，
-                    并可查看单条记录的完整内容。
-                </p>
-                <a href="/books" class="btn btn-outline-primary">选择书目</a>
-            </div>
-        </div>
-    </div>
-</div>
+    <Row Gutter="24" Style="align-items: stretch;">
+        <AntDesign.Col Span="8">
+            <Card Style="height: 100%;">
+                <div slot="cover" style="padding: 24px 24px 0; text-align: center;">
+                    <Icon Type="book" style="font-size: 48px; color: #1890ff;" />
+                </div>
+                <Flex Direction="FlexDirection.Vertical" Justify="FlexJustify.SpaceBetween" Gap="FlexGap.Middle">
+                    <CardMeta Title="书目管理" Description="管理和组织您的聊天记录集合。创建、查看、删除书目，并可以清空书目中的聊天记录。" />
+                    <div style="margin-top: 16px; text-align: center;">
+                        <a href="/books" style="text-decoration: none;">
+                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large">
+                                <Icon Type="book" />
+                                书目管理
+                            </Button>
+                        </a>
+                    </div>
+                </Flex>
+            </Card>
+        </AntDesign.Col>
 
-<div class="mt-4">
-    <h3>功能特点</h3>
-    <ul class="list-group list-group-flush">
-        <li class="list-group-item">
-            <strong>书目组织：</strong>按书目分类管理聊天记录，支持创建、删除和清空书目
-        </li>
-        <li class="list-group-item">
-            <strong>智能解析：</strong>只导入包含 name 字段的有效记录
-        </li>
-        <li class="list-group-item">
-            <strong>数据结构化：</strong>提取角色名、消息内容、发送时间，生成预览摘要
-        </li>
-        <li class="list-group-item">
-            <strong>高效查询：</strong>支持按角色筛选和分页浏览，每页显示50条记录
-        </li>
-        <li class="list-group-item">
-            <strong>详情浏览：</strong>查看完整记录内容，支持前后翻页导航
-        </li>
-        <li class="list-group-item">
-            <strong>可视化区分：</strong>不同角色使用不同背景色，预览文字颜色区分
-        </li>
-        <li class="list-group-item">
-            <strong>本地存储：</strong>使用 SQLite 数据库本地存储，快速可靠
-        </li>
-    </ul>
-</div>
+        <AntDesign.Col Span="8">
+            <Card Style="height: 100%;">
+                <div slot="cover" style="padding: 24px 24px 0; text-align: center;">
+                    <Icon Type="cloud-upload" style="font-size: 48px; color: #52c41a;" />
+                </div>
+                <Flex Direction="FlexDirection.Vertical" Justify="FlexJustify.SpaceBetween" Gap="FlexGap.Middle">
+                    <CardMeta Title="导入聊天记录"
+                        Description="从 SillyTavern 导出的 JSONL 文件中导入聊天记录到指定书目。支持自动解析角色名、消息内容和发送时间。" />
+                    <div style="margin-top: 16px; text-align: center;">
+                        <a href="/import" style="text-decoration: none;">
+                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large">
+                                <Icon Type="cloud-upload" />
+                                开始导入
+                            </Button>
+                        </a>
+                    </div>
+                </Flex>
+            </Card>
+        </AntDesign.Col>
+
+        <AntDesign.Col Span="8">
+            <Card Style="height: 100%;">
+                <div slot="cover" style="padding: 24px 24px 0; text-align: center;">
+                    <Icon Type="message" style="font-size: 48px; color: #fa8c16;" />
+                </div>
+                <Flex Direction="FlexDirection.Vertical" Justify="FlexJustify.SpaceBetween" Gap="FlexGap.Middle">
+                    <CardMeta Title="浏览聊天记录" Description="选择书目后直接跳转到对应的聊天记录页面，支持模糊搜索快速找到目标书目。" />
+                    <div style="margin-top: 16px;">
+                        <Select DataSource="@_books" Value="@_selectedBookId"
+                            ValueChanged="@((string bookId) => OnBookSelected(bookId))" ItemValue="b => b.Id.ToString()"
+                            ItemLabel="b => b.Name" Style="width: 100%;"
+                            Placeholder="@(_isLoadingBooks ? "加载中..." : "搜索并选择书目")" ShowSearch="true" AllowClear="true"
+                            Loading="@_isLoadingBooks">
+                            <SuffixIcon>
+                                <Icon Type="eye" />
+                            </SuffixIcon>
+                        </Select>
+                    </div>
+                </Flex>
+            </Card>
+        </AntDesign.Col>
+    </Row>
+
+    <Divider />
+
+    <div>
+        <Title Level="2">
+            <Icon Type="star" style="margin-right: 8px; color: #faad14;" />
+            功能特点
+        </Title>
+
+        <Row Gutter="16">
+            <AntDesign.Col Span="12">
+                <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <Avatar Style="background-color: #1890ff; margin-right: 12px; flex-shrink: 0;">
+                            <Icon Type="folder" />
+                        </Avatar>
+                        <div>
+                            <Title Level="5" style="margin: 0 0 8px 0;">书目组织</Title>
+                            <Text Type="TextElementType.Secondary">
+                                按书目分类管理聊天记录，支持创建、删除和清空书目
+                            </Text>
+                        </div>
+                    </div>
+                </Card>
+            </AntDesign.Col>
+
+            <AntDesign.Col Span="12">
+                <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <Avatar Style="background-color: #52c41a; margin-right: 12px; flex-shrink: 0;">
+                            <Icon Type="thunderbolt" />
+                        </Avatar>
+                        <div>
+                            <Title Level="5" style="margin: 0 0 8px 0;">智能解析</Title>
+                            <Text Type="TextElementType.Secondary">
+                                只导入包含 name 字段的有效记录
+                            </Text>
+                        </div>
+                    </div>
+                </Card>
+            </AntDesign.Col>
+
+            <AntDesign.Col Span="12">
+                <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <Avatar Style="background-color: #722ed1; margin-right: 12px; flex-shrink: 0;">
+                            <Icon Type="database" />
+                        </Avatar>
+                        <div>
+                            <Title Level="5" style="margin: 0 0 8px 0;">数据结构化</Title>
+                            <Text Type="TextElementType.Secondary">
+                                提取角色名、消息内容、发送时间，生成预览摘要
+                            </Text>
+                        </div>
+                    </div>
+                </Card>
+            </AntDesign.Col>
+
+            <AntDesign.Col Span="12">
+                <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <Avatar Style="background-color: #fa541c; margin-right: 12px; flex-shrink: 0;">
+                            <Icon Type="search" />
+                        </Avatar>
+                        <div>
+                            <Title Level="5" style="margin: 0 0 8px 0;">高效查询</Title>
+                            <Text Type="TextElementType.Secondary">
+                                支持按角色筛选和分页浏览，每页显示50条记录
+                            </Text>
+                        </div>
+                    </div>
+                </Card>
+            </AntDesign.Col>
+
+            <AntDesign.Col Span="12">
+                <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <Avatar Style="background-color: #13c2c2; margin-right: 12px; flex-shrink: 0;">
+                            <Icon Type="eye" />
+                        </Avatar>
+                        <div>
+                            <Title Level="5" style="margin: 0 0 8px 0;">详情浏览</Title>
+                            <Text Type="TextElementType.Secondary">
+                                查看完整记录内容，支持前后翻页导航
+                            </Text>
+                        </div>
+                    </div>
+                </Card>
+            </AntDesign.Col>
+
+            <AntDesign.Col Span="12">
+                <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <Avatar Style="background-color: #eb2f96; margin-right: 12px; flex-shrink: 0;">
+                            <Icon Type="bg-colors" />
+                        </Avatar>
+                        <div>
+                            <Title Level="5" style="margin: 0 0 8px 0;">可视化区分</Title>
+                            <Text Type="TextElementType.Secondary">
+                                不同角色使用不同背景色，预览文字颜色区分
+                            </Text>
+                        </div>
+                    </div>
+                </Card>
+            </AntDesign.Col>
+        </Row>
+
+        <Alert Type="@AlertType.Info" ShowIcon="true" style="margin-top: 24px;" Message="本地存储"
+            Description="使用 SQLite 数据库本地存储，快速可靠，保护您的数据隐私" />
+    </div>
+</Flex>
+
+@code {
+    private List<Book> _books = new();
+    private string? _selectedBookId;
+    private bool _isLoadingBooks = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooksAsync();
+    }
+
+    private async Task LoadBooksAsync()
+    {
+        try
+        {
+            _isLoadingBooks = true;
+            _books = await BookService.GetAllBooksAsync();
+        }
+        catch (Exception ex)
+        {
+            // 可以在这里添加错误处理，比如显示通知
+            Console.WriteLine($"加载书目时出错: {ex.Message}");
+        }
+        finally
+        {
+            _isLoadingBooks = false;
+        }
+    }
+
+    private void OnBookSelected(string bookId)
+    {
+        _selectedBookId = bookId;
+        if (!string.IsNullOrEmpty(bookId))
+        {
+            Navigation.NavigateTo($"/chatlogs/{bookId}");
+        }
+    }
+}

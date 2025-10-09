@@ -85,7 +85,11 @@ Clean up the copilot-instructions.md file in the .github directory by removing a
 - 不允许在样式中使用 `#ffffff`、`#000000` 等硬编码颜色
 - 不允许使用 `background: white` 等硬编码背景色
 
-# 开发规范相关
+## Ant Design Blazor 代码规范
+
+- 使用 `<Text>` 组件来设置文本样式
+
+# 开发工具指南
 
 ## 环境
 
@@ -97,23 +101,8 @@ Clean up the copilot-instructions.md file in the .github directory by removing a
 - 使用 `ls` 代替 `dir` 列出目录内容
 - 使用 `Remove-Item` 代替 `rm` 删除文件或目录
 
-## TailwindCSS 代码规范
-
-- 优先使用`/opacity数字`来设置透明度，例如 `bg-black/50`
-- 尽量避免使用 `bg-opacity-数字` 这种写法
-
-## FluentUI 代码规范
-
-- 确保不允许 `<FluentCard>` 组件嵌套
-- 确保不使用 `<FluentLabel>` 组件来显示标题或正文文本，改用标准 HTML 标签如 `<h1>`, `<p>` 等，然后通过 Tailwind CSS 类来设置样式
-- 确保不使用 `style` 属性来设置样式，改用 Tailwind CSS 类
-
 ## 开发环境下 dotnet 调试命令
 
 - 使用 `--project` 参数来指定项目目录，因为解决方案目录下有多个项目。
 - 优先通过 `dotnet watch run` 来启动项目，以启用热重载功能。
 - 如果 `dotnet build` 或 `dotnet run` 时发现 Novex.Web 是通过 `dotnet watch run` 运行的，则跳过。
-
-## LucidIcon 相关 (暂时停用)
-
-- 当使用到 wwwroot/icons 目录下缺少的图标 SVG 时，使用 `Novex.Web` 根目录下的 `manage-icons.ps1` 脚本，来从 lucid npm 中提取所需图标。
