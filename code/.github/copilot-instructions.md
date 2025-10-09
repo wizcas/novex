@@ -56,6 +56,11 @@ Clean up the copilot-instructions.md file in the .github directory by removing a
 
 ---
 
+# AI Agent 交互行为规范
+
+- *严禁*臆测猜想用户意图。如果有任何不确定，必须通过提问来澄清。
+- 执行完复杂操作后，必须总结说明所做的更改，并在 `novex/code/ai-reports` 目录下生成一份报告，md 文件，文件名格式为 `YYYYMMDD-HHMMSS-[sumary]-report.md`。其中 [sumary] 是对更改内容的简短描述，使用连字符连接单词，不超过 5 个单词。
+
 # 必须严格遵守的规范
 
 - 代码注释使用英文
