@@ -14,6 +14,9 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContext<NovexDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=novex.db"));
 
+// 添加 AntDesign 服务
+builder.Services.AddAntDesign();
+
 // 添加服务
 builder.Services.AddScoped<IChatLogService, ChatLogService>();
 builder.Services.AddScoped<IBookService, BookService>();

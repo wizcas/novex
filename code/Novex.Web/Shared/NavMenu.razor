@@ -1,39 +1,27 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Novex</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿<Menu Mode="MenuMode.Inline" Theme="MenuTheme.Light" style="border-right: 0;">
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> 首页
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="books">
-                <span class="oi oi-book" aria-hidden="true"></span> 书目管理
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="import">
-                <span class="oi oi-cloud-upload" aria-hidden="true"></span> 导入聊天记录
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    <MenuItem Key="home" RouterLink="/" RouterMatch="NavLinkMatch.All">
+    <Icon Type="home" />
+    <span>首页</span>
+    </MenuItem>
+
+    <MenuItem Key="books" RouterLink="/books">
+    <Icon Type="book" />
+    <span>书目管理</span>
+    </MenuItem>
+
+    <MenuItem Key="import" RouterLink="/import">
+    <Icon Type="cloud-upload" />
+    <span>导入聊天记录</span>
+    </MenuItem>
+
+    <MenuItem Key="chat-logs" RouterLink="/chat-logs">
+    <Icon Type="message" />
+    <span>聊天记录</span>
+    </MenuItem>
+
+</Menu>
 
 @code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    // 移除了原有的折叠逻辑，现在由 Layout.Sider 处理
 }

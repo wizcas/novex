@@ -1,19 +1,41 @@
 ﻿@inherits LayoutComponentBase
 
-<PageTitle>Novex.Web</PageTitle>
+<PageTitle>Novex - 小说聊天记录管理系统</PageTitle>
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+<Layout style="min-height: 100vh;">
+    <Sider Width="256" 
+           Theme="SiderTheme.Light" 
+           Collapsible="true" 
+           @bind-Collapsed="collapsed">
+        <div class="logo" style="height: 64px; background: rgba(255, 255, 255, 0.3); margin: 16px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #1890ff;">
+            📚 Novex
         </div>
+        <NavMenu />
+    </Sider>
+    <Layout>
+        <Header style="background: #fff; padding: 0 24px; box-shadow: 0 1px 4px rgba(0,21,41,.08);">
+            <div style="display: flex; align-items: center; justify-content: space-between; height: 64px;">
+                <h1 style="margin: 0; font-size: 20px; font-weight: 500; color: rgba(0, 0, 0, 0.85);">
+                    小说聊天记录管理系统
+                </h1>
+                <div>
+                    <a href="https://github.com/ant-design-blazor/ant-design-blazor" target="_blank" style="color: #1890ff; text-decoration: none;">
+                        关于 AntDesign
+                    </a>
+                </div>
+            </div>
+        </Header>
+        <Content style="margin: 24px; background: #fff; border-radius: 6px; min-height: 280px;">
+            <div style="padding: 24px;">
+                @Body
+            </div>
+        </Content>
+        <Footer style="text-align: center; background: #f0f2f5; color: rgba(0, 0, 0, 0.65);">
+            Novex ©2025 Created with AntDesign Blazor
+        </Footer>
+    </Layout>
+</Layout>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+@code {
+    private bool collapsed = false;
+}
