@@ -5,9 +5,18 @@ using Novex.Data.Models;
 
 namespace Novex.Data.Services;
 
+public class BookSummary
+{
+  public int Id { get; set; }
+  public string Name { get; set; } = string.Empty;
+  public DateTime CreatedDate { get; set; }
+  public int ChatLogCount { get; set; }
+}
+
 public interface IBookService
 {
   Task<List<Book>> GetAllBooksAsync();
+  Task<List<BookSummary>> GetAllBooksWithChatCountAsync();
   Task<List<Book>> SearchBooksAsync(string searchTerm);
   Task<Book?> GetBookByIdAsync(int id);
   Task<Book?> GetBookByNameAsync(string name);
@@ -30,6 +39,20 @@ public class BookService : IBookService
   public async Task<List<Book>> GetAllBooksAsync()
   {
     return await _context.Books
+        .OrderBy(b => b.Name)
+        .ToListAsync();
+  }
+
+  public async Task<List<BookSummary>> GetAllBooksWithChatCountAsync()
+  {
+    return await _context.Books
+        .Select(b => new BookSummary
+        {
+          Id = b.Id,
+          Name = b.Name,
+          CreatedDate = b.CreatedDate,
+          ChatLogCount = b.ChatLogs.Count()
+        })
         .OrderBy(b => b.Name)
         .ToListAsync();
   }
