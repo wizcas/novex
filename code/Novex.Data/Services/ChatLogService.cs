@@ -13,9 +13,11 @@ public interface IChatLogService
   Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 50);
   Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 50);
   Task<List<ChatLogSummary>> GetChatLogsByIndexRangeAsync(int bookId, int startIndex, int endIndex);
+  Task<List<ChatLogSummary>> GetChatLogsWithFiltersAsync(int bookId, string? nameFilter = null, int? startIndex = null, int? endIndex = null, int page = 1, int pageSize = 50);
   Task<ChatLog?> GetChatLogByIdAsync(int id);
   Task<int> GetTotalCountAsync(int bookId);
   Task<int> GetTotalCountByNameAsync(string name, int bookId);
+  Task<int> GetTotalCountWithFiltersAsync(int bookId, string? nameFilter = null, int? startIndex = null, int? endIndex = null);
   Task<int?> GetPreviousChatLogIdAsync(int currentId);
   Task<int?> GetNextChatLogIdAsync(int currentId);
   Task<(int MinIndex, int MaxIndex)> GetIndexRangeAsync(int bookId);
@@ -244,6 +246,70 @@ public class ChatLogService : IChatLogService
       return (0, 0);
 
     return (logs.Min(), logs.Max());
+  }
+
+  public async Task<List<ChatLogSummary>> GetChatLogsWithFiltersAsync(int bookId, string? nameFilter = null, int? startIndex = null, int? endIndex = null, int page = 1, int pageSize = 50)
+  {
+    var query = _context.ChatLogs.Where(c => c.BookId == bookId);
+
+    // 应用角色名筛选
+    if (!string.IsNullOrWhiteSpace(nameFilter))
+    {
+      query = query.Where(c => c.Name == nameFilter);
+    }
+
+    // 应用楼层范围筛选
+    if (startIndex.HasValue || endIndex.HasValue)
+    {
+      // 获取实际的范围边界
+      var (minIdx, maxIdx) = await GetIndexRangeAsync(bookId);
+
+      var actualStartIndex = startIndex ?? minIdx;
+      var actualEndIndex = endIndex ?? maxIdx;
+
+      query = query.Where(c => c.Index >= actualStartIndex && c.Index <= actualEndIndex);
+    }
+
+    var skip = (page - 1) * pageSize;
+
+    return await query
+        .OrderBy(c => c.Index)
+        .Skip(skip)
+        .Take(pageSize)
+        .Select(c => new ChatLogSummary
+        {
+          Id = c.Id,
+          Name = c.Name,
+          SendDate = c.SendDate,
+          Preview = c.Preview,
+          Index = c.Index
+        })
+        .ToListAsync();
+  }
+
+  public async Task<int> GetTotalCountWithFiltersAsync(int bookId, string? nameFilter = null, int? startIndex = null, int? endIndex = null)
+  {
+    var query = _context.ChatLogs.Where(c => c.BookId == bookId);
+
+    // 应用角色名筛选
+    if (!string.IsNullOrWhiteSpace(nameFilter))
+    {
+      query = query.Where(c => c.Name == nameFilter);
+    }
+
+    // 应用楼层范围筛选
+    if (startIndex.HasValue || endIndex.HasValue)
+    {
+      // 获取实际的范围边界
+      var (minIdx, maxIdx) = await GetIndexRangeAsync(bookId);
+
+      var actualStartIndex = startIndex ?? minIdx;
+      var actualEndIndex = endIndex ?? maxIdx;
+
+      query = query.Where(c => c.Index >= actualStartIndex && c.Index <= actualEndIndex);
+    }
+
+    return await query.CountAsync();
   }
 
   private static string GeneratePreview(string name, DateTime sendDate, string mes)

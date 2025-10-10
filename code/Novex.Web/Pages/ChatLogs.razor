@@ -62,10 +62,14 @@
   <div style="margin-bottom: 24px;">
     <Row Gutter="16" Style="margin-bottom: 16px;">
       <AntDesign.Col Span="24">
-        <Card Title="查询选项" Size="@CardSize.Small">
-          <Tabs DefaultActiveKey="1">
-            <TabPane Key="1" Tab="按角色筛选">
+        <Card Title="筛选条件" Size="@CardSize.Small">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- 角色筛选 -->
+            <div>
               <Space>
+                <SpaceItem>
+                  <Text Strong="true">角色名：</Text>
+                </SpaceItem>
                 <SpaceItem>
                   <Input @bind-Value="nameFilter" Placeholder="按角色名筛选..." OnPressEnter="@OnKeyPress"
                     Size="@InputSize.Large" Style="width: 300px;">
@@ -74,59 +78,53 @@
                   </Prefix>
                   </Input>
                 </SpaceItem>
-                <SpaceItem>
-                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="SearchByName"
-                    Size="@ButtonSize.Large">
-                    搜索
-                  </Button>
-                </SpaceItem>
-                <SpaceItem>
-                  <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
-                    Size="@ButtonSize.Large">
-                    清除
-                  </Button>
-                </SpaceItem>
               </Space>
-            </TabPane>
-            <TabPane Key="2" Tab="按楼层范围">
+            </div>
+            <!-- 楼层范围筛选 -->
+            <div>
               <Space>
                 <SpaceItem>
-                  <Text>楼层范围：</Text>
+                  <Text Strong="true">楼层范围：</Text>
                 </SpaceItem>
                 <SpaceItem>
                   <AntDesign.InputNumber @bind-Value="startIndex" Placeholder="起始楼层" Min="@minIndex" Max="@maxIndex"
-                    Style="width: 120px;" />
+                    Style="width: 130px;" />
                 </SpaceItem>
                 <SpaceItem>
                   <Text>-</Text>
                 </SpaceItem>
                 <SpaceItem>
                   <AntDesign.InputNumber @bind-Value="endIndex" Placeholder="结束楼层" Min="@minIndex" Max="@maxIndex"
-                    Style="width: 120px;" />
+                    Style="width: 130px;" />
                 </SpaceItem>
+                @if (minIndex > 0 || maxIndex > 0)
+                {
+                  <SpaceItem>
+                    <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+                      （可用范围：@minIndex - @maxIndex）
+                    </Text>
+                  </SpaceItem>
+                }
+              </Space>
+            </div>
+            <!-- 操作按钮 -->
+            <div>
+              <Space>
                 <SpaceItem>
-                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="SearchByIndexRange"
+                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="ApplyFilters"
                     Size="@ButtonSize.Large">
-                    查询
+                    应用筛选
                   </Button>
                 </SpaceItem>
                 <SpaceItem>
                   <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
                     Size="@ButtonSize.Large">
-                    清除
+                    清除筛选
                   </Button>
                 </SpaceItem>
               </Space>
-              @if (minIndex > 0 || maxIndex > 0)
-              {
-                <div style="margin-top: 8px;">
-                  <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
-                    可用楼层范围：@minIndex - @maxIndex
-                  </Text>
-                </div>
-              }
-            </TabPane>
-          </Tabs>
+            </div>
+          </div>
         </Card>
       </AntDesign.Col>
     </Row>
@@ -151,7 +149,7 @@
   else if (chatLogs.Any())
   {
     <div style="overflow-x: auto;">
-      <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" Bordered="true" ScrollX="900">
+      <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" ScrollX="900">
         <Column TData="ChatLogSummary" Title="楼层" Width="60px">
           <Template>
             <Text Type="TextElementType.Secondary">@context.Index</Text>
@@ -162,12 +160,12 @@
             <Text Style="@($"color: {GetCharacterColor(context.Name)}")">@context.Name</Text>
           </Template>
         </Column>
-        <Column TData="ChatLogSummary" Title="发送时间" Width="80px">
+        <Column TData="ChatLogSummary" Title="发送时间" Width="100px">
           <Template>
             @context.SendDate.ToString("yyyy-MM-dd HH:mm:ss")
           </Template>
         </Column>
-        <Column TData="ChatLogSummary" Title="预览" Width="400px">
+        <Column TData="ChatLogSummary" Title="预览">
           <Template>
             <div style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               @((MarkupString)FormatPreview(context.Name, context.SendDate, context.Preview))
@@ -285,9 +283,10 @@
   private bool hasNextRecord = false;
   private int? startIndex = null;
   private int? endIndex = null;
+  private int? currentStartIndex = null;
+  private int? currentEndIndex = null;
   private int minIndex = 0;
   private int maxIndex = 0;
-  private bool isIndexRangeQuery = false;
   private readonly string[] characterColors = new[] {
 "#E53E3E", // 明亮红色 - 在亮暗背景都清晰
 "#38A169", // 明亮绿色 - 在亮暗背景都清晰
@@ -328,25 +327,22 @@
 
     try
     {
-      if (isIndexRangeQuery && startIndex.HasValue && endIndex.HasValue)
-      {
-        // 按Index范围查询
-        chatLogs = await ChatLogService.GetChatLogsByIndexRangeAsync(BookId, startIndex.Value, endIndex.Value);
-        totalCount = chatLogs.Count;
-        totalPages = 1; // Index范围查询不分页
-      }
-      else if (string.IsNullOrWhiteSpace(currentNameFilter))
-      {
-        chatLogs = await ChatLogService.GetAllChatLogsAsync(BookId, currentPage, pageSize);
-        totalCount = await ChatLogService.GetTotalCountAsync(BookId);
-        totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-      }
-      else
-      {
-        chatLogs = await ChatLogService.GetChatLogsByNameAsync(currentNameFilter, BookId, currentPage, pageSize);
-        totalCount = await ChatLogService.GetTotalCountByNameAsync(currentNameFilter, BookId);
-        totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-      }
+      // 使用统一的筛选方法
+      chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+      BookId,
+      string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
+      currentStartIndex,
+      currentEndIndex,
+      currentPage,
+      pageSize);
+
+      totalCount = await ChatLogService.GetTotalCountWithFiltersAsync(
+      BookId,
+      string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
+      currentStartIndex,
+      currentEndIndex);
+
+      totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
     }
     finally
     {
@@ -355,9 +351,12 @@
     }
   }
 
-  private async Task SearchByName()
+  private async Task ApplyFilters()
   {
+    // 应用当前的筛选条件
     currentNameFilter = nameFilter;
+    currentStartIndex = startIndex;
+    currentEndIndex = endIndex;
     currentPage = 1;
     Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
@@ -369,28 +368,18 @@
     currentNameFilter = string.Empty;
     startIndex = null;
     endIndex = null;
-    isIndexRangeQuery = false;
+    currentStartIndex = null;
+    currentEndIndex = null;
     currentPage = 1;
     Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
-  }
-
-  private async Task SearchByIndexRange()
-  {
-    if (startIndex.HasValue && endIndex.HasValue && startIndex <= endIndex)
-    {
-      isIndexRangeQuery = true;
-      currentNameFilter = string.Empty;
-      nameFilter = string.Empty;
-      await LoadChatLogs();
-    }
   }
 
   private async Task OnKeyPress(KeyboardEventArgs e)
   {
     if (e.Key == "Enter")
     {
-      await SearchByName();
+      await ApplyFilters();
     }
   }
 
