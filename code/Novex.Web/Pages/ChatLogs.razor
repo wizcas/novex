@@ -152,15 +152,14 @@
   {
     <div style="overflow-x: auto;">
       <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" Bordered="true" ScrollX="900">
-        <Column TData="ChatLogSummary" Title="楼层" Width="40px">
+        <Column TData="ChatLogSummary" Title="楼层" Width="60px">
           <Template>
-            <Tag Color="@("blue")">@context.Index</Tag>
+            <Text Type="TextElementType.Secondary">@context.Index</Text>
           </Template>
         </Column>
         <Column TData="ChatLogSummary" Title="角色名" Width="150px">
           <Template>
-            <Text Strong="true"
-              Style="@($"color: {GetCharacterColor(context.Name)}; background-color: {GetCharacterBackgroundColor(context.Name)}")">@context.Name</Text>
+            <Text Style="@($"color: {GetCharacterColor(context.Name)}")">@context.Name</Text>
           </Template>
         </Column>
         <Column TData="ChatLogSummary" Title="发送时间" Width="80px">
@@ -289,11 +288,15 @@
   private int minIndex = 0;
   private int maxIndex = 0;
   private bool isIndexRangeQuery = false;
-  private readonly Dictionary<string, string> characterColors = new();
-  private readonly string[] backgroundColors = new[]
-  {
-"#f8f9fa", "#e3f2fd", "#f3e5f5", "#e8f5e8", "#fff3e0",
-"#fce4ec", "#e0f2f1", "#f1f8e9", "#fff8e1", "#fafafa"
+  private readonly string[] characterColors = new[] {
+"#E53E3E", // 明亮红色 - 在亮暗背景都清晰
+"#38A169", // 明亮绿色 - 在亮暗背景都清晰
+"#FF8C00", // 明亮橙色 - 在亮暗背景都清晰
+"#9F7AEA", // 明亮紫色 - 在亮暗背景都清晰
+"#8B4513", // 明亮棕色 - 在亮暗背景都清晰
+"#00B5A5", // 明亮青色 - 在亮暗背景都清晰
+"#E91E63", // 明亮粉色 - 在亮暗背景都清晰
+"#696969" // 明亮灰色 - 在亮暗背景都清晰
 };
 
   protected override async Task OnInitializedAsync()
@@ -498,22 +501,11 @@
     return nextId.HasValue;
   }
 
-  private string GetCharacterBackgroundColor(string characterName)
-  {
-    if (!characterColors.ContainsKey(characterName))
-    {
-      var index = characterColors.Count % backgroundColors.Length;
-      characterColors[characterName] = backgroundColors[index];
-    }
-    return characterColors[characterName];
-  }
-
   private string GetCharacterColor(string characterName)
   {
     // 为不同角色提供不同的文字颜色
     var hash = characterName.GetHashCode();
-    var colors = new[] { "#1890ff", "#52c41a", "#fa8c16", "#eb2f96", "#722ed1", "#13c2c2", "#f5222d" };
-    return colors[Math.Abs(hash) % colors.Length];
+    return characterColors[Math.Abs(hash) % characterColors.Length];
   }
 
   private string FormatPreview(string name, DateTime sendDate, string preview)
