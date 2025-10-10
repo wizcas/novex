@@ -1,13 +1,29 @@
-﻿<div class="alert alert-secondary mt-4">
-    <span class="oi oi-pencil me-2" aria-hidden="true"></span>
-    <strong>@Title</strong>
-
-    <span class="text-nowrap">
-        Please take our
-        <a target="_blank" class="font-weight-bold link-dark" href="https://go.microsoft.com/fwlink/?linkid=2186158">brief survey</a>
-    </span>
-    and tell us what you think.
-</div>
+﻿<Card Style="margin-top: 24px; border: 1px solid #d9d9d9;">
+    <div style="display: flex; align-items: center; padding: 16px;">
+        <Icon Type="edit" style="margin-right: 12px; color: #1890ff; font-size: 20px;" />
+        <div style="flex: 1;">
+            <Text Strong="true" Style="font-size: 16px; display: block; margin-bottom: 8px;">
+                @Title
+            </Text>
+            <div style="color: #666;">
+                <Text Type="@TextElementType.Secondary">
+                    请参与我们的
+                </Text>
+                <Button Type="@ButtonType.Link" 
+                        Size="@ButtonSize.Small"
+                        Href="https://go.microsoft.com/fwlink/?linkid=2186158" 
+                        Target="_blank"
+                        Style="padding: 0; height: auto; font-weight: 600;">
+                    简短调查
+                </Button>
+                <Text Type="@TextElementType.Secondary">
+                    ，告诉我们您的想法。
+                </Text>
+            </div>
+        </div>
+        <Icon Type="arrow-right" style="color: #bfbfbf;" />
+    </div>
+</Card>
 
 @code {
     // Demonstrates how a parent component can supply parameters

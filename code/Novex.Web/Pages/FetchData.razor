@@ -2,40 +2,74 @@
 @using Novex.Web.Data
 @inject WeatherForecastService ForecastService
 
-<PageTitle>Weather forecast</PageTitle>
+<PageTitle>天气预报</PageTitle>
 
-<h1>Weather forecast</h1>
+<div style="padding: 24px;">
+    <div style="margin-bottom: 24px;">
+        <Title Level="1">
+            <Icon Type="cloud" style="margin-right: 8px; color: #1890ff;" />
+            天气预报
+        </Title>
+        <Text Type="@TextElementType.Secondary" Style="font-size: 16px;">
+            此页面演示了从服务获取数据的功能。
+        </Text>
+    </div>
 
-<p>This component demonstrates fetching data from a service.</p>
-
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    @if (forecasts == null)
+    {
+        <div style="text-align: center; padding: 48px;">
+            <Spin Size="@SpinSize.Large" />
+            <div style="margin-top: 16px;">
+                <Text Type="@TextElementType.Secondary">加载中...</Text>
+            </div>
+        </div>
+    }
+    else
+    {
+        <Card Title="未来5天天气预报" Style="margin-top: 24px;">
+            <div style="overflow-x: auto;">
+                <Table TItem="WeatherForecast" DataSource="@forecasts" Size="@TableSize.Middle" Bordered="true">
+                    <Column TData="WeatherForecast" Title="日期" Width="150px">
+                        <Template>
+                            <div style="display: flex; align-items: center;">
+                                <Icon Type="calendar" style="margin-right: 8px; color: #1890ff;" />
+                                @context.Date.ToString("MM月dd日")
+                            </div>
+                        </Template>
+                    </Column>
+                    <Column TData="WeatherForecast" Title="温度 (°C)" Width="120px">
+                        <Template>
+                            <Tag Color="@GetTemperatureColor(context.TemperatureC)">
+                                @context.TemperatureC°C
+                            </Tag>
+                        </Template>
+                    </Column>
+                    <Column TData="WeatherForecast" Title="温度 (°F)" Width="120px">
+                        <Template>
+                            <Tag Color="@GetTemperatureColor(context.TemperatureC)" Style="border-style: dashed;">
+                                @context.TemperatureF°F
+                            </Tag>
+                        </Template>
+                    </Column>
+                    <Column TData="WeatherForecast" Title="天气描述">
+                        <Template>
+                            <div style="display: flex; align-items: center;">
+                                <Icon Type="@GetWeatherIcon(context.Summary)" style="margin-right: 8px; color: #52c41a;" />
+                                <Text Strong="true">@context.Summary</Text>
+                            </div>
+                        </Template>
+                    </Column>
+                </Table>
+            </div>
+        </Card>
+        
+        <Alert Type="@AlertType.Success" 
+               Message="数据加载完成" 
+               Description="@($"成功加载了 {forecasts.Length} 条天气预报数据。")"
+               ShowIcon="true"
+               Style="margin-top: 24px;" />
+    }
+</div>
 
 @code {
     private WeatherForecast[]? forecasts;
@@ -43,5 +77,27 @@ else
     protected override async Task OnInitializedAsync()
     {
         forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
+    }
+    
+    private string GetTemperatureColor(int temperature)
+    {
+        if (temperature < 0) return "blue";
+        if (temperature < 10) return "cyan";
+        if (temperature < 20) return "green";
+        if (temperature < 30) return "orange";
+        return "red";
+    }
+    
+    private string GetWeatherIcon(string? summary)
+    {
+        return summary?.ToLower() switch
+        {
+            var s when s?.Contains("sunny") == true => "sun",
+            var s when s?.Contains("cloudy") == true => "cloud",
+            var s when s?.Contains("rain") == true => "cloud-rain",
+            var s when s?.Contains("snow") == true => "cloud-snow",
+            var s when s?.Contains("storm") == true => "thunderbolt",
+            _ => "sun"
+        };
     }
 }

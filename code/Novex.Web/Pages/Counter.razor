@@ -2,11 +2,41 @@
 
 <PageTitle>Counter</PageTitle>
 
-<h1>Counter</h1>
+<div style="padding: 24px;">
+    <Title Level="1">
+        <Icon Type="calculator" style="margin-right: 8px; color: #1890ff;" />
+        计数器
+    </Title>
 
-<p role="status">Current count: @currentCount</p>
+    <Card Style="max-width: 400px; margin-top: 24px;">
+        <div style="text-align: center; padding: 24px 0;">
+            <div style="margin-bottom: 24px;">
+                <Text Type="@TextElementType.Secondary" Style="font-size: 16px;">当前计数：</Text>
+                <div style="font-size: 48px; font-weight: bold; color: #1890ff; margin: 16px 0;">
+                    @currentCount
+                </div>
+            </div>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+            <Space Size="@SpaceSize.Large">
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Icon="@IconType.Outline.Plus"
+                        OnClick="IncrementCount">
+                        点击增加
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Default" Size="@ButtonSize.Large" Icon="@IconType.Outline.Reload"
+                        OnClick="ResetCount">
+                        重置
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </div>
+    </Card>
+
+    <Alert Type="@AlertType.Info" Message="示例页面" Description="这是一个简单的计数器示例，演示了 AntDesign Blazor 组件的使用。" ShowIcon="true"
+        Style="margin-top: 24px; max-width: 400px;" />
+</div>
 
 @code {
     private int currentCount = 0;
@@ -14,5 +44,10 @@
     private void IncrementCount()
     {
         currentCount++;
+    }
+
+    private void ResetCount()
+    {
+        currentCount = 0;
     }
 }
