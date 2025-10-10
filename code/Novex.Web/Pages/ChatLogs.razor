@@ -296,6 +296,12 @@
   [SupplyParameterFromQuery]
   public int? Size { get; set; }
 
+  [SupplyParameterFromQuery(Name = "char")]
+  public string? Char { get; set; }
+
+  [SupplyParameterFromQuery(Name = "range")]
+  public string? Range { get; set; }
+
   private List<ChatLogSummary> chatLogs = new();
   private bool isLoading;
   private bool isNavigating;
@@ -445,16 +451,97 @@
     // 获取所有角色名
     characterNames = await ChatLogService.GetCharacterNamesAsync(BookId);
 
+    // 从URL参数初始化过滤器
+    InitializeFiltersFromUrl();
+
     await LoadChatLogs();
     _hasInitialized = true;
   }
 
   protected async override Task OnParametersSetAsync()
   {
-    // 只在初始化完成后且页面确实发生变化时才重新加载数据
-    if (Page.HasValue && Page.Value != currentPage && _hasInitialized)
+    if (!_hasInitialized) return;
+
+    var shouldReload = false;
+
+    // 检查页面参数变化
+    if (Page.HasValue && Page.Value != currentPage)
     {
       currentPage = Page.Value;
+      shouldReload = true;
+    }
+
+    // 检查页面大小参数变化
+    if (Size.HasValue && Size.Value != pageSize)
+    {
+      pageSize = Size.Value;
+      shouldReload = true;
+    }
+
+    // 检查过滤器参数变化
+    var urlCharFilter = Char ?? string.Empty;
+    if (urlCharFilter != currentNameFilter)
+    {
+      nameFilter = urlCharFilter;
+      currentNameFilter = urlCharFilter;
+      shouldReload = true;
+    }
+
+    // 检查楼层范围参数变化
+    if (!string.IsNullOrEmpty(Range))
+    {
+      var (start, end) = ParseRangeParameter(Range);
+      var newStartIndex = start.HasValue ? start.Value : (int?)null;
+      var newEndIndex = end.HasValue ? end.Value : (int?)null;
+
+      if (newStartIndex != currentStartIndex || newEndIndex != currentEndIndex)
+      {
+        if (newStartIndex.HasValue)
+        {
+          _startIndex = ValidateAndAdjustStartIndex(newStartIndex.Value);
+          currentStartIndex = _startIndex;
+        }
+        else
+        {
+          _startIndex = minIndex;
+          currentStartIndex = null;
+        }
+
+        if (newEndIndex.HasValue)
+        {
+          _endIndex = ValidateAndAdjustEndIndex(newEndIndex.Value);
+          currentEndIndex = _endIndex;
+        }
+        else
+        {
+          _endIndex = maxIndex;
+          currentEndIndex = null;
+        }
+
+        // 确保范围有效性
+        if (_startIndex > _endIndex)
+        {
+          _endIndex = _startIndex;
+          currentEndIndex = _startIndex;
+        }
+
+        _floorRange = (_startIndex, _endIndex);
+        shouldReload = true;
+      }
+    }
+    else if (currentStartIndex.HasValue || currentEndIndex.HasValue)
+    {
+      // Range参数被清除
+      _startIndex = minIndex;
+      _endIndex = maxIndex;
+      currentStartIndex = null;
+      currentEndIndex = null;
+      _floorRange = (minIndex, maxIndex);
+      shouldReload = true;
+    }
+
+    if (shouldReload)
+    {
       await LoadChatLogs();
     }
   }
@@ -498,7 +585,15 @@
     currentStartIndex = (startIndex == minIndex && endIndex == maxIndex) ? null : startIndex;
     currentEndIndex = (startIndex == minIndex && endIndex == maxIndex) ? null : endIndex;
     currentPage = 1;
-    Navigation.NavigateTo($"/chatlogs/{BookId}?page=1&size={pageSize}");
+
+    // 构建URL参数
+    var charFilter = string.IsNullOrEmpty(currentNameFilter) ? null : currentNameFilter;
+    var rangeFilter = (currentStartIndex.HasValue || currentEndIndex.HasValue)
+                      ? BuildRangeParameter(currentStartIndex, currentEndIndex)
+                      : null;
+
+    var url = BuildUrl(1, pageSize, charFilter, rangeFilter);
+    Navigation.NavigateTo(url, false);
     await LoadChatLogs();
   }
 
@@ -512,7 +607,10 @@
     currentEndIndex = null;
     currentPage = 1;
     _floorRange = (minIndex, maxIndex);
-    Navigation.NavigateTo($"/chatlogs/{BookId}?page=1&size={pageSize}");
+
+    // 清除过滤器时只保留page和size参数
+    var url = BuildUrl(1, pageSize);
+    Navigation.NavigateTo(url, false);
     await LoadChatLogs();
   }
 
@@ -546,8 +644,14 @@
       await SaveScrollPosition();
       await PreventScrollFlash();
 
-      // 更新URL上的page参数，但不刷新页面
-      Navigation.NavigateTo($"/chatlogs/{BookId}?page={page}&size={pageSize}", false);
+      // 构建URL参数，保持过滤器状态
+      var charFilter = string.IsNullOrEmpty(currentNameFilter) ? null : currentNameFilter;
+      var rangeFilter = (currentStartIndex.HasValue || currentEndIndex.HasValue)
+                        ? BuildRangeParameter(currentStartIndex, currentEndIndex)
+                        : null;
+
+      var url = BuildUrl(page, pageSize, charFilter, rangeFilter);
+      Navigation.NavigateTo(url, false);
 
       // 直接更新currentPage并重新加载数据，避免通过OnParametersSetAsync触发
       currentPage = page;
@@ -573,8 +677,14 @@
     await SaveScrollPosition();
     await PreventScrollFlash();
 
-    // 更新URL参数
-    Navigation.NavigateTo($"/chatlogs/{BookId}?page=1&size={pageSize}", false);
+    // 构建URL参数，保持过滤器状态
+    var charFilter = string.IsNullOrEmpty(currentNameFilter) ? null : currentNameFilter;
+    var rangeFilter = (currentStartIndex.HasValue || currentEndIndex.HasValue)
+                      ? BuildRangeParameter(currentStartIndex, currentEndIndex)
+                      : null;
+
+    var url = BuildUrl(1, pageSize, charFilter, rangeFilter);
+    Navigation.NavigateTo(url, false);
 
     // 重新加载数据
     await LoadChatLogs();
@@ -851,6 +961,106 @@
       Lg = new EmbeddedProperty { Span = 21, Offset = 3 },
       Xl = new EmbeddedProperty { Span = 21, Offset = 3 }
     };
+  }
+
+  private void InitializeFiltersFromUrl()
+  {
+    // 从URL参数初始化角色名过滤器
+    if (!string.IsNullOrEmpty(Char))
+    {
+      nameFilter = Char;
+      currentNameFilter = Char;
+    }
+
+    // 从URL参数初始化楼层范围过滤器
+    if (!string.IsNullOrEmpty(Range))
+    {
+      var (start, end) = ParseRangeParameter(Range);
+      if (start.HasValue)
+      {
+        _startIndex = ValidateAndAdjustStartIndex(start.Value);
+        currentStartIndex = _startIndex;
+      }
+      else
+      {
+        _startIndex = minIndex;
+        currentStartIndex = null;
+      }
+
+      if (end.HasValue)
+      {
+        _endIndex = ValidateAndAdjustEndIndex(end.Value);
+        currentEndIndex = _endIndex;
+      }
+      else
+      {
+        _endIndex = maxIndex;
+        currentEndIndex = null;
+      }
+
+      // 确保范围有效性
+      if (_startIndex > _endIndex)
+      {
+        _endIndex = _startIndex;
+        currentEndIndex = _startIndex;
+      }
+
+      _floorRange = (_startIndex, _endIndex);
+    }
+  }
+
+  private (int?, int?) ParseRangeParameter(string range)
+  {
+    if (string.IsNullOrEmpty(range))
+      return (null, null);
+
+    var parts = range.Split(',');
+    if (parts.Length != 2)
+      return (null, null);
+
+    int? start = null;
+    int? end = null;
+
+    // 解析起始值
+    if (!string.IsNullOrEmpty(parts[0]) && int.TryParse(parts[0], out var startValue))
+    {
+      start = startValue;
+    }
+
+    // 解析结束值
+    if (!string.IsNullOrEmpty(parts[1]) && int.TryParse(parts[1], out var endValue))
+    {
+      end = endValue;
+    }
+
+    return (start, end);
+  }
+
+  private string BuildUrl(int page, int size, string? charFilter = null, string? rangeFilter = null)
+  {
+    var url = $"/chatlogs/{BookId}?page={page}&size={size}";
+
+    if (!string.IsNullOrEmpty(charFilter))
+    {
+      url += $"&char={Uri.EscapeDataString(charFilter)}";
+    }
+
+    if (!string.IsNullOrEmpty(rangeFilter))
+    {
+      url += $"&range={Uri.EscapeDataString(rangeFilter)}";
+    }
+
+    return url;
+  }
+
+  private string BuildRangeParameter(int? startIndex, int? endIndex)
+  {
+    if (!startIndex.HasValue && !endIndex.HasValue)
+      return string.Empty;
+
+    var start = startIndex?.ToString() ?? "";
+    var end = endIndex?.ToString() ?? "";
+    return $"{start},{end}";
   }
 
 }
