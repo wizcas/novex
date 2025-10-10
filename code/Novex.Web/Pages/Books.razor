@@ -18,16 +18,16 @@
         <Row Gutter="16">
             <AntDesign.Col Span="12">
                 <Input Placeholder="输入新书目名称..." @bind-Value="newBookName" OnPressEnter="OnEnterKeyPressed"
-                       OnInput="OnBookNameInput" Size="@InputSize.Large">
+                    OnInput="OnBookNameInput" Size="@InputSize.Large">
                 <Prefix>
-                    <Icon Type="plus-circle"/>
+                    <Icon Type="plus-circle" />
                 </Prefix>
                 </Input>
             </AntDesign.Col>
             <AntDesign.Col Span="6">
                 <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Loading="@isCreating"
-                        Disabled="@(string.IsNullOrWhiteSpace(newBookName) || isCreating)" OnClick="CreateBook">
-                    <Icon Type="plus"/>
+                    Disabled="@(string.IsNullOrWhiteSpace(newBookName) || isCreating)" OnClick="CreateBook">
+                    <Icon Type="plus" />
                     创建书目
                 </Button>
             </AntDesign.Col>
@@ -37,7 +37,7 @@
     @if (isLoading)
     {
         <div style="text-align: center; padding: 48px;">
-            <Spin Size="@SpinSize.Large"/>
+            <Spin Size="@SpinSize.Large" />
             <div style="margin-top: 16px;">
                 <Text Type="@TextElementType.Secondary">加载中...</Text>
             </div>
@@ -75,27 +75,34 @@
                     @context.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")
                 </Template>
             </Column>
-            <ActionColumn Title="操作" Width="300px">
+            <ActionColumn Title="操作" Width="400px">
                 <Template>
                     <Space Size="@SpaceSize.Small">
                         <SpaceItem>
                             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
-                                    OnClick="() => ViewChatLogs(context.Id)">
-                                <Icon Type="eye"/>
+                                OnClick="() => ViewChatLogs(context.Id)">
+                                <Icon Type="eye" />
                                 查看聊天记录
                             </Button>
                         </SpaceItem>
                         <SpaceItem>
+                            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small"
+                                OnClick="() => ImportChatLogs(context.Id)">
+                                <Icon Type="upload" />
+                                导入记录
+                            </Button>
+                        </SpaceItem>
+                        <SpaceItem>
                             <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" Danger="false"
-                                    Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
-                                <Icon Type="clear"/>
+                                Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
+                                <Icon Type="clear" />
                                 清空记录
                             </Button>
                         </SpaceItem>
                         <SpaceItem>
                             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Danger="true"
-                                    Disabled="@isOperating" OnClick="() => ShowDeleteConfirm(context)">
-                                <Icon Type="delete"/>
+                                Disabled="@isOperating" OnClick="() => ShowDeleteConfirm(context)">
+                                <Icon Type="delete" />
                                 删除书目
                             </Button>
                         </SpaceItem>
@@ -109,12 +116,12 @@
         <Empty>
             <DescriptionTemplate>
                 <Text Type="@TextElementType.Secondary">暂无书目</Text>
-                <br/>
+                <br />
                 <Text Type="@TextElementType.Secondary">请创建一个新的书目开始使用。</Text>
             </DescriptionTemplate>
             <ChildContent>
                 <Button Type="@ButtonType.Primary" OnClick="() => { }">
-                    <Icon Type="plus"/>
+                    <Icon Type="plus" />
                     创建第一个书目
                 </Button>
             </ChildContent>
@@ -127,7 +134,7 @@
         RenderFragment deleteFooter = @<Template>
             <Button OnClick="CancelDelete" @key="@("cancel")">取消</Button>
             <Button OnClick="ConfirmDelete" @key="@("confirm")" Type="ButtonType.Primary" Danger="true"
-                    Loading="@isOperating">
+                Loading="@isOperating">
                 确认删除
             </Button>
         </Template>;
@@ -137,9 +144,8 @@
                 <Text Strong="true">@bookToDelete.Name</Text>
                 " 吗？
             </p>
-            <Alert Type="@AlertType.Error" Message="⚠️ 此操作将同时删除该书目下的所有聊天记录，且无法恢复！"
-                   ShowIcon="true"
-                   Style="margin-top: 16px;"/>
+            <Alert Type="@AlertType.Error" Message="⚠️ 此操作将同时删除该书目下的所有聊天记录，且无法恢复！" ShowIcon="true"
+                Style="margin-top: 16px;" />
         </Modal>
     }
 
@@ -149,7 +155,7 @@
         RenderFragment clearFooter = @<Template>
             <Button OnClick="CancelClear" @key="@("cancel-clear")">取消</Button>
             <Button OnClick="ConfirmClear" @key="@("confirm-clear")" Type="ButtonType.Primary" Danger="true"
-                    Loading="@isOperating">
+                Loading="@isOperating">
                 确认清空
             </Button>
         </Template>;
@@ -159,18 +165,16 @@
                 <Text Strong="true">@bookToClear.Name</Text>
                 " 的所有聊天记录吗？
             </p>
-            <Alert Type="@AlertType.Warning" Message="⚠️ 此操作将删除该书目下的所有聊天记录，但保留书目本身，且无法恢复！"
-                   ShowIcon="true"
-                   Style="margin-top: 16px;"/>
+            <Alert Type="@AlertType.Warning" Message="⚠️ 此操作将删除该书目下的所有聊天记录，但保留书目本身，且无法恢复！" ShowIcon="true"
+                Style="margin-top: 16px;" />
         </Modal>
     }
 
     @if (!string.IsNullOrEmpty(message))
     {
         <div style="margin-bottom: 16px;">
-            <Alert Type="@(isError ? AlertType.Error : AlertType.Success)" Message="@message" ShowIcon="true"
-                   Closable="true"
-                   OnClose="ClearMessage"/>
+            <Alert Type="@(isError? AlertType.Error: AlertType.Success)" Message="@message" ShowIcon="true"
+                Closable="true" OnClose="ClearMessage" />
         </div>
     }
 </div>
@@ -236,6 +240,11 @@
     private void ViewChatLogs(int bookId)
     {
         Navigation.NavigateTo($"/chatlogs/{bookId}");
+    }
+
+    private void ImportChatLogs(int bookId)
+    {
+        Navigation.NavigateTo($"/import/{bookId}");
     }
 
     private void ShowDeleteConfirm(BookSummary book)

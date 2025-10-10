@@ -1,4 +1,5 @@
 @page "/import"
+@page "/import/{bookId:int?}"
 @using Novex.Data.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using Novex.Data.Models
@@ -157,6 +158,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public int? BookId { get; set; }
+    
     private IBrowserFile? selectedFile;
     private bool isImporting;
     private string message = string.Empty;
@@ -174,12 +178,47 @@
     protected async override Task OnInitializedAsync()
     {
         await LoadBooks();
+        
+        // 如果有BookId参数，自动选中对应的书目
+        if (BookId.HasValue)
+        {
+            await SelectBookById(BookId.Value);
+        }
+    }
+
+    protected async override Task OnParametersSetAsync()
+    {
+        // 当参数变化时，重新选择书目
+        if (BookId.HasValue)
+        {
+            await SelectBookById(BookId.Value);
+        }
+        else
+        {
+            // 如果没有BookId参数，清除选择
+            selectedBook = null;
+            selectedBookId = null;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadBooks()
     {
         allBooks = await BookService.GetAllBooksAsync();
         filteredBooks = allBooks;
+    }
+
+    private Task SelectBookById(int bookId)
+    {
+        var book = allBooks.FirstOrDefault(b => b.Id == bookId);
+        if (book != null)
+        {
+            selectedBook = book;
+            selectedBookId = book.Id;
+            bookSearchTerm = book.Name;
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
     }
 
     private void OnBookSelected(Novex.Data.Models.Book book)
