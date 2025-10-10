@@ -3,17 +3,49 @@
 @using Novex.Data.Services
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
+@inject IBookService BookService
 @inject NavigationManager Navigation
 
-<h3>分析对话记录</h3>
+<div style="margin-bottom: 16px;">
+  <h3 style="margin: 0;">
+    分析对话记录
+    @if (!string.IsNullOrEmpty(bookName))
+    {
+      <span style="font-size: 16px; font-weight: normal; margin-left: 8px; color: #666;">
+        - @bookName
+      </span>
+    }
+  </h3>
+</div>
 
 <div class="analyze-container">
   @if (chatLog != null)
   {
-    <div style="margin-bottom: 16px;">
+    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
       <Button Type="@ButtonType.Link" OnClick="@GoBack">
         <Icon Type="arrow-left" /> 返回对话记录
       </Button>
+
+      <Space>
+        <SpaceItem>
+          <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoPrevious"
+            Disabled="@(!hasPrevious || isNavigating)" Loading="@isNavigating">
+            <Icon Type="left" /> 上一条
+          </Button>
+        </SpaceItem>
+        <SpaceItem>
+          <Text Strong="true" style="padding: 0 12px; color: #666;">
+            第 @(chatLog?.Index.ToString() ?? "--") 楼
+          </Text>
+        </SpaceItem>
+        <SpaceItem>
+          <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoNext"
+            Disabled="@(!hasNext || isNavigating)" Loading="@isNavigating">
+            下一条
+            <Icon Type="right" />
+          </Button>
+        </SpaceItem>
+      </Space>
     </div>
 
     <Row Gutter="16">
@@ -139,6 +171,10 @@
   private bool isLoading = true;
   private bool isAnalyzing = false;
   private bool isSaving = false;
+  private bool isNavigating = false;
+  private bool hasPrevious = false;
+  private bool hasNext = false;
+  private string bookName = "";
 
   protected override async Task OnInitializedAsync()
   {
@@ -158,6 +194,10 @@
         return;
       }
 
+      // 获取书名
+      var book = await BookService.GetBookByIdAsync(BookId);
+      bookName = book?.Name ?? "";
+
       // 尝试加载现有的分析结果
       var existingAnalysis = await AnalysisService.GetAnalysisResultAsync(ChatLogId);
       if (existingAnalysis != null)
@@ -175,6 +215,12 @@
           MainBody = ""
         };
       }
+
+      // 检查上一条和下一条记录的存在性
+      var previousId = await ChatLogService.GetPreviousChatLogIdAsync(ChatLogId);
+      var nextId = await ChatLogService.GetNextChatLogIdAsync(ChatLogId);
+      hasPrevious = previousId.HasValue;
+      hasNext = nextId.HasValue;
     }
     catch (Exception ex)
     {
@@ -246,8 +292,71 @@
     StateHasChanged();
   }
 
-  private void GoBack()
+  private async Task GoPrevious()
   {
-    Navigation.NavigateTo($"/chatlogs/{BookId}");
+    if (isNavigating || !hasPrevious) return;
+
+    try
+    {
+      isNavigating = true;
+      StateHasChanged();
+
+      var previousId = await ChatLogService.GetPreviousChatLogIdAsync(ChatLogId);
+      if (previousId.HasValue)
+      {
+        Navigation.NavigateTo($"/chatlogs/{BookId}/{previousId.Value}/analyze");
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"导航到上一条记录时出错: {ex.Message}");
+    }
+    finally
+    {
+      isNavigating = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task GoNext()
+  {
+    if (isNavigating || !hasNext) return;
+
+    try
+    {
+      isNavigating = true;
+      StateHasChanged();
+
+      var nextId = await ChatLogService.GetNextChatLogIdAsync(ChatLogId);
+      if (nextId.HasValue)
+      {
+        Navigation.NavigateTo($"/chatlogs/{BookId}/{nextId.Value}/analyze");
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"导航到下一条记录时出错: {ex.Message}");
+    }
+    finally
+    {
+      isNavigating = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task GoBack()
+  {
+    try
+    {
+      // 获取当前记录所在的页码
+      var pageNumber = await ChatLogService.GetPageNumberForChatLogAsync(ChatLogId);
+      Navigation.NavigateTo($"/chatlogs/{BookId}?page={pageNumber}");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"获取页码时出错: {ex.Message}");
+      // 如果获取页码失败，则回到第一页
+      Navigation.NavigateTo($"/chatlogs/{BookId}");
+    }
   }
 }

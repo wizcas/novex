@@ -1,5 +1,4 @@
 @page "/chatlogs/{bookId:int}"
-@page "/chatlogs/{bookId:int}/{page:int?}"
 @inject IChatLogService ChatLogService
 @inject IBookService BookService
 @inject NavigationManager Navigation
@@ -145,7 +144,16 @@
   else if (chatLogs.Any())
   {
     <div style="overflow-x: auto;">
-      <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" ScrollX="900">
+      <Table TItem="ChatLogSummary"
+             DataSource="@chatLogs"
+             Size="@TableSize.Small"
+             ScrollX="900"
+             Total="@totalCount"
+             Loading="@isLoading"
+             PageIndex="@currentPage"
+             PageSize="@pageSize"
+             >
+        <ChildContent>
         <Column TData="ChatLogSummary" Title="楼层" Width="60px">
           <Template>
             <Text Type="@TextElementType.Secondary">@context.Index</Text>
@@ -186,14 +194,21 @@
             </Space>
           </Template>
         </ActionColumn>
+        </ChildContent>
+        <PaginationTemplate>
+          <div style="text-align: center; padding: 16px 0;">
+            <Pagination Current="@currentPage" Total="@totalCount" PageSize="@pageSize"
+                        OnChange="@OnPageChange"
+                        ShowSizeChanger="true"
+                        OnShowSizeChange="@OnPaginationSizeChange"
+                        PageSizeOptions="@(new[] { 10, 20, 50, 100 })"
+                        ShowQuickJumper="true"/>
+          </div>
+        </PaginationTemplate>
       </Table>
     </div>
 
-    <!-- 分页控件 -->
-    <div style="text-align: center; margin-top: 24px;">
-      <Pagination Current="@currentPage" Total="@totalCount" PageSize="@pageSize" OnChange="@OnPageChange"
-                  ShowSizeChanger="false" ShowQuickJumper="true"/>
-    </div>
+
   }
   else
   {
@@ -275,8 +290,11 @@
   [Parameter]
   public int BookId { get; set; }
 
-  [Parameter]
+  [SupplyParameterFromQuery]
   public int? Page { get; set; }
+
+  [SupplyParameterFromQuery]
+  public int? Size { get; set; }
 
   private List<ChatLogSummary> chatLogs = new();
   private bool isLoading;
@@ -284,7 +302,7 @@
   private int currentPage = 1;
   private int totalCount;
   private int totalPages;
-  private const int pageSize = 50;
+  private int pageSize = 20;
   private string nameFilter = string.Empty;
   private string currentNameFilter = string.Empty;
   private ChatLog? selectedChatLog;
@@ -298,6 +316,7 @@
   private int? currentStartIndex;
   private int? currentEndIndex;
   private (double, double) _floorRange = (0, 0);
+  private bool _hasInitialized = false;
 
   private int startIndex
   {
@@ -407,6 +426,7 @@
   protected async override Task OnInitializedAsync()
   {
     currentPage = Page ?? 1;
+    pageSize = Size ?? 20;
     currentBook = await BookService.GetBookByIdAsync(BookId);
 
     // 获取Index范围
@@ -426,11 +446,13 @@
     characterNames = await ChatLogService.GetCharacterNamesAsync(BookId);
 
     await LoadChatLogs();
+    _hasInitialized = true;
   }
 
   protected async override Task OnParametersSetAsync()
   {
-    if (Page.HasValue && Page != currentPage)
+    // 只在初始化完成后且页面确实发生变化时才重新加载数据
+    if (Page.HasValue && Page.Value != currentPage && _hasInitialized)
     {
       currentPage = Page.Value;
       await LoadChatLogs();
@@ -450,7 +472,8 @@
         string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
         currentStartIndex,
         currentEndIndex,
-        currentPage);
+        currentPage,
+        pageSize);
 
       totalCount = await ChatLogService.GetTotalCountWithFiltersAsync(
         BookId,
@@ -475,7 +498,7 @@
     currentStartIndex = (startIndex == minIndex && endIndex == maxIndex) ? null : startIndex;
     currentEndIndex = (startIndex == minIndex && endIndex == maxIndex) ? null : endIndex;
     currentPage = 1;
-    Navigation.NavigateTo($"/chatlogs/{BookId}");
+    Navigation.NavigateTo($"/chatlogs/{BookId}?page=1&size={pageSize}");
     await LoadChatLogs();
   }
 
@@ -489,7 +512,7 @@
     currentEndIndex = null;
     currentPage = 1;
     _floorRange = (minIndex, maxIndex);
-    Navigation.NavigateTo($"/chatlogs/{BookId}");
+    Navigation.NavigateTo($"/chatlogs/{BookId}?page=1&size={pageSize}");
     await LoadChatLogs();
   }
 
@@ -515,17 +538,50 @@
   }
 
 
-  private void GoToPage(int page)
+  private async Task GoToPage(int page)
   {
     if (page >= 1 && page <= totalPages)
     {
-      Navigation.NavigateTo($"/chatlogs/{BookId}/{page}");
+      // 保存当前滚动位置并防止闪烁
+      await SaveScrollPosition();
+      await PreventScrollFlash();
+
+      // 更新URL上的page参数，但不刷新页面
+      Navigation.NavigateTo($"/chatlogs/{BookId}?page={page}&size={pageSize}", false);
+
+      // 直接更新currentPage并重新加载数据，避免通过OnParametersSetAsync触发
+      currentPage = page;
+      await LoadChatLogs();
+
+      // 释放滚动锁定并恢复滚动位置
+      await ReleaseScrollLock();
+      await RestoreScrollPosition();
     }
   }
 
-  private void OnPageChange(PaginationEventArgs args)
+  private async Task OnPageChange(PaginationEventArgs args)
   {
-    GoToPage(args.Page);
+    await GoToPage(args.Page);
+  }
+
+  private async Task OnPaginationSizeChange(PaginationEventArgs args)
+  {
+    pageSize = args.PageSize;
+    currentPage = 1; // 重置到第一页
+
+    // 保存当前滚动位置并防止闪烁
+    await SaveScrollPosition();
+    await PreventScrollFlash();
+
+    // 更新URL参数
+    Navigation.NavigateTo($"/chatlogs/{BookId}?page=1&size={pageSize}", false);
+
+    // 重新加载数据
+    await LoadChatLogs();
+
+    // 释放滚动锁定并恢复滚动位置
+    await ReleaseScrollLock();
+    await RestoreScrollPosition();
   }
 
   private async Task ViewDetail(int id)
@@ -693,11 +749,47 @@
   {
     if (jsModule == null)
     {
-      jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/chatLogs.js");
+      jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", $"./js/chatLogs.js?v={DateTime.Now.Ticks}");
     }
     if (objRef == null)
     {
       objRef = DotNetObjectReference.Create(this);
+    }
+  }
+
+  private async Task SaveScrollPosition()
+  {
+    await EnsureJSModule();
+    if (jsModule != null)
+    {
+      await jsModule.InvokeVoidAsync("saveScrollPosition");
+    }
+  }
+
+  private async Task RestoreScrollPosition()
+  {
+    await EnsureJSModule();
+    if (jsModule != null)
+    {
+      await jsModule.InvokeVoidAsync("restoreScrollPosition");
+    }
+  }
+
+  private async Task PreventScrollFlash()
+  {
+    await EnsureJSModule();
+    if (jsModule != null)
+    {
+      await jsModule.InvokeVoidAsync("preventScrollFlash");
+    }
+  }
+
+  private async Task ReleaseScrollLock()
+  {
+    await EnsureJSModule();
+    if (jsModule != null)
+    {
+      await jsModule.InvokeVoidAsync("releaseScrollLock");
     }
   }
 
@@ -713,8 +805,16 @@
   {
     if (jsModule != null)
     {
-      await jsModule.InvokeVoidAsync("removeKeyboardListener");
-      await jsModule.DisposeAsync();
+      try
+      {
+        await jsModule.InvokeVoidAsync("removeKeyboardListener");
+        await jsModule.DisposeAsync();
+      }
+      catch (JSDisconnectedException)
+      {
+        // Circuit已断开，忽略JS互操作错误
+      }
+      jsModule = null;
     }
     objRef?.Dispose();
   }
