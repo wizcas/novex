@@ -20,13 +20,13 @@
             <Space Size="@SpaceSize.Large">
                 <SpaceItem>
                     <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Icon="@IconType.Outline.Plus"
-                        OnClick="IncrementCount">
+                            OnClick="IncrementCount">
                         点击增加
                     </Button>
                 </SpaceItem>
                 <SpaceItem>
                     <Button Type="@ButtonType.Default" Size="@ButtonSize.Large" Icon="@IconType.Outline.Reload"
-                        OnClick="ResetCount">
+                            OnClick="ResetCount">
                         重置
                     </Button>
                 </SpaceItem>
@@ -34,12 +34,13 @@
         </div>
     </Card>
 
-    <Alert Type="@AlertType.Info" Message="示例页面" Description="这是一个简单的计数器示例，演示了 AntDesign Blazor 组件的使用。" ShowIcon="true"
-        Style="margin-top: 24px; max-width: 400px;" />
+    <Alert Type="@AlertType.Info" Message="示例页面"
+           Description="这是一个简单的计数器示例，演示了 AntDesign Blazor 组件的使用。" ShowIcon="true"
+           Style="margin-top: 24px; max-width: 400px;"/>
 </div>
 
 @code {
-    private int currentCount = 0;
+    private int currentCount;
 
     private void IncrementCount()
     {
@@ -50,4 +51,5 @@
     {
         currentCount = 0;
     }
+
 }

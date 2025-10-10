@@ -1,4 +1,5 @@
 @page "/books"
+@using Novex.Data.Models
 @using Novex.Data.Services
 @inject IBookService BookService
 @inject NavigationManager Navigation
@@ -17,16 +18,16 @@
         <Row Gutter="16">
             <AntDesign.Col Span="12">
                 <Input Placeholder="输入新书目名称..." @bind-Value="newBookName" OnPressEnter="OnEnterKeyPressed"
-                    OnInput="OnBookNameInput" Size="@InputSize.Large">
+                       OnInput="OnBookNameInput" Size="@InputSize.Large">
                 <Prefix>
-                    <Icon Type="plus-circle" />
+                    <Icon Type="plus-circle"/>
                 </Prefix>
                 </Input>
             </AntDesign.Col>
             <AntDesign.Col Span="6">
                 <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Loading="@isCreating"
-                    Disabled="@(string.IsNullOrWhiteSpace(newBookName) || isCreating)" OnClick="CreateBook">
-                    <Icon Type="plus" />
+                        Disabled="@(string.IsNullOrWhiteSpace(newBookName) || isCreating)" OnClick="CreateBook">
+                    <Icon Type="plus"/>
                     创建书目
                 </Button>
             </AntDesign.Col>
@@ -36,7 +37,7 @@
     @if (isLoading)
     {
         <div style="text-align: center; padding: 48px;">
-            <Spin Size="@SpinSize.Large" />
+            <Spin Size="@SpinSize.Large"/>
             <div style="margin-top: 16px;">
                 <Text Type="@TextElementType.Secondary">加载中...</Text>
             </div>
@@ -44,18 +45,18 @@
     }
     else if (books.Any())
     {
-        <Table TItem="Novex.Data.Services.BookSummary" DataSource="@books" Size="@TableSize.Middle" Bordered="true">
-            <Column TData="Novex.Data.Services.BookSummary" Title="ID" Width="80px">
+        <Table TItem="BookSummary" DataSource="@books" Size="@TableSize.Middle" Bordered="true">
+            <Column TData="BookSummary" Title="ID" Width="80px">
                 <Template>
                     @context.Id
                 </Template>
             </Column>
-            <Column TData="Novex.Data.Services.BookSummary" Title="书目名称">
+            <Column TData="BookSummary" Title="书目名称">
                 <Template>
                     <Text Strong="true">@context.Name</Text>
                 </Template>
             </Column>
-            <Column TData="Novex.Data.Services.BookSummary" Title="对话数量" Width="120px">
+            <Column TData="BookSummary" Title="对话数量" Width="120px">
                 <Template>
                     <div style="text-align: center;">
                         @if (context.ChatLogCount > 0)
@@ -69,7 +70,7 @@
                     </div>
                 </Template>
             </Column>
-            <Column TData="Novex.Data.Services.BookSummary" Title="创建时间" Width="180px">
+            <Column TData="BookSummary" Title="创建时间" Width="180px">
                 <Template>
                     @context.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")
                 </Template>
@@ -79,22 +80,22 @@
                     <Space Size="@SpaceSize.Small">
                         <SpaceItem>
                             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
-                                OnClick="() => ViewChatLogs(context.Id)">
-                                <Icon Type="eye" />
+                                    OnClick="() => ViewChatLogs(context.Id)">
+                                <Icon Type="eye"/>
                                 查看聊天记录
                             </Button>
                         </SpaceItem>
                         <SpaceItem>
                             <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" Danger="false"
-                                Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
-                                <Icon Type="clear" />
+                                    Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
+                                <Icon Type="clear"/>
                                 清空记录
                             </Button>
                         </SpaceItem>
                         <SpaceItem>
                             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Danger="true"
-                                Disabled="@isOperating" OnClick="() => ShowDeleteConfirm(context)">
-                                <Icon Type="delete" />
+                                    Disabled="@isOperating" OnClick="() => ShowDeleteConfirm(context)">
+                                <Icon Type="delete"/>
                                 删除书目
                             </Button>
                         </SpaceItem>
@@ -108,12 +109,12 @@
         <Empty>
             <DescriptionTemplate>
                 <Text Type="@TextElementType.Secondary">暂无书目</Text>
-                <br />
+                <br/>
                 <Text Type="@TextElementType.Secondary">请创建一个新的书目开始使用。</Text>
             </DescriptionTemplate>
             <ChildContent>
                 <Button Type="@ButtonType.Primary" OnClick="() => { }">
-                    <Icon Type="plus" />
+                    <Icon Type="plus"/>
                     创建第一个书目
                 </Button>
             </ChildContent>
@@ -126,15 +127,19 @@
         RenderFragment deleteFooter = @<Template>
             <Button OnClick="CancelDelete" @key="@("cancel")">取消</Button>
             <Button OnClick="ConfirmDelete" @key="@("confirm")" Type="ButtonType.Primary" Danger="true"
-                Loading="@isOperating">
+                    Loading="@isOperating">
                 确认删除
             </Button>
         </Template>;
 
         <Modal Title="确认删除" Visible="true" OnOk="ConfirmDelete" OnCancel="CancelDelete" Footer="@deleteFooter">
-            <p>确定要删除书目 "<Text Strong="true">@bookToDelete.Name</Text>" 吗？</p>
-            <Alert Type="@AlertType.Error" Message="⚠️ 此操作将同时删除该书目下的所有聊天记录，且无法恢复！" ShowIcon="true"
-                Style="margin-top: 16px;" />
+            <p>确定要删除书目 "
+                <Text Strong="true">@bookToDelete.Name</Text>
+                " 吗？
+            </p>
+            <Alert Type="@AlertType.Error" Message="⚠️ 此操作将同时删除该书目下的所有聊天记录，且无法恢复！"
+                   ShowIcon="true"
+                   Style="margin-top: 16px;"/>
         </Modal>
     }
 
@@ -144,39 +149,44 @@
         RenderFragment clearFooter = @<Template>
             <Button OnClick="CancelClear" @key="@("cancel-clear")">取消</Button>
             <Button OnClick="ConfirmClear" @key="@("confirm-clear")" Type="ButtonType.Primary" Danger="true"
-                Loading="@isOperating">
+                    Loading="@isOperating">
                 确认清空
             </Button>
         </Template>;
 
         <Modal Title="确认清空记录" Visible="true" OnOk="ConfirmClear" OnCancel="CancelClear" Footer="@clearFooter">
-            <p>确定要清空书目 "<Text Strong="true">@bookToClear.Name</Text>" 的所有聊天记录吗？</p>
-            <Alert Type="@AlertType.Warning" Message="⚠️ 此操作将删除该书目下的所有聊天记录，但保留书目本身，且无法恢复！" ShowIcon="true"
-                Style="margin-top: 16px;" />
+            <p>确定要清空书目 "
+                <Text Strong="true">@bookToClear.Name</Text>
+                " 的所有聊天记录吗？
+            </p>
+            <Alert Type="@AlertType.Warning" Message="⚠️ 此操作将删除该书目下的所有聊天记录，但保留书目本身，且无法恢复！"
+                   ShowIcon="true"
+                   Style="margin-top: 16px;"/>
         </Modal>
     }
 
     @if (!string.IsNullOrEmpty(message))
     {
         <div style="margin-bottom: 16px;">
-            <Alert Type="@(isError? AlertType.Error: AlertType.Success)" Message="@message" ShowIcon="true" Closable="true"
-                OnClose="ClearMessage" />
+            <Alert Type="@(isError ? AlertType.Error : AlertType.Success)" Message="@message" ShowIcon="true"
+                   Closable="true"
+                   OnClose="ClearMessage"/>
         </div>
     }
 </div>
 
 @code {
-    private List<Novex.Data.Services.BookSummary> books = new();
-    private bool isLoading = false;
-    private bool isCreating = false;
-    private bool isOperating = false;
+    private List<BookSummary> books = new();
+    private bool isLoading;
+    private bool isCreating;
+    private bool isOperating;
     private string newBookName = string.Empty;
     private string message = string.Empty;
-    private bool isError = false;
-    private Novex.Data.Services.BookSummary? bookToDelete;
-    private Novex.Data.Services.BookSummary? bookToClear;
+    private bool isError;
+    private BookSummary? bookToDelete;
+    private BookSummary? bookToClear;
 
-    protected override async Task OnInitializedAsync()
+    protected async override Task OnInitializedAsync()
     {
         await LoadBooks();
     }
@@ -207,7 +217,7 @@
 
         try
         {
-            var book = await BookService.CreateBookAsync(newBookName.Trim());
+            Book book = await BookService.CreateBookAsync(newBookName.Trim());
             await LoadBooks();
             newBookName = string.Empty;
             ShowMessage($"书目 \"{book.Name}\" 创建成功", false);
@@ -228,7 +238,7 @@
         Navigation.NavigateTo($"/chatlogs/{bookId}");
     }
 
-    private void ShowDeleteConfirm(Novex.Data.Services.BookSummary book)
+    private void ShowDeleteConfirm(BookSummary book)
     {
         bookToDelete = book;
         StateHasChanged();
@@ -273,7 +283,7 @@
         }
     }
 
-    private void ShowClearConfirm(Novex.Data.Services.BookSummary book)
+    private void ShowClearConfirm(BookSummary book)
     {
         bookToClear = book;
         StateHasChanged();
@@ -337,4 +347,5 @@
             await CreateBook();
         }
     }
+
 }

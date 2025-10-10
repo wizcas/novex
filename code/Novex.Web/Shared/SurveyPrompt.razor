@@ -1,6 +1,6 @@
 ﻿<Card Style="margin-top: 24px; border: 1px solid #d9d9d9;">
     <div style="display: flex; align-items: center; padding: 16px;">
-        <Icon Type="edit" style="margin-right: 12px; color: #1890ff; font-size: 20px;" />
+        <Icon Type="edit" style="margin-right: 12px; color: #1890ff; font-size: 20px;"/>
         <div style="flex: 1;">
             <Text Strong="true" Style="font-size: 16px; display: block; margin-bottom: 8px;">
                 @Title
@@ -9,9 +9,9 @@
                 <Text Type="@TextElementType.Secondary">
                     请参与我们的
                 </Text>
-                <Button Type="@ButtonType.Link" 
+                <Button Type="@ButtonType.Link"
                         Size="@ButtonSize.Small"
-                        Href="https://go.microsoft.com/fwlink/?linkid=2186158" 
+                        Href="https://go.microsoft.com/fwlink/?linkid=2186158"
                         Target="_blank"
                         Style="padding: 0; height: auto; font-weight: 600;">
                     简短调查
@@ -21,12 +21,14 @@
                 </Text>
             </div>
         </div>
-        <Icon Type="arrow-right" style="color: #bfbfbf;" />
+        <Icon Type="arrow-right" style="color: #bfbfbf;"/>
     </div>
 </Card>
 
 @code {
+
     // Demonstrates how a parent component can supply parameters
     [Parameter]
     public string? Title { get; set; }
+
 }

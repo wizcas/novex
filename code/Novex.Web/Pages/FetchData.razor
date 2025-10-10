@@ -18,7 +18,7 @@
     @if (forecasts == null)
     {
         <div style="text-align: center; padding: 48px;">
-            <Spin Size="@SpinSize.Large" />
+            <Spin Size="@SpinSize.Large"/>
             <div style="margin-top: 16px;">
                 <Text Type="@TextElementType.Secondary">加载中...</Text>
             </div>
@@ -32,7 +32,7 @@
                     <Column TData="WeatherForecast" Title="日期" Width="150px">
                         <Template>
                             <div style="display: flex; align-items: center;">
-                                <Icon Type="calendar" style="margin-right: 8px; color: #1890ff;" />
+                                <Icon Type="calendar" style="margin-right: 8px; color: #1890ff;"/>
                                 @context.Date.ToString("MM月dd日")
                             </div>
                         </Template>
@@ -54,7 +54,8 @@
                     <Column TData="WeatherForecast" Title="天气描述">
                         <Template>
                             <div style="display: flex; align-items: center;">
-                                <Icon Type="@GetWeatherIcon(context.Summary)" style="margin-right: 8px; color: #52c41a;" />
+                                <Icon Type="@GetWeatherIcon(context.Summary)"
+                                      style="margin-right: 8px; color: #52c41a;"/>
                                 <Text Strong="true">@context.Summary</Text>
                             </div>
                         </Template>
@@ -62,23 +63,23 @@
                 </Table>
             </div>
         </Card>
-        
-        <Alert Type="@AlertType.Success" 
-               Message="数据加载完成" 
+
+        <Alert Type="@AlertType.Success"
+               Message="数据加载完成"
                Description="@($"成功加载了 {forecasts.Length} 条天气预报数据。")"
                ShowIcon="true"
-               Style="margin-top: 24px;" />
+               Style="margin-top: 24px;"/>
     }
 </div>
 
 @code {
     private WeatherForecast[]? forecasts;
 
-    protected override async Task OnInitializedAsync()
+    protected async override Task OnInitializedAsync()
     {
         forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
     }
-    
+
     private string GetTemperatureColor(int temperature)
     {
         if (temperature < 0) return "blue";
@@ -87,11 +88,10 @@
         if (temperature < 30) return "orange";
         return "red";
     }
-    
+
     private string GetWeatherIcon(string? summary)
     {
-        return summary?.ToLower() switch
-        {
+        return summary?.ToLower() switch {
             var s when s?.Contains("sunny") == true => "sun",
             var s when s?.Contains("cloudy") == true => "cloud",
             var s when s?.Contains("rain") == true => "cloud-rain",
@@ -100,4 +100,5 @@
             _ => "sun"
         };
     }
+
 }

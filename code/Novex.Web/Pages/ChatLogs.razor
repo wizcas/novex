@@ -1,10 +1,11 @@
 @page "/chatlogs/{bookId:int}"
 @page "/chatlogs/{bookId:int}/{page:int?}"
-@using Novex.Data.Services
 @inject IChatLogService ChatLogService
 @inject IBookService BookService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@using Novex.Data.Models
+@using Novex.Data.Services
 @implements IAsyncDisposable
 
 <PageTitle>聊天记录</PageTitle>
@@ -71,12 +72,13 @@
                   <Text Strong="true">角色名：</Text>
                 </SpaceItem>
                 <SpaceItem>
-                  <Input @bind-Value="nameFilter" Placeholder="按角色名筛选..." OnPressEnter="@OnKeyPress"
-                    Size="@InputSize.Large" Style="width: 300px;">
-                  <Prefix>
-                    <Icon Type="search" />
-                  </Prefix>
-                  </Input>
+                  <Select TItemValue="string" TItem="string" @bind-Value="nameFilter" Placeholder="请选择角色"
+                    AllowClear="true" Style="width: 300px;">
+                    @foreach (var name in characterNames)
+                    {
+                      <SelectOption TItemValue="string" TItem="string" Value="@name" Label="@name" />
+                    }
+                  </Select>
                 </SpaceItem>
               </Space>
             </div>
@@ -131,7 +133,9 @@
     <Row Gutter="16">
       <AntDesign.Col Span="24" Style="text-align: right; line-height: 40px;">
         <Text Type="@TextElementType.Secondary">
-          共 <Text Strong="true" style="color: #1890ff;">@totalCount</Text> 条记录
+          共
+          <Text Strong="true" style="color: #1890ff;">@totalCount</Text>
+          条记录
         </Text>
       </AntDesign.Col>
     </Row>
@@ -263,55 +267,61 @@
 </div>
 
 @code {
-  [Parameter] public int BookId { get; set; }
-  [Parameter] public int? Page { get; set; }
+
+  [Parameter]
+  public int BookId { get; set; }
+
+  [Parameter]
+  public int? Page { get; set; }
 
   private List<ChatLogSummary> chatLogs = new();
-  private bool isLoading = false;
-  private bool isNavigating = false;
+  private bool isLoading;
+  private bool isNavigating;
   private int currentPage = 1;
-  private int totalCount = 0;
-  private int totalPages = 0;
+  private int totalCount;
+  private int totalPages;
   private const int pageSize = 50;
   private string nameFilter = string.Empty;
   private string currentNameFilter = string.Empty;
-  private Novex.Data.Models.ChatLog? selectedChatLog;
-  private Novex.Data.Models.Book? currentBook;
+  private ChatLog? selectedChatLog;
+  private Book? currentBook;
   private IJSObjectReference? jsModule;
   private DotNetObjectReference<ChatLogs>? objRef;
-  private bool hasPreviousRecord = false;
-  private bool hasNextRecord = false;
-  private int? startIndex = null;
-  private int? endIndex = null;
-  private int? currentStartIndex = null;
-  private int? currentEndIndex = null;
-  private int minIndex = 0;
-  private int maxIndex = 0;
+  private bool hasPreviousRecord;
+  private bool hasNextRecord;
+  private int? startIndex;
+  private int? endIndex;
+  private int? currentStartIndex;
+  private int? currentEndIndex;
+  private int minIndex;
+  private int maxIndex;
   private readonly string[] characterColors = new[] {
-"#E53E3E", // 明亮红色 - 在亮暗背景都清晰
-"#38A169", // 明亮绿色 - 在亮暗背景都清晰
-"#FF8C00", // 明亮橙色 - 在亮暗背景都清晰
-"#9F7AEA", // 明亮紫色 - 在亮暗背景都清晰
-"#8B4513", // 明亮棕色 - 在亮暗背景都清晰
-"#00B5A5", // 明亮青色 - 在亮暗背景都清晰
-"#E91E63", // 明亮粉色 - 在亮暗背景都清晰
-"#696969" // 明亮灰色 - 在亮暗背景都清晰
+"#828a00",
+"#f29f05",
+"#ff5ca3",
+"#4d8584",
+"#a62f03",
 };
 
-  protected override async Task OnInitializedAsync()
+  private List<string> characterNames = new();
+
+  protected async override Task OnInitializedAsync()
   {
     currentPage = Page ?? 1;
     currentBook = await BookService.GetBookByIdAsync(BookId);
 
     // 获取Index范围
-    var range = await ChatLogService.GetIndexRangeAsync(BookId);
+    (int MinIndex, int MaxIndex) range = await ChatLogService.GetIndexRangeAsync(BookId);
     minIndex = range.MinIndex;
     maxIndex = range.MaxIndex;
+
+    // 获取所有角色名
+    characterNames = await ChatLogService.GetCharacterNamesAsync(BookId);
 
     await LoadChatLogs();
   }
 
-  protected override async Task OnParametersSetAsync()
+  protected async override Task OnParametersSetAsync()
   {
     if (Page.HasValue && Page != currentPage)
     {
@@ -333,8 +343,7 @@
       string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
       currentStartIndex,
       currentEndIndex,
-      currentPage,
-      pageSize);
+      currentPage);
 
       totalCount = await ChatLogService.GetTotalCountWithFiltersAsync(
       BookId,
@@ -492,9 +501,34 @@
 
   private string GetCharacterColor(string characterName)
   {
-    // 为不同角色提供不同的文字颜色
-    var hash = characterName.GetHashCode();
-    return characterColors[Math.Abs(hash) % characterColors.Length];
+    // 使用更好的哈希分布算法避免颜色冲突
+    // 1. 使用多重哈希来增加随机性
+    var hash1 = characterName.GetHashCode();
+    var hash2 = characterName.Length * 31;
+
+    // 2. 对每个字符进行累积哈希
+    uint hash = 0;
+    foreach (char c in characterName)
+    {
+      hash = hash * 31 + (uint)c;
+    }
+
+    // 3. 使用FNV-1a哈希算法进一步混合
+    const uint FNV_PRIME = 16777619;
+    const uint FNV_OFFSET_BASIS = 2166136261;
+
+    uint fnvHash = FNV_OFFSET_BASIS;
+    foreach (byte b in System.Text.Encoding.UTF8.GetBytes(characterName))
+    {
+      fnvHash ^= b;
+      fnvHash *= FNV_PRIME;
+    }
+
+    // 4. 组合多个哈希值并映射到颜色索引
+    var combinedHash = (int)((hash ^ fnvHash ^ (uint)hash1 ^ (uint)hash2) & 0x7FFFFFFF);
+    var idx = combinedHash % characterColors.Length;
+
+    return characterColors[idx];
   }
 
   private string FormatPreview(string name, DateTime sendDate, string preview)
@@ -539,7 +573,7 @@
     }
   }
 
-  protected override async Task OnAfterRenderAsync(bool firstRender)
+  protected async override Task OnAfterRenderAsync(bool firstRender)
   {
     if (firstRender)
     {
@@ -556,4 +590,5 @@
     }
     objRef?.Dispose();
   }
+
 }

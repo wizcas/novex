@@ -1,10 +1,7 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.EntityFrameworkCore;
 using Novex.Data.Context;
 using Novex.Data.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -12,7 +9,7 @@ builder.Services.AddServerSideBlazor();
 
 // 添加数据库上下文 (使用工厂方法)
 builder.Services.AddDbContext<NovexDbContext>(options =>
-    NovexDbContextFactory.ConfigureDbContext(options, builder.Configuration));
+                                                  NovexDbContextFactory.ConfigureDbContext(options, builder.Configuration));
 
 // 添加 AntDesign 服务
 builder.Services.AddAntDesign();
@@ -21,12 +18,12 @@ builder.Services.AddAntDesign();
 builder.Services.AddScoped<IChatLogService, ChatLogService>();
 builder.Services.AddScoped<IBookService, BookService>();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // 确保数据库创建
-using (var scope = app.Services.CreateScope())
+using (IServiceScope scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<NovexDbContext>();
+    NovexDbContext context = scope.ServiceProvider.GetRequiredService<NovexDbContext>();
     context.Database.EnsureCreated();
 }
 
