@@ -3,15 +3,21 @@
 <PageTitle>Novex - 小说聊天记录管理系统</PageTitle>
 
 <Layout style="min-height: 100vh;">
-    <Sider Width="256" Theme="SiderTheme.Light" Collapsible="true" @bind-Collapsed="collapsed">
-        <Flex Justify="FlexJustify.Center" Align="FlexAlign.Stretch">
-            <div>
-                📚 Novex
+    <Sider Width="256" Theme="SiderTheme.Light" Collapsible="true" @bind-Collapsed="collapsed"
+        style="position: fixed; height: 100vh; left: 0; top: 0; z-index: 200;">
+        <div style="height: 100%; display: flex; flex-direction: column;">
+            <Flex Justify="FlexJustify.Center" Align="FlexAlign.Stretch"
+                style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
+                <div>
+                    📚 Novex
+                </div>
+            </Flex>
+            <div style="flex: 1; overflow-y: auto; overflow-x:hidden;">
+                <NavMenu />
             </div>
-        </Flex>
-        <NavMenu/>
+        </div>
     </Sider>
-    <Layout>
+    <Layout style="@GetMainLayoutStyle()">
         <Content style="margin: 24px; background: #fff; border-radius: 6px; min-height: 280px;">
             <div style="padding: 24px;">
                 @Body
@@ -25,4 +31,10 @@
 
 @code {
     private bool collapsed;
+
+    private string GetMainLayoutStyle()
+    {
+        var marginLeft = collapsed ? "80px" : "256px";
+        return $"margin-left: {marginLeft}; transition: margin-left 0.2s;";
+    }
 }
