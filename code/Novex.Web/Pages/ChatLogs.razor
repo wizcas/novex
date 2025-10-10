@@ -45,9 +45,15 @@
         </Title>
         @if (currentBook != null)
         {
-          <div>
-            <Text Type="@TextElementType.Secondary">书目：</Text>
-            <Text Strong="true">@currentBook.Name</Text>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div>
+              <Text Type="@TextElementType.Secondary">书目：</Text>
+              <Text Strong="true">@currentBook.Name</Text>
+            </div>
+            <a href="/import/@BookId" style="color: #1890ff; text-decoration: none; font-size: 14px;">
+              <Icon Type="upload" style="margin-right: 4px;" />
+              导入记录
+            </a>
           </div>
         }
       </AntDesign.Col>
