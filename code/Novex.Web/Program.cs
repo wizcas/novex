@@ -10,9 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-// 添加数据库上下文
+// 添加数据库上下文 (使用工厂方法)
 builder.Services.AddDbContext<NovexDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=novex.db"));
+    NovexDbContextFactory.ConfigureDbContext(options, builder.Configuration));
 
 // 添加 AntDesign 服务
 builder.Services.AddAntDesign();

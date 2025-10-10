@@ -23,6 +23,15 @@
   .chat-message {
     color: #495057;
   }
+
+  /* 角色行背景色 */
+  .character-row {
+    transition: background-color 0.3s ease;
+  }
+
+  .character-row:hover {
+    background-color: rgba(24, 144, 255, 0.1) !important;
+  }
 </style>
 
 <div class="chatlogs-page">
@@ -51,32 +60,78 @@
   </div>
 
   <div style="margin-bottom: 24px;">
-    <Row Gutter="16">
-      <AntDesign.Col Span="16">
-        <Space>
-          <SpaceItem>
-            <Input @bind-Value="nameFilter" Placeholder="按角色名筛选..." OnPressEnter="@OnKeyPress" Size="@InputSize.Large"
-              Style="width: 300px;">
-            <Prefix>
-              <Icon Type="search" />
-            </Prefix>
-            </Input>
-          </SpaceItem>
-          <SpaceItem>
-            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="SearchByName"
-              Size="@ButtonSize.Large">
-              搜索
-            </Button>
-          </SpaceItem>
-          <SpaceItem>
-            <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
-              Size="@ButtonSize.Large">
-              清除
-            </Button>
-          </SpaceItem>
-        </Space>
+    <Row Gutter="16" Style="margin-bottom: 16px;">
+      <AntDesign.Col Span="24">
+        <Card Title="查询选项" Size="@CardSize.Small">
+          <Tabs DefaultActiveKey="1">
+            <TabPane Key="1" Tab="按角色筛选">
+              <Space>
+                <SpaceItem>
+                  <Input @bind-Value="nameFilter" Placeholder="按角色名筛选..." OnPressEnter="@OnKeyPress"
+                    Size="@InputSize.Large" Style="width: 300px;">
+                  <Prefix>
+                    <Icon Type="search" />
+                  </Prefix>
+                  </Input>
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="SearchByName"
+                    Size="@ButtonSize.Large">
+                    搜索
+                  </Button>
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
+                    Size="@ButtonSize.Large">
+                    清除
+                  </Button>
+                </SpaceItem>
+              </Space>
+            </TabPane>
+            <TabPane Key="2" Tab="按楼层范围">
+              <Space>
+                <SpaceItem>
+                  <Text>楼层范围：</Text>
+                </SpaceItem>
+                <SpaceItem>
+                  <AntDesign.InputNumber @bind-Value="startIndex" Placeholder="起始楼层" Min="@minIndex" Max="@maxIndex"
+                    Style="width: 120px;" />
+                </SpaceItem>
+                <SpaceItem>
+                  <Text>-</Text>
+                </SpaceItem>
+                <SpaceItem>
+                  <AntDesign.InputNumber @bind-Value="endIndex" Placeholder="结束楼层" Min="@minIndex" Max="@maxIndex"
+                    Style="width: 120px;" />
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="SearchByIndexRange"
+                    Size="@ButtonSize.Large">
+                    查询
+                  </Button>
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
+                    Size="@ButtonSize.Large">
+                    清除
+                  </Button>
+                </SpaceItem>
+              </Space>
+              @if (minIndex > 0 || maxIndex > 0)
+              {
+                <div style="margin-top: 8px;">
+                  <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+                    可用楼层范围：@minIndex - @maxIndex
+                  </Text>
+                </div>
+              }
+            </TabPane>
+          </Tabs>
+        </Card>
       </AntDesign.Col>
-      <AntDesign.Col Span="8" Style="text-align: right; line-height: 40px;">
+    </Row>
+    <Row Gutter="16">
+      <AntDesign.Col Span="24" Style="text-align: right; line-height: 40px;">
         <Text Type="@TextElementType.Secondary">
           共 <Text Strong="true" style="color: #1890ff;">@totalCount</Text> 条记录
         </Text>
@@ -96,15 +151,21 @@
   else if (chatLogs.Any())
   {
     <div style="overflow-x: auto;">
-      <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" Bordered="true" ScrollX="800">
-        <Column TData="ChatLogSummary" Title="ID" Width="80px">
+      <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" Bordered="true" ScrollX="900">
+        <Column TData="ChatLogSummary" Title="楼层" Width="80px">
+          <Template>
+            <Tag Color="@("blue")">@context.Index</Tag>
+          </Template>
+        </Column>
+        <Column TData="ChatLogSummary" Title="ID" Width="70px">
           <Template>
             @context.Id
           </Template>
         </Column>
         <Column TData="ChatLogSummary" Title="角色名" Width="150px">
           <Template>
-            <Text Strong="true">@context.Name</Text>
+            <Text Strong="true"
+              Style="@($"color: {GetCharacterColor(context.Name)}; background-color: {GetCharacterBackgroundColor(context.Name)}")">@context.Name</Text>
           </Template>
         </Column>
         <Column TData="ChatLogSummary" Title="发送时间" Width="180px">
@@ -228,6 +289,11 @@
   private DotNetObjectReference<ChatLogs>? objRef;
   private bool hasPreviousRecord = false;
   private bool hasNextRecord = false;
+  private int? startIndex = null;
+  private int? endIndex = null;
+  private int minIndex = 0;
+  private int maxIndex = 0;
+  private bool isIndexRangeQuery = false;
   private readonly Dictionary<string, string> characterColors = new();
   private readonly string[] backgroundColors = new[]
   {
@@ -239,6 +305,12 @@
   {
     currentPage = Page ?? 1;
     currentBook = await BookService.GetBookByIdAsync(BookId);
+
+    // 获取Index范围
+    var range = await ChatLogService.GetIndexRangeAsync(BookId);
+    minIndex = range.MinIndex;
+    maxIndex = range.MaxIndex;
+
     await LoadChatLogs();
   }
 
@@ -258,18 +330,25 @@
 
     try
     {
-      if (string.IsNullOrWhiteSpace(currentNameFilter))
+      if (isIndexRangeQuery && startIndex.HasValue && endIndex.HasValue)
+      {
+        // 按Index范围查询
+        chatLogs = await ChatLogService.GetChatLogsByIndexRangeAsync(BookId, startIndex.Value, endIndex.Value);
+        totalCount = chatLogs.Count;
+        totalPages = 1; // Index范围查询不分页
+      }
+      else if (string.IsNullOrWhiteSpace(currentNameFilter))
       {
         chatLogs = await ChatLogService.GetAllChatLogsAsync(BookId, currentPage, pageSize);
         totalCount = await ChatLogService.GetTotalCountAsync(BookId);
+        totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
       }
       else
       {
         chatLogs = await ChatLogService.GetChatLogsByNameAsync(currentNameFilter, BookId, currentPage, pageSize);
         totalCount = await ChatLogService.GetTotalCountByNameAsync(currentNameFilter, BookId);
+        totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
       }
-
-      totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
     }
     finally
     {
@@ -290,9 +369,23 @@
   {
     nameFilter = string.Empty;
     currentNameFilter = string.Empty;
+    startIndex = null;
+    endIndex = null;
+    isIndexRangeQuery = false;
     currentPage = 1;
     Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
+  }
+
+  private async Task SearchByIndexRange()
+  {
+    if (startIndex.HasValue && endIndex.HasValue && startIndex <= endIndex)
+    {
+      isIndexRangeQuery = true;
+      currentNameFilter = string.Empty;
+      nameFilter = string.Empty;
+      await LoadChatLogs();
+    }
   }
 
   private async Task OnKeyPress(KeyboardEventArgs e)
@@ -418,6 +511,14 @@
       characterColors[characterName] = backgroundColors[index];
     }
     return characterColors[characterName];
+  }
+
+  private string GetCharacterColor(string characterName)
+  {
+    // 为不同角色提供不同的文字颜色
+    var hash = characterName.GetHashCode();
+    var colors = new[] { "#1890ff", "#52c41a", "#fa8c16", "#eb2f96", "#722ed1", "#13c2c2", "#f5222d" };
+    return colors[Math.Abs(hash) % colors.Length];
   }
 
   private string FormatPreview(string name, DateTime sendDate, string preview)

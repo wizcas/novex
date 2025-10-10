@@ -10,13 +10,15 @@ namespace Novex.Data.Services;
 public interface IChatLogService
 {
   Task<ImportResult> ImportChatLogsFromJsonlAsync(string filePath, int bookId);
-  Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 20);
-  Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 20);
+  Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 50);
+  Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 50);
+  Task<List<ChatLogSummary>> GetChatLogsByIndexRangeAsync(int bookId, int startIndex, int endIndex);
   Task<ChatLog?> GetChatLogByIdAsync(int id);
   Task<int> GetTotalCountAsync(int bookId);
   Task<int> GetTotalCountByNameAsync(string name, int bookId);
   Task<int?> GetPreviousChatLogIdAsync(int currentId);
   Task<int?> GetNextChatLogIdAsync(int currentId);
+  Task<(int MinIndex, int MaxIndex)> GetIndexRangeAsync(int bookId);
 }
 
 public class ImportResult
@@ -34,6 +36,7 @@ public class ChatLogSummary
   public string Name { get; set; } = string.Empty;
   public DateTime SendDate { get; set; }
   public string Preview { get; set; } = string.Empty;
+  public int Index { get; set; }
 }
 
 public class ChatLogService : IChatLogService
@@ -66,6 +69,7 @@ public class ChatLogService : IChatLogService
 
       _logger.LogInformation("开始导入聊天记录，共读取 {TotalLines} 行", result.TotalLinesRead);
 
+      int index = 0; // 从0开始的楼层序号
       foreach (var line in lines)
       {
         if (string.IsNullOrWhiteSpace(line))
@@ -92,7 +96,8 @@ public class ChatLogService : IChatLogService
                 Mes = mes,
                 SendDate = sendDate.Value,
                 Preview = preview,
-                BookId = bookId
+                BookId = bookId,
+                Index = index
               };
 
               chatLogs.Add(chatLog);
@@ -102,12 +107,13 @@ public class ChatLogService : IChatLogService
         catch (JsonException ex)
         {
           _logger.LogWarning("跳过无法解析的JSON行: {Line}, 错误: {Error}", line.Substring(0, Math.Min(line.Length, 100)), ex.Message);
-          continue;
         }
+
+        index++; // 无论是否解析成功，Index都递增
       }
 
-      // 按发送时间排序
-      chatLogs = chatLogs.OrderBy(c => c.SendDate).ToList();
+      // 按Index排序（保持源文件顺序）
+      chatLogs = chatLogs.OrderBy(c => c.Index).ToList();
       result.ImportedRecords = chatLogs.Count;
 
       // 清空该书目的现有数据并插入新数据
@@ -130,13 +136,13 @@ public class ChatLogService : IChatLogService
     }
   }
 
-  public async Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 20)
+  public async Task<List<ChatLogSummary>> GetChatLogsByNameAsync(string name, int bookId, int page = 1, int pageSize = 50)
   {
     var skip = (page - 1) * pageSize;
 
     return await _context.ChatLogs
         .Where(c => c.Name == name && c.BookId == bookId)
-        .OrderBy(c => c.SendDate)
+        .OrderBy(c => c.Index)
         .Skip(skip)
         .Take(pageSize)
         .Select(c => new ChatLogSummary
@@ -144,18 +150,19 @@ public class ChatLogService : IChatLogService
           Id = c.Id,
           Name = c.Name,
           SendDate = c.SendDate,
-          Preview = c.Preview
+          Preview = c.Preview,
+          Index = c.Index
         })
         .ToListAsync();
   }
 
-  public async Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 20)
+  public async Task<List<ChatLogSummary>> GetAllChatLogsAsync(int bookId, int page = 1, int pageSize = 50)
   {
     var skip = (page - 1) * pageSize;
 
     return await _context.ChatLogs
         .Where(c => c.BookId == bookId)
-        .OrderBy(c => c.SendDate)
+        .OrderBy(c => c.Index)
         .Skip(skip)
         .Take(pageSize)
         .Select(c => new ChatLogSummary
@@ -163,7 +170,8 @@ public class ChatLogService : IChatLogService
           Id = c.Id,
           Name = c.Name,
           SendDate = c.SendDate,
-          Preview = c.Preview
+          Preview = c.Preview,
+          Index = c.Index
         })
         .ToListAsync();
   }
@@ -189,9 +197,8 @@ public class ChatLogService : IChatLogService
     if (currentLog == null) return null;
 
     var previousLog = await _context.ChatLogs
-        .Where(c => c.SendDate < currentLog.SendDate || (c.SendDate == currentLog.SendDate && c.Id < currentId))
-        .OrderByDescending(c => c.SendDate)
-        .ThenByDescending(c => c.Id)
+        .Where(c => c.BookId == currentLog.BookId && c.Index < currentLog.Index)
+        .OrderByDescending(c => c.Index)
         .FirstOrDefaultAsync();
 
     return previousLog?.Id;
@@ -203,12 +210,40 @@ public class ChatLogService : IChatLogService
     if (currentLog == null) return null;
 
     var nextLog = await _context.ChatLogs
-        .Where(c => c.SendDate > currentLog.SendDate || (c.SendDate == currentLog.SendDate && c.Id > currentId))
-        .OrderBy(c => c.SendDate)
-        .ThenBy(c => c.Id)
+        .Where(c => c.BookId == currentLog.BookId && c.Index > currentLog.Index)
+        .OrderBy(c => c.Index)
         .FirstOrDefaultAsync();
 
     return nextLog?.Id;
+  }
+
+  public async Task<List<ChatLogSummary>> GetChatLogsByIndexRangeAsync(int bookId, int startIndex, int endIndex)
+  {
+    return await _context.ChatLogs
+        .Where(c => c.BookId == bookId && c.Index >= startIndex && c.Index <= endIndex)
+        .OrderBy(c => c.Index)
+        .Select(c => new ChatLogSummary
+        {
+          Id = c.Id,
+          Name = c.Name,
+          SendDate = c.SendDate,
+          Preview = c.Preview,
+          Index = c.Index
+        })
+        .ToListAsync();
+  }
+
+  public async Task<(int MinIndex, int MaxIndex)> GetIndexRangeAsync(int bookId)
+  {
+    var logs = await _context.ChatLogs
+        .Where(c => c.BookId == bookId)
+        .Select(c => c.Index)
+        .ToListAsync();
+
+    if (!logs.Any())
+      return (0, 0);
+
+    return (logs.Min(), logs.Max());
   }
 
   private static string GeneratePreview(string name, DateTime sendDate, string mes)

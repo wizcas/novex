@@ -25,6 +25,9 @@ public class ChatLog
   [Required]
   public int BookId { get; set; }
 
+  [Required]
+  public int Index { get; set; }
+
   // 导航属性
   [ForeignKey("BookId")]
   public virtual Book Book { get; set; } = null!;
