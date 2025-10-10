@@ -7,103 +7,147 @@
 
 <PageTitle>导入聊天记录</PageTitle>
 
-<h3>导入 SillyTavern 聊天记录</h3>
-
-<div class="mb-3">
-    <div class="alert alert-info">
-        <h5>使用说明：</h5>
-        <ul>
-            <li>选择 SillyTavern 导出的 JSONL 文件</li>
-            <li>文件中每行应该是一个 JSON 对象，包含 name、mes、send_date 字段</li>
-            <li>只有包含 name 字段的记录会被导入</li>
-            <li>导入会替换现有的所有聊天记录</li>
-        </ul>
-    </div>
-</div>
-
-<div class="mb-3">
-    <label class="form-label">选择书目：</label>
-    <div class="input-group">
-        <input type="text" class="form-control" placeholder="搜索或输入新书目名称..."
-               @bind="bookSearchTerm" @oninput="OnBookSearchInput" @onfocus="ShowBookDropdown" />
-        <button type="button" class="btn btn-outline-secondary dropdown-toggle"
-                @onclick="ToggleBookDropdown" disabled="@isImporting"></button>
+<div class="import-page">
+    <div style="margin-bottom: 24px;">
+        <Title Level="2">
+            <Icon Type="upload" style="margin-right: 8px; color: #1890ff;" />
+            导入 SillyTavern 聊天记录
+        </Title>
     </div>
 
-    @if (showBookDropdown)
-    {
-        <div class="dropdown-menu show w-100" style="max-height: 200px; overflow-y: auto;">
-            @if (filteredBooks.Any())
-            {
-                @foreach (var book in filteredBooks)
-                {
-                    <a href="#" class="dropdown-item" @onclick="() => SelectBook(book)" @onclick:preventDefault="true">
-                        @book.Name
-                    </a>
-                }
-            }
+    <div style="margin-bottom: 24px;">
+        <Alert Type="@AlertType.Info" Message="使用说明" ShowIcon="true">
+            <MessageTemplate>
+                <div>
+                    <strong>使用说明：</strong>
+                    <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                        <li>选择 SillyTavern 导出的 JSONL 文件</li>
+                        <li>文件中每行应该是一个 JSON 对象，包含 name、mes、send_date 字段</li>
+                        <li>只有包含 name 字段的记录会被导入</li>
+                        <li>导入会替换现有的所有聊天记录</li>
+                    </ul>
+                </div>
+            </MessageTemplate>
+        </Alert>
+    </div>
 
-            @if (!string.IsNullOrWhiteSpace(bookSearchTerm) && !filteredBooks.Any(b => b.Name.Equals(bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
-            {
-                <a href="#" class="dropdown-item text-primary" @onclick="() => SelectNewBook(bookSearchTerm)" @onclick:preventDefault="true">
-                    <i class="oi oi-plus"></i> 创建新书目：@bookSearchTerm
-                </a>
-            }
-
-            @if (!filteredBooks.Any() && string.IsNullOrWhiteSpace(bookSearchTerm))
-            {
-                <div class="dropdown-item-text text-muted">暂无书目</div>
-            }
+    <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 8px;">
+            <Text Strong="true">选择书目：</Text>
         </div>
-    }
+        <Select DataSource="@filteredBooks" Value="@selectedBookId" ValueChanged="@((int? value) => OnBookIdChanged(value))" ItemValue="b => b.Id" ItemLabel="b => b.Name"
+            Placeholder="搜索或选择书目..." EnableSearch="true" AutoClearSearchValue="false" AllowClear="true"
+            Disabled="@isImporting" Size="@InputSize.Large" OnSearch="OnBookSearch"
+            Style="width: 100%;">
+            <DropdownRender Context="originNode">
+                <div>
+                    @if (!string.IsNullOrWhiteSpace(bookSearchTerm) && !filteredBooks.Any(b => string.Equals(b.Name, bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        <div style="padding: 8px;">
+                            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Plus" OnClick="@(() => CreateNewBookFromSearch())" Style="width: 100%; text-align: left;">
+                                创建书目：@bookSearchTerm
+                            </Button>
+                        </div>
+                        <Divider Style="margin: 4px 0;"></Divider>
+                    }
+                    @originNode
+                </div>
+            </DropdownRender>
+        </Select>
 
-    @if (selectedBook != null)
-    {
-        <div class="mt-2">
-            <small class="text-success">已选择书目：<strong>@selectedBook.Name</strong></small>
-        </div>
-    }
-</div>
-
-<div class="mb-3">
-    <label class="form-label">选择JSONL文件：</label>
-    <InputFile OnChange="@OnFileSelected" class="form-control" accept=".jsonl" />
-</div>
-
-<div class="mb-3">
-    <button class="btn btn-primary" @onclick="ImportFile" disabled="@(selectedFile == null || selectedBook == null || isImporting)">
-        @if (isImporting)
+        @if (selectedBook != null)
         {
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <text> 导入中...</text>
-        }
-        else
-        {
-            <text>开始导入</text>
-        }
-    </button>
-
-    @if (selectedFile == null || selectedBook == null)
-    {
-        <div class="form-text text-muted">
-            @if (selectedBook == null) { <div>请先选择一个书目</div> }
-            @if (selectedFile == null) { <div>请先选择一个JSONL文件</div> }
-        </div>
-    }
-</div>
-
-@if (!string.IsNullOrEmpty(message))
-{
-    <div class="alert @(isSuccess ? "alert-success" : "alert-danger")">
-        <div>@message</div>
-        @if (!string.IsNullOrEmpty(statisticsMessage))
-        {
-            <div class="mt-2">
-                <pre style="background: none; border: none; color: inherit; margin: 0; padding: 0; white-space: pre-line;">@statisticsMessage</pre>
+            <div style="margin-top: 8px;">
+                <Text Type="@TextElementType.Secondary">
+                    <Icon Type="check-circle" style="color: #52c41a; margin-right: 4px;" />
+                    已选择书目：<Text Strong="true">@selectedBook.Name</Text>
+                </Text>
             </div>
         }
     </div>
-}
+
+    <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 8px;">
+            <Text Strong="true">选择JSONL文件：</Text>
+        </div>
+        <div
+            style="border: 2px dashed #d9d9d9; border-radius: 6px; padding: 16px; text-align: center; background: #fafafa;">
+            <InputFile OnChange="@OnFileSelected" accept=".jsonl" style="display: none;" id="fileInput" />
+            <label for="fileInput" style="cursor: pointer; display: block;">
+                <Icon Type="inbox" style="font-size: 48px; color: #d9d9d9;" />
+                <div style="margin-top: 8px; color: #666;">
+                    点击或拖拽文件到此区域上传
+                </div>
+                <div style="margin-top: 4px; color: #999; font-size: 12px;">
+                    支持单个 .jsonl 文件上传
+                </div>
+            </label>
+        </div>
+
+        @if (selectedFile != null)
+        {
+            <div style="margin-top: 8px;">
+                <Text Type="@TextElementType.Secondary">
+                    <Icon Type="file-text" style="color: #1890ff; margin-right: 4px;" />
+                    已选择文件：<Text Strong="true">@selectedFile.Name</Text>
+                    <Text Type="@TextElementType.Secondary">(@FormatFileSize(selectedFile.Size))</Text>
+                </Text>
+            </div>
+        }
+    </div>
+
+    <div style="margin-bottom: 24px;">
+        <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Loading="@isImporting"
+            Disabled="@(selectedFile == null || selectedBook == null || isImporting)" OnClick="ImportFile">
+            <Icon Type="upload" />
+            @if (isImporting)
+            {
+                <text>导入中...</text>
+            }
+            else
+            {
+                <text>开始导入</text>
+            }
+        </Button>
+
+        @if (selectedFile == null || selectedBook == null)
+        {
+            <div style="margin-top: 8px;">
+                @if (selectedBook == null)
+                {
+                    <div style="color: #ff4d4f; font-size: 12px;">
+                        <Icon Type="exclamation-circle" /> 请先选择一个书目
+                    </div>
+                }
+                @if (selectedFile == null)
+                {
+                    <div style="color: #ff4d4f; font-size: 12px;">
+                        <Icon Type="exclamation-circle" /> 请先选择一个JSONL文件
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div style="margin-bottom: 24px;">
+            <Alert Type="@(isSuccess? AlertType.Success: AlertType.Error)" ShowIcon="true" Closable="true"
+                OnClose="() => { message = string.Empty; statisticsMessage = string.Empty; }">
+                <MessageTemplate>
+                    <div>@message</div>
+                    @if (!string.IsNullOrEmpty(statisticsMessage))
+                    {
+                        <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.02); border-radius: 4px;">
+                            <pre
+                                style="background: none; border: none; color: inherit; margin: 0; padding: 0; white-space: pre-line; font-family: inherit;">@statisticsMessage</pre>
+                        </div>
+                    }
+                </MessageTemplate>
+            </Alert>
+        </div>
+    }
+</div>
 
 @code {
     private IBrowserFile? selectedFile;
@@ -116,6 +160,7 @@
     private List<Novex.Data.Models.Book> allBooks = new();
     private List<Novex.Data.Models.Book> filteredBooks = new();
     private Novex.Data.Models.Book? selectedBook;
+    private int? selectedBookId;
     private string bookSearchTerm = string.Empty;
     private bool showBookDropdown = false;
 
@@ -130,11 +175,99 @@
         filteredBooks = allBooks;
     }
 
+    private void OnBookSelected(Novex.Data.Models.Book book)
+    {
+        selectedBook = book;
+        selectedBookId = book?.Id;
+        StateHasChanged();
+    }
+
+    // 处理Select组件的值变化
+    private void OnSelectedBookIdChanged(int? bookId)
+    {
+        selectedBookId = bookId;
+        selectedBook = bookId.HasValue ? allBooks.FirstOrDefault(b => b.Id == bookId.Value) : null;
+        StateHasChanged();
+    }
+
+    // 处理搜索输入
+    private void OnBookSearch(string searchValue)
+    {
+        bookSearchTerm = searchValue;
+        
+        if (string.IsNullOrWhiteSpace(searchValue))
+        {
+            filteredBooks = allBooks;
+        }
+        else
+        {
+            filteredBooks = allBooks.Where(b => b.Name.Contains(searchValue, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        StateHasChanged();
+    }
+
+
+
+    // 创建新书目
+    private async Task CreateNewBook(string bookName)
+    {
+        if (string.IsNullOrWhiteSpace(bookName)) return;
+
+        try
+        {
+            var newBook = await BookService.CreateBookAsync(bookName);
+
+            // 重新加载书目列表
+            await LoadBooks();
+
+            // 自动选择新创建的书目
+            selectedBook = allBooks.FirstOrDefault(b => b.Name == bookName);
+            selectedBookId = selectedBook?.Id;
+        }
+        catch (Exception ex)
+        {
+            message = $"创建书目失败：{ex.Message}";
+            isSuccess = false;
+        }
+    }
+
+    // 从搜索词创建新书目
+    private async Task CreateNewBookFromSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(bookSearchTerm))
+        {
+            await CreateNewBook(bookSearchTerm);
+        }
+    }
+
+    // 处理书目ID变化
+    private void OnBookIdChanged(int? bookId)
+    {
+        selectedBookId = bookId;
+        selectedBook = bookId.HasValue ? allBooks.FirstOrDefault(b => b.Id == bookId.Value) : null;
+        StateHasChanged();
+    }
+
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
         message = string.Empty;
         statisticsMessage = string.Empty;
+    }
+
+
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB" };
+        int counter = 0;
+        decimal number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number /= 1024;
+            counter++;
+        }
+        return string.Format("{0:n1} {1}", number, suffixes[counter]);
     }
 
     private async Task OnBookSearchInput(ChangeEventArgs e)
@@ -229,18 +362,18 @@
             {
                 message = "聊天记录导入成功！";
                 statisticsMessage = $"📊 导入统计：\n" +
-                                   $"• 读取行数: {result.TotalLinesRead}\n" +
-                                   $"• 有效记录: {result.ValidRecordsFound}\n" +
-                                   $"• 成功导入: {result.ImportedRecords}";
+                $"• 读取行数: {result.TotalLinesRead}\n" +
+                $"• 有效记录: {result.ValidRecordsFound}\n" +
+                $"• 成功导入: {result.ImportedRecords}";
                 isSuccess = true;
             }
             else
             {
                 message = $"导入失败：{result.ErrorMessage ?? "未知错误"}";
                 statisticsMessage = $"📊 处理统计：\n" +
-                                   $"• 读取行数: {result.TotalLinesRead}\n" +
-                                   $"• 有效记录: {result.ValidRecordsFound}\n" +
-                                   $"• 成功导入: {result.ImportedRecords}";
+                $"• 读取行数: {result.TotalLinesRead}\n" +
+                $"• 有效记录: {result.ValidRecordsFound}\n" +
+                $"• 成功导入: {result.ImportedRecords}";
                 isSuccess = false;
             }
         }
