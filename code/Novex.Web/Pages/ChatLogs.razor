@@ -168,12 +168,22 @@
             </div>
           </Template>
         </Column>
-        <ActionColumn Title="操作" Width="120px" Fixed="@ColumnFixPlacement.Right">
+        <ActionColumn Title="操作" Width="160px" Fixed="@ColumnFixPlacement.Right">
           <Template>
-            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Eye"
-                    OnClick="@(() => ViewDetail(context.Id))">
-              查看详情
-            </Button>
+            <Space>
+              <SpaceItem>
+                <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Eye"
+                        OnClick="@(() => ViewDetail(context.Id))">
+                  详情
+                </Button>
+              </SpaceItem>
+              <SpaceItem>
+                <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" Icon="@IconType.Outline.Experiment"
+                        OnClick="@(() => AnalyzeContent(context.Id))">
+                  分析
+                </Button>
+              </SpaceItem>
+            </Space>
           </Template>
         </ActionColumn>
       </Table>
@@ -534,6 +544,11 @@
     {
       await jsModule.InvokeVoidAsync("addKeyboardListener", objRef);
     }
+  }
+
+  private void AnalyzeContent(int id)
+  {
+    Navigation.NavigateTo($"/chatlogs/{BookId}/{id}/analyze");
   }
 
   private async Task CloseDetail()

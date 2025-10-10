@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Novex.Data.Context;
 
@@ -10,9 +11,11 @@ using Novex.Data.Context;
 namespace Novex.Data.Migrations
 {
     [DbContext(typeof(NovexDbContext))]
-    partial class NovexDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251010200826_AddChatLogAnalysisResult")]
+    partial class AddChatLogAnalysisResult
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");

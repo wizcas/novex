@@ -1,0 +1,253 @@
+@page "/chatlogs/{bookId:int}/{chatLogId:int}/analyze"
+@using Novex.Data.Models
+@using Novex.Data.Services
+@inject IChatLogService ChatLogService
+@inject IAnalysisService AnalysisService
+@inject NavigationManager Navigation
+
+<h3>分析对话记录</h3>
+
+<div class="analyze-container">
+  @if (chatLog != null)
+  {
+    <div style="margin-bottom: 16px;">
+      <Button Type="@ButtonType.Link" OnClick="@GoBack">
+        <Icon Type="arrow-left" /> 返回对话记录
+      </Button>
+    </div>
+
+    <Row Gutter="16">
+      <AntDesign.Col Span="12">
+        <Card Title="原文内容" Bordered="true">
+          <div class="original-content">
+            <div class="chat-info">
+              <strong>角色：</strong>@chatLog.Name<br />
+              <strong>时间：</strong>@chatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")<br />
+              <strong>楼层：</strong>@chatLog.Index
+            </div>
+            <Divider />
+            <div class="chat-message">
+              @((MarkupString)chatLog.Mes.Replace("\n", "<br />"))
+            </div>
+          </div>
+        </Card>
+      </AntDesign.Col>
+
+      <AntDesign.Col Span="12">
+        <Card Title="分析结果" Bordered="true">
+          <Form Model="@analysisResult" LabelCol="new ColLayoutParam { Span = 4 }"
+            WrapperCol="new ColLayoutParam { Span = 20 }">
+            <FormItem Label="标题">
+              <Input @bind-Value="@analysisResult.Title" Placeholder="请输入分析标题" MaxLength="200" />
+            </FormItem>
+
+            <FormItem Label="摘要">
+              <TextArea @bind-Value="@analysisResult.Summary" Placeholder="请输入摘要内容" Rows="4" ShowCount="true"
+                MaxLength="500" />
+            </FormItem>
+
+            <FormItem Label="正文">
+              <TextArea @bind-Value="@analysisResult.MainBody" Placeholder="请输入正文内容" Rows="8" ShowCount="true" />
+            </FormItem>
+
+            <FormItem WrapperCol="new ColLayoutParam { Offset = 4, Span = 20 }">
+              <Space>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Primary" OnClick="@AnalyzeContent" Loading="@isAnalyzing">
+                    <Icon Type="experiment" /> 分析
+                  </Button>
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Default" OnClick="@SaveAnalysis" Loading="@isSaving">
+                    <Icon Type="save" /> 保存
+                  </Button>
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Dashed" OnClick="@ClearAnalysis">
+                    <Icon Type="clear" /> 清空
+                  </Button>
+                </SpaceItem>
+              </Space>
+            </FormItem>
+          </Form>
+        </Card>
+
+        <Card Title="分析规则" Bordered="true" style="margin-top: 16px;">
+          <div style="color: #666; font-style: italic;">
+            <p>当前使用模拟分析规则：</p>
+            <ul>
+              <li>标题：提取对话内容前30个字符</li>
+              <li>摘要：提取前3行内容，最多100字符</li>
+              <li>正文：格式化段落，清理空行</li>
+            </ul>
+            <p style="margin-top: 8px; font-size: 12px;">
+              <Icon Type="info-circle" /> 后续可替换为AI分析接口
+            </p>
+          </div>
+        </Card>
+      </AntDesign.Col>
+    </Row>
+  }
+  else if (isLoading)
+  {
+    <div style="text-align: center; padding: 50px;">
+      <Spin Size="@SpinSize.Large" />
+      <div style="margin-top: 16px;">加载中...</div>
+    </div>
+  }
+  else
+  {
+    <Result Status="@ResultStatus.Error" Title="404" SubTitle="对话记录不存在">
+      <Extra>
+        <Button Type="@ButtonType.Primary" OnClick="@GoBack">返回</Button>
+      </Extra>
+    </Result>
+  }
+</div>
+
+<style>
+  .analyze-container {
+    padding: 16px;
+  }
+
+  .original-content {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .chat-info {
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+
+  .chat-message {
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+</style>
+
+@code {
+  [Parameter] public int BookId { get; set; }
+  [Parameter] public int ChatLogId { get; set; }
+
+  private ChatLog? chatLog;
+  private ChatLogAnalysisResult analysisResult = new();
+  private bool isLoading = true;
+  private bool isAnalyzing = false;
+  private bool isSaving = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadData();
+  }
+
+  private async Task LoadData()
+  {
+    try
+    {
+      isLoading = true;
+      StateHasChanged();
+
+      chatLog = await ChatLogService.GetChatLogByIdAsync(ChatLogId);
+      if (chatLog == null || chatLog.BookId != BookId)
+      {
+        return;
+      }
+
+      // 尝试加载现有的分析结果
+      var existingAnalysis = await AnalysisService.GetAnalysisResultAsync(ChatLogId);
+      if (existingAnalysis != null)
+      {
+        analysisResult = existingAnalysis;
+      }
+      else
+      {
+        // 初始化空的分析结果
+        analysisResult = new ChatLogAnalysisResult
+        {
+          ChatLogId = ChatLogId,
+          Title = "",
+          Summary = "",
+          MainBody = ""
+        };
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"加载数据时出错: {ex.Message}");
+    }
+    finally
+    {
+      isLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task AnalyzeContent()
+  {
+    if (chatLog == null) return;
+
+    try
+    {
+      isAnalyzing = true;
+      StateHasChanged();
+
+      var result = await AnalysisService.AnalyzeChatLogAsync(ChatLogId);
+      analysisResult.Title = result.Title;
+      analysisResult.Summary = result.Summary;
+      analysisResult.MainBody = result.MainBody;
+
+      StateHasChanged();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"分析内容时出错: {ex.Message}");
+    }
+    finally
+    {
+      isAnalyzing = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task SaveAnalysis()
+  {
+    try
+    {
+      isSaving = true;
+      StateHasChanged();
+
+      analysisResult.ChatLogId = ChatLogId;
+      await AnalysisService.SaveAnalysisResultAsync(analysisResult);
+
+      // 显示保存成功消息（这里可以使用 Ant Design 的 Message 组件）
+      StateHasChanged();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"保存分析结果时出错: {ex.Message}");
+    }
+    finally
+    {
+      isSaving = false;
+      StateHasChanged();
+    }
+  }
+
+  private void ClearAnalysis()
+  {
+    analysisResult.Title = "";
+    analysisResult.Summary = "";
+    analysisResult.MainBody = "";
+    StateHasChanged();
+  }
+
+  private void GoBack()
+  {
+    Navigation.NavigateTo($"/chatlogs/{BookId}");
+  }
+}

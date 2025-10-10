@@ -5,30 +5,33 @@ namespace Novex.Data.Models;
 
 public class ChatLog
 {
-    [Key]
-    public int Id { get; set; }
+  [Key]
+  public int Id { get; set; }
 
-    [Required]
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+  [Required]
+  [MaxLength(100)]
+  public string Name { get; set; } = string.Empty;
 
-    [Required]
-    public string Mes { get; set; } = string.Empty;
+  [Required]
+  public string Mes { get; set; } = string.Empty;
 
-    [Required]
-    public DateTime SendDate { get; set; }
+  [Required]
+  public DateTime SendDate { get; set; }
 
-    [Required]
-    [MaxLength(200)]
-    public string Preview { get; set; } = string.Empty;
+  [Required]
+  [MaxLength(200)]
+  public string Preview { get; set; } = string.Empty;
 
-    [Required]
-    public int BookId { get; set; }
+  [Required]
+  public int BookId { get; set; }
 
-    [Required]
-    public int Index { get; set; }
+  [Required]
+  public int Index { get; set; }
 
-    // 导航属性
-    [ForeignKey("BookId")]
-    public virtual Book Book { get; set; } = null!;
+  // 导航属性
+  [ForeignKey("BookId")]
+  public virtual Book Book { get; set; } = null!;
+
+  // 一对一关系 - 分析结果
+  public virtual ChatLogAnalysisResult? AnalysisResult { get; set; }
 }

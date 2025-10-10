@@ -17,6 +17,7 @@ builder.Services.AddAntDesign();
 // 添加服务
 builder.Services.AddScoped<IChatLogService, ChatLogService>();
 builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 
 WebApplication app = builder.Build();
 
