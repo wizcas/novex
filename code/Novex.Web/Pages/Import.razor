@@ -35,16 +35,18 @@
         <div style="margin-bottom: 8px;">
             <Text Strong="true">选择书目：</Text>
         </div>
-        <Select DataSource="@filteredBooks" Value="@selectedBookId" ValueChanged="@((int? value) => OnBookIdChanged(value))" ItemValue="b => b.Id" ItemLabel="b => b.Name"
+        <Select DataSource="@filteredBooks" Value="@selectedBookId"
+            ValueChanged="@((int? value) => OnBookIdChanged(value))" ItemValue="b => b.Id" ItemLabel="b => b.Name"
             Placeholder="搜索或选择书目..." EnableSearch="true" AutoClearSearchValue="false" AllowClear="true"
-            Disabled="@isImporting" Size="@InputSize.Large" OnSearch="OnBookSearch"
-            Style="width: 100%;">
+            Disabled="@isImporting" Size="@InputSize.Large" OnSearch="OnBookSearch" Style="width: 100%;">
             <DropdownRender Context="originNode">
                 <div>
-                    @if (!string.IsNullOrWhiteSpace(bookSearchTerm) && !filteredBooks.Any(b => string.Equals(b.Name, bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
+                    @if (!string.IsNullOrWhiteSpace(bookSearchTerm) && !filteredBooks.Any(b => string.Equals(b.Name,
+                                        bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
                     {
                         <div style="padding: 8px;">
-                            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Plus" OnClick="@(() => CreateNewBookFromSearch())" Style="width: 100%; text-align: left;">
+                            <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Plus"
+                                OnClick="@(() => CreateNewBookFromSearch())" Style="width: 100%; text-align: left;">
                                 创建书目：@bookSearchTerm
                             </Button>
                         </div>
@@ -194,7 +196,7 @@
     private void OnBookSearch(string searchValue)
     {
         bookSearchTerm = searchValue;
-        
+
         if (string.IsNullOrWhiteSpace(searchValue))
         {
             filteredBooks = allBooks;

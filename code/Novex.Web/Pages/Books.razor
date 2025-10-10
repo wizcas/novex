@@ -296,6 +296,7 @@
         {
             var bookName = bookToClear.Name;
             var count = await BookService.ClearBookChatLogsAsync(bookToClear.Id);
+            await LoadBooks(); // 刷新表格数据
             ShowMessage($"书目 \"{bookName}\" 的聊天记录清空成功，共删除 {count} 条记录", false);
         }
         catch (Exception ex)
