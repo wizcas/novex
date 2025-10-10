@@ -152,14 +152,9 @@
   {
     <div style="overflow-x: auto;">
       <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" Bordered="true" ScrollX="900">
-        <Column TData="ChatLogSummary" Title="楼层" Width="80px">
+        <Column TData="ChatLogSummary" Title="楼层" Width="40px">
           <Template>
             <Tag Color="@("blue")">@context.Index</Tag>
-          </Template>
-        </Column>
-        <Column TData="ChatLogSummary" Title="ID" Width="70px">
-          <Template>
-            @context.Id
           </Template>
         </Column>
         <Column TData="ChatLogSummary" Title="角色名" Width="150px">
@@ -168,7 +163,7 @@
               Style="@($"color: {GetCharacterColor(context.Name)}; background-color: {GetCharacterBackgroundColor(context.Name)}")">@context.Name</Text>
           </Template>
         </Column>
-        <Column TData="ChatLogSummary" Title="发送时间" Width="180px">
+        <Column TData="ChatLogSummary" Title="发送时间" Width="80px">
           <Template>
             @context.SendDate.ToString("yyyy-MM-dd HH:mm:ss")
           </Template>
