@@ -53,7 +53,7 @@
       </AntDesign.Col>
       <AntDesign.Col>
         <Button Type="@ButtonType.Default" Icon="@IconType.Outline.ArrowLeft"
-          OnClick="@(() => Navigation.NavigateTo("/books"))">
+                OnClick="@(() => Navigation.NavigateTo("/books"))">
           返回书目管理
         </Button>
       </AntDesign.Col>
@@ -64,69 +64,55 @@
     <Row Gutter="16" Style="margin-bottom: 16px;">
       <AntDesign.Col Span="24">
         <Card Title="筛选条件" Size="@CardSize.Small">
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            <!-- 角色筛选 -->
-            <div>
-              <Space>
-                <SpaceItem>
-                  <Text Strong="true">角色名：</Text>
-                </SpaceItem>
-                <SpaceItem>
-                  <Select TItemValue="string" TItem="string" @bind-Value="nameFilter" Placeholder="请选择角色"
-                    AllowClear="true" Style="width: 300px;">
-                    @foreach (var name in characterNames)
-                    {
-                      <SelectOption TItemValue="string" TItem="string" Value="@name" Label="@name" />
-                    }
-                  </Select>
-                </SpaceItem>
-              </Space>
-            </div>
-            <!-- 楼层范围筛选 -->
-            <div>
-              <Space>
-                <SpaceItem>
-                  <Text Strong="true">楼层范围：</Text>
-                </SpaceItem>
-                <SpaceItem>
-                  <AntDesign.InputNumber @bind-Value="startIndex" Placeholder="起始楼层" Min="@minIndex" Max="@maxIndex"
-                    Style="width: 130px;" />
-                </SpaceItem>
-                <SpaceItem>
-                  <Text>-</Text>
-                </SpaceItem>
-                <SpaceItem>
-                  <AntDesign.InputNumber @bind-Value="endIndex" Placeholder="结束楼层" Min="@minIndex" Max="@maxIndex"
-                    Style="width: 130px;" />
-                </SpaceItem>
-                @if (minIndex > 0 || maxIndex > 0)
+          <Form Model="@filterModel" OnFinish="OnFormSubmit" WrapperCol="GetFormWrapperCol()"
+                LabelCol="GetFormLabelCol()">
+            <FormItem Label="角色名"><Select TItemValue="string" TItem="string" @bind-Value="nameFilter"
+                                             Placeholder="请选择角色" AllowClear="true">
+                @foreach (var name in characterNames)
                 {
-                  <SpaceItem>
-                    <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
-                      （可用范围：@minIndex - @maxIndex）
-                    </Text>
-                  </SpaceItem>
+                  <SelectOption TItemValue="string" TItem="string" Value="@name" Label="@name"/>
                 }
-              </Space>
-            </div>
-            <!-- 操作按钮 -->
-            <div>
+              </Select>
+            </FormItem>
+            <FormItem Label="楼层范围">
+              <Row>
+                <AntDesign.Col Span="24">
+                  <Slider Range="true" @bind-Value="floorRange" Min="@minIndex" Max="@maxIndex" InputNumberLeft="true"
+                          InputNumberRight="true"/>
+                </AntDesign.Col>
+              </Row>
+              <Row Gutter="16" Style="margin-top: 12px;">
+                <Col Span="6">
+                  <AntDesign.InputNumber @bind-Value="startIndex"
+                                         @bind-Value:after="SyncToSlider"
+                                         Min="@minIndex" Max="@maxIndex"
+                                         Style="width: 100%; margin-top: 4px;" />
+                </Col>
+                <Col Span="6" Offset="12">
+                  <AntDesign.InputNumber @bind-Value="endIndex"
+                                         @bind-Value:after="SyncToSlider"
+                                         Min="@minIndex" Max="@maxIndex"
+                                         Style="width: 100%; margin-top: 4px;" />
+                </Col>
+              </Row>
+            </FormItem>
+            <FormItem>
               <Space>
                 <SpaceItem>
-                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" OnClick="ApplyFilters"
-                    Size="@ButtonSize.Large">
+                  <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Search" HtmlType="submit"
+                          Size="@ButtonSize.Default">
                     应用筛选
                   </Button>
                 </SpaceItem>
                 <SpaceItem>
                   <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
-                    Size="@ButtonSize.Large">
+                          Size="@ButtonSize.Default">
                     清除筛选
                   </Button>
                 </SpaceItem>
               </Space>
-            </div>
-          </div>
+            </FormItem>
+          </Form>
         </Card>
       </AntDesign.Col>
     </Row>
@@ -144,7 +130,7 @@
   @if (isLoading)
   {
     <div style="text-align: center; padding: 48px;">
-      <Spin Size="@SpinSize.Large" />
+      <Spin Size="@SpinSize.Large"/>
       <div style="margin-top: 16px;">
         <Text Type="@TextElementType.Secondary">加载中...</Text>
       </div>
@@ -156,7 +142,7 @@
       <Table TItem="ChatLogSummary" DataSource="@chatLogs" Size="@TableSize.Middle" ScrollX="900">
         <Column TData="ChatLogSummary" Title="楼层" Width="60px">
           <Template>
-            <Text Type="TextElementType.Secondary">@context.Index</Text>
+            <Text Type="@TextElementType.Secondary">@context.Index</Text>
           </Template>
         </Column>
         <Column TData="ChatLogSummary" Title="角色名" Width="150px">
@@ -179,7 +165,7 @@
         <ActionColumn Title="操作" Width="120px" Fixed="@ColumnFixPlacement.Right">
           <Template>
             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Eye"
-              OnClick="@(() => ViewDetail(context.Id))">
+                    OnClick="@(() => ViewDetail(context.Id))">
               查看详情
             </Button>
           </Template>
@@ -190,7 +176,7 @@
     <!-- 分页控件 -->
     <div style="text-align: center; margin-top: 24px;">
       <Pagination Current="@currentPage" Total="@totalCount" PageSize="@pageSize" OnChange="@OnPageChange"
-        ShowSizeChanger="false" ShowQuickJumper="true" />
+                  ShowSizeChanger="false" ShowQuickJumper="true"/>
     </div>
   }
   else
@@ -198,12 +184,12 @@
     <Empty>
       <DescriptionTemplate>
         <Text Type="@TextElementType.Secondary">暂无聊天记录</Text>
-        <br />
+        <br/>
         <Text Type="@TextElementType.Secondary">请先导入聊天记录。</Text>
       </DescriptionTemplate>
       <ChildContent>
         <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Import"
-          OnClick="@(() => Navigation.NavigateTo("/import"))">
+                OnClick="@(() => Navigation.NavigateTo("/import"))">
           导入聊天记录
         </Button>
       </ChildContent>
@@ -217,11 +203,11 @@
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <div>
           <Button Icon="@IconType.Outline.Left" OnClick="GoToPreviousRecord"
-            Disabled="@(isNavigating || !hasPreviousRecord)" Loading="@isNavigating" @key="@("prev")">
+                  Disabled="@(isNavigating || !hasPreviousRecord)" Loading="@isNavigating" @key="@("prev")">
             上一条
           </Button>
           <Button Icon="@IconType.Outline.Right" OnClick="GoToNextRecord" Disabled="@(isNavigating || !hasNextRecord)"
-            Loading="@isNavigating" Style="margin-left: 8px;" @key="@("next")">
+                  Loading="@isNavigating" Style="margin-left: 8px;" @key="@("next")">
             下一条
           </Button>
         </div>
@@ -229,11 +215,13 @@
       </div>
     </Template>;
 
-    <Modal Title="@($"聊天记录详情 - ID: {selectedChatLog.Id}")" Visible="true" OnCancel="CloseDetail" Footer="@detailFooter"
-      Width="800" Keyboard="true">
+    <Modal Title="@($"聊天记录详情 - ID: {selectedChatLog.Id}")" Visible="true" OnCancel="CloseDetail"
+           Footer="@detailFooter"
+           Width="800" Keyboard="true">
       <div>
-        <Alert Type="@AlertType.Info" Message="键盘操作提示" Description="使用左右方向键切换上一条/下一条记录，ESC键关闭详情窗口。" ShowIcon="true"
-          Style="margin-bottom: 16px;" />
+        <Alert Type="@AlertType.Info" Message="键盘操作提示"
+               Description="使用左右方向键切换上一条/下一条记录，ESC键关闭详情窗口。" ShowIcon="true"
+               Style="margin-bottom: 16px;"/>
         <Row Style="margin-bottom: 16px;">
           <AntDesign.Col Span="4">
             <Text Strong="true">角色名:</Text>
@@ -289,21 +277,116 @@
   private DotNetObjectReference<ChatLogs>? objRef;
   private bool hasPreviousRecord;
   private bool hasNextRecord;
-  private int? startIndex;
-  private int? endIndex;
+  private int _startIndex;
+  private int _endIndex;
   private int? currentStartIndex;
   private int? currentEndIndex;
+  private (double, double) _floorRange = (0, 0);
+
+  private int startIndex
+  {
+    get => _startIndex;
+    set
+    {
+      var newValue = ValidateAndAdjustStartIndex(value);
+      if (_startIndex != newValue)
+      {
+        _startIndex = newValue;
+        // 确保结束楼层不小于起始楼层
+        if (_endIndex < _startIndex)
+        {
+          _endIndex = _startIndex;
+        }
+      }
+    }
+  }
+
+  private int endIndex
+  {
+    get => _endIndex;
+    set
+    {
+      var newValue = ValidateAndAdjustEndIndex(value);
+      if (_endIndex != newValue)
+      {
+        _endIndex = newValue;
+        // 确保起始楼层不大于结束楼层
+        if (_startIndex > _endIndex)
+        {
+          _startIndex = _endIndex;
+        }
+      }
+    }
+  }
+
+  private (double, double) floorRange
+  {
+    get => _floorRange;
+    set
+    {
+      _floorRange = value;
+      var newStart = ValidateAndAdjustStartIndex((int)value.Item1);
+      var newEnd = ValidateAndAdjustEndIndex((int)value.Item2);
+
+      // 确保范围有效性
+      if (newStart > newEnd)
+      {
+        newEnd = newStart;
+      }
+
+      if (_startIndex != newStart || _endIndex != newEnd)
+      {
+        _startIndex = newStart;
+        _endIndex = newEnd;
+        StateHasChanged();
+      }
+    }
+  }
+
+  // 验证和调整起始楼层值
+  private int ValidateAndAdjustStartIndex(int value)
+  {
+    if (value < minIndex) return minIndex;
+    if (value > maxIndex) return maxIndex;
+    return value;
+  }
+
+  // 验证和调整结束楼层值
+  private int ValidateAndAdjustEndIndex(int value)
+  {
+    if (value < minIndex) return minIndex;
+    if (value > maxIndex) return maxIndex;
+    return value;
+  }
+
+  // 当 InputNumber 值改变时同步到 slider
+  private void SyncToSlider()
+  {
+    _floorRange = (_startIndex, _endIndex);
+    StateHasChanged();
+  }
+
   private int minIndex;
   private int maxIndex;
   private readonly string[] characterColors = new[] {
-"#828a00",
-"#f29f05",
-"#ff5ca3",
-"#4d8584",
-"#a62f03",
-};
+    "#828a00",
+    "#f29f05",
+    "#ff5ca3",
+    "#4d8584",
+    "#a62f03",
+  };
 
   private List<string> characterNames = new();
+
+  // 表单模型
+  private FilterModel filterModel = new();
+
+  public class FilterModel
+  {
+    public string? Name { get; set; }
+    public int? StartIndex { get; set; }
+    public int? EndIndex { get; set; }
+  }
 
   protected async override Task OnInitializedAsync()
   {
@@ -314,6 +397,14 @@
     (int MinIndex, int MaxIndex) range = await ChatLogService.GetIndexRangeAsync(BookId);
     minIndex = range.MinIndex;
     maxIndex = range.MaxIndex;
+
+    // 初始化楼层范围滑块的默认值
+    if (_floorRange.Item1 == 0 && _floorRange.Item2 == 0)
+    {
+      _startIndex = minIndex;
+      _endIndex = maxIndex;
+      _floorRange = (minIndex, maxIndex);
+    }
 
     // 获取所有角色名
     characterNames = await ChatLogService.GetCharacterNamesAsync(BookId);
@@ -339,17 +430,17 @@
     {
       // 使用统一的筛选方法
       chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
-      BookId,
-      string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
-      currentStartIndex,
-      currentEndIndex,
-      currentPage);
+        BookId,
+        string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
+        currentStartIndex,
+        currentEndIndex,
+        currentPage);
 
       totalCount = await ChatLogService.GetTotalCountWithFiltersAsync(
-      BookId,
-      string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
-      currentStartIndex,
-      currentEndIndex);
+        BookId,
+        string.IsNullOrWhiteSpace(currentNameFilter) ? null : currentNameFilter,
+        currentStartIndex,
+        currentEndIndex);
 
       totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
     }
@@ -364,8 +455,9 @@
   {
     // 应用当前的筛选条件
     currentNameFilter = nameFilter;
-    currentStartIndex = startIndex;
-    currentEndIndex = endIndex;
+    // 只有当值不等于全范围时才设置筛选条件
+    currentStartIndex = (startIndex == minIndex && endIndex == maxIndex) ? null : startIndex;
+    currentEndIndex = (startIndex == minIndex && endIndex == maxIndex) ? null : endIndex;
     currentPage = 1;
     Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
@@ -375,11 +467,12 @@
   {
     nameFilter = string.Empty;
     currentNameFilter = string.Empty;
-    startIndex = null;
-    endIndex = null;
+    startIndex = minIndex;
+    endIndex = maxIndex;
     currentStartIndex = null;
     currentEndIndex = null;
     currentPage = 1;
+    _floorRange = (minIndex, maxIndex);
     Navigation.NavigateTo($"/chatlogs/{BookId}");
     await LoadChatLogs();
   }
@@ -388,9 +481,23 @@
   {
     if (e.Key == "Enter")
     {
+      Console.WriteLine("Enter key pressed, applying filters...");
       await ApplyFilters();
     }
   }
+
+  private async Task OnEnterPressed()
+  {
+    Console.WriteLine("AntDesign Enter event triggered, applying filters...");
+    await ApplyFilters();
+  }
+
+  private async Task OnFormSubmit()
+  {
+    Console.WriteLine("Form submitted, applying filters...");
+    await ApplyFilters();
+  }
+
 
   private void GoToPage(int page)
   {
@@ -538,8 +645,8 @@
     var message = preview.StartsWith(expectedPrefix) ? preview[expectedPrefix.Length..] : preview;
 
     return $"<span class='chat-name'>{name}</span> " +
-    $"<span class='chat-date'>{sendDate:yyyy-MM-dd HH:mm}</span> " +
-    $"<span class='chat-message'>{message}</span>";
+           $"<span class='chat-date'>{sendDate:yyyy-MM-dd HH:mm}</span> " +
+           $"<span class='chat-message'>{message}</span>";
   }
 
   [JSInvokable]
@@ -589,6 +696,40 @@
       await jsModule.DisposeAsync();
     }
     objRef?.Dispose();
+  }
+
+  // Form 布局配置
+  private ColLayoutParam GetFormLabelCol()
+  {
+    return new ColLayoutParam {
+      Xs = new EmbeddedProperty { Span = 24 },
+      Sm = new EmbeddedProperty { Span = 6 },
+      Md = new EmbeddedProperty { Span = 4 },
+      Lg = new EmbeddedProperty { Span = 3 },
+      Xl = new EmbeddedProperty { Span = 3 }
+    };
+  }
+
+  private ColLayoutParam GetFormWrapperCol()
+  {
+    return new ColLayoutParam {
+      Xs = new EmbeddedProperty { Span = 24 },
+      Sm = new EmbeddedProperty { Span = 18 },
+      Md = new EmbeddedProperty { Span = 20 },
+      Lg = new EmbeddedProperty { Span = 21 },
+      Xl = new EmbeddedProperty { Span = 21 }
+    };
+  }
+
+  private ColLayoutParam GetButtonItemLayout()
+  {
+    return new ColLayoutParam {
+      Xs = new EmbeddedProperty { Span = 24, Offset = 0 },
+      Sm = new EmbeddedProperty { Span = 18, Offset = 6 },
+      Md = new EmbeddedProperty { Span = 20, Offset = 4 },
+      Lg = new EmbeddedProperty { Span = 21, Offset = 3 },
+      Xl = new EmbeddedProperty { Span = 21, Offset = 3 }
+    };
   }
 
 }
