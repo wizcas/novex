@@ -12,6 +12,7 @@ public class NovexDbContext : DbContext
   public DbSet<ChatLog> ChatLogs { get; set; }
   public DbSet<Book> Books { get; set; }
   public DbSet<ChatLogAnalysisResult> ChatLogAnalysisResults { get; set; }
+  public DbSet<ChatLogAnalysisRuleBook> ChatLogAnalysisRuleBooks { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -64,6 +65,18 @@ public class NovexDbContext : DbContext
 
       // 创建唯一约束确保每个ChatLog只有一个分析结果
       entity.HasIndex(e => e.ChatLogId).IsUnique();
+    });
+
+    modelBuilder.Entity<ChatLogAnalysisRuleBook>(entity => {
+      entity.HasKey(e => e.Id);
+      entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+      entity.Property(e => e.Description).HasMaxLength(1000);
+      entity.Property(e => e.Content).IsRequired();
+      entity.Property(e => e.CreatedAt).IsRequired();
+      entity.Property(e => e.UpdatedAt).IsRequired();
+
+      // 创建唯一约束确保规则书名称不重复
+      entity.HasIndex(e => e.Name).IsUnique();
     });
   }
 }

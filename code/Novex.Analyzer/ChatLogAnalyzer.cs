@@ -7,11 +7,18 @@ namespace Novex.Analyzer;
 /// </summary>
 public class ChatLogAnalyzer
 {
+  private readonly RuleEngine _ruleEngine;
+
+  public ChatLogAnalyzer()
+  {
+    _ruleEngine = new RuleEngine();
+  }
+
   /// <summary>
   /// 分析聊天消息
   /// </summary>
   /// <param name="message">要分析的消息内容</param>
-  /// <param name="rule">分析规则</param>
+  /// <param name="rule">分析规则（YAML格式或简单字符串）</param>
   /// <returns>分析结果</returns>
   public async Task<ChatLogAnalysisResult> AnalyzeAsync(string message, string rule)
   {
@@ -26,12 +33,47 @@ public class ChatLogAnalyzer
       throw new ArgumentException("分析规则不能为空", nameof(rule));
     }
 
+    try
+    {
+      // 尝试解析为YAML规则书
+      if (IsYamlRuleBook(rule))
+      {
+        var ruleBook = _ruleEngine.ParseRuleBook(rule);
+        return await _ruleEngine.ExecuteRulesAsync(message, ruleBook);
+      }
+      else
+      {
+        // 使用传统的简单规则处理
+        return await AnalyzeWithSimpleRuleAsync(message, rule);
+      }
+    }
+    catch (Exception)
+    {
+      // 如果规则解析失败，回退到简单规则
+      return await AnalyzeWithSimpleRuleAsync(message, rule);
+    }
+  }
+
+  /// <summary>
+  /// 检查是否为YAML规则书格式
+  /// </summary>
+  private bool IsYamlRuleBook(string rule)
+  {
+    return rule.TrimStart().StartsWith("version:") ||
+           rule.Contains("extraction_rules:") ||
+           rule.Contains("transformation_rules:");
+  }
+
+  /// <summary>
+  /// 使用简单规则进行分析（兼容性保持）
+  /// </summary>
+  private async Task<ChatLogAnalysisResult> AnalyzeWithSimpleRuleAsync(string message, string rule)
+  {
     // 模拟异步分析过程，添加短暂延迟
     await Task.Delay(100);
 
     // 创建分析结果
-    var result = new ChatLogAnalysisResult
-    {
+    var result = new ChatLogAnalysisResult {
       Title = await ExtractTitleAsync(message),
       Summary = await ExtractSummaryAsync(message, rule),
       MainBody = await AnalyzeContentAsync(message, rule),

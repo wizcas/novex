@@ -1,0 +1,139 @@
+@page "/rulebooks"
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using Microsoft.AspNetCore.Components
+@inject AnalysisRuleBookService RuleBookService
+@inject NavigationManager Navigation
+@inject IMessageService MessageService
+
+<PageTitle>规则书管理</PageTitle>
+
+<div style="margin-bottom: 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h3 style="margin: 0;">规则书管理</h3>
+    <Button Type="@ButtonType.Primary" OnClick="@CreateRuleBook">
+      <Icon Type="plus" /> 新建规则书
+    </Button>
+  </div>
+</div>
+
+@if (loading)
+{
+  <div style="text-align: center; padding: 40px;">
+    <Spin Size="@SpinSize.Large" />
+  </div>
+}
+else
+{
+  <div style="margin-bottom: 16px;">
+    <Search Placeholder="搜索规则书名称或描述" OnSearch="@OnSearch" EnterButton="true" Loading="@searching" style="width: 300px;" />
+  </div>
+
+  <Table TItem="ChatLogAnalysisRuleBook" DataSource="@ruleBooks" Loading="@loading" PageSize="10" HidePagination="false">
+    <Column TData="string" Title="名称" DataIndex="Name" Sortable>
+      <a href="javascript:;" @onclick="@(() => EditRuleBook(context.Id))" style="color: #1890ff; text-decoration: none;">
+        @context.Name
+      </a>
+    </Column>
+    <Column TData="string" Title="描述" DataIndex="Description" Ellipsis>
+      @context.Description
+    </Column>
+    <Column TData="DateTime" Title="创建时间" DataIndex="CreatedAt" Sortable>
+      @context.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+    </Column>
+    <Column TData="DateTime" Title="更新时间" DataIndex="UpdatedAt" Sortable>
+      @context.UpdatedAt.ToString("yyyy-MM-dd HH:mm")
+    </Column>
+    <ActionColumn Title="操作">
+      <Space>
+        <SpaceItem>
+          <Button Size="@ButtonSize.Small" OnClick="@(() => EditRuleBook(context.Id))">
+            编辑
+          </Button>
+        </SpaceItem>
+        <SpaceItem>
+          <Popconfirm Title="确定要删除这个规则书吗？" OnConfirm="@(() => DeleteRuleBook(context.Id))">
+            <Button Size="@ButtonSize.Small" Danger>
+              删除
+            </Button>
+          </Popconfirm>
+        </SpaceItem>
+      </Space>
+    </ActionColumn>
+  </Table>
+}
+
+@code {
+  private List<ChatLogAnalysisRuleBook> ruleBooks = new();
+  private bool loading = true;
+  private bool searching = false;
+  private string searchTerm = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadRuleBooks();
+  }
+
+  private async Task LoadRuleBooks()
+  {
+    try
+    {
+      loading = true;
+      if (string.IsNullOrWhiteSpace(searchTerm))
+      {
+        ruleBooks = await RuleBookService.GetAllRuleBooksAsync();
+      }
+      else
+      {
+        ruleBooks = await RuleBookService.SearchRuleBooksAsync(searchTerm);
+      }
+    }
+    catch (Exception ex)
+    {
+      MessageService.Error($"加载规则书失败: {ex.Message}");
+    }
+    finally
+    {
+      loading = false;
+    }
+  }
+
+  private async Task OnSearch(string value)
+  {
+    searchTerm = value;
+    searching = true;
+    await LoadRuleBooks();
+    searching = false;
+  }
+
+  private void CreateRuleBook()
+  {
+    Navigation.NavigateTo("/rulebooks/create");
+  }
+
+  private void EditRuleBook(int id)
+  {
+    Navigation.NavigateTo($"/rulebooks/edit/{id}");
+  }
+
+  private async Task DeleteRuleBook(int id)
+  {
+    try
+    {
+      var success = await RuleBookService.DeleteRuleBookAsync(id);
+      if (success)
+      {
+        MessageService.Success("规则书删除成功");
+        await LoadRuleBooks();
+      }
+      else
+      {
+        MessageService.Error("规则书删除失败");
+      }
+    }
+    catch (Exception ex)
+    {
+      MessageService.Error($"删除规则书失败: {ex.Message}");
+    }
+  }
+}

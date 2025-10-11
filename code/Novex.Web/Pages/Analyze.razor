@@ -5,6 +5,7 @@
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
+@inject AnalysisRuleBookService RuleBookService
 @inject NavigationManager Navigation
 @inject IMessageService MessageService
 
@@ -107,17 +108,59 @@
         </Card>
 
         <Card Title="分析规则" Bordered="true" style="margin-top: 16px;">
-          <div style="color: #666; font-style: italic;">
-            <p>当前使用 Novex.Analyzer 分析引擎：</p>
-            <ul>
-              <li>规则类型：(未知) - 通用分析</li>
-              <li>标题：提取消息前50个字符</li>
-              <li>摘要：根据分析规则生成</li>
-              <li>正文：生成详细分析报告</li>
-            </ul>
-            <p style="margin-top: 8px; font-size: 12px;">
-              <Icon Type="experiment" /> 支持长度分析、情感分析、关键词分析等多种规则
-            </p>
+          <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 8px;">
+              <Text Strong>选择规则书：</Text>
+            </div>
+            <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="@selectedRuleBookId"
+              Placeholder="请选择分析规则书" AllowClear="true" Loading="@loadingRuleBooks" DataSource="@ruleBooks"
+              LabelName="@nameof(ChatLogAnalysisRuleBook.Name)" ValueName="@nameof(ChatLogAnalysisRuleBook.Id)"
+              OnSelectedItemChanged="@OnRuleBookSelectionChanged">
+            </Select>
+          </div>
+
+          @if (selectedRuleBook != null)
+          {
+            <div style="margin-bottom: 16px;">
+              <Text Strong>规则描述：</Text>
+              <div style="color: #666; font-size: 14px; margin-top: 4px;">
+                @selectedRuleBook.Description
+              </div>
+            </div>
+          }
+
+          @if (selectedRuleBook == null)
+          {
+            <div style="color: #666; font-style: italic;">
+              <p>当前使用默认分析引擎：</p>
+              <ul>
+                <li>标题：提取消息前50个字符</li>
+                <li>摘要：根据内容长度和复杂度生成</li>
+                <li>正文：生成详细分析报告</li>
+              </ul>
+              <p style="margin-top: 8px; font-size: 12px;">
+                <Icon Type="experiment" /> 支持长度分析、情感分析、关键词分析等多种规则
+              </p>
+            </div>
+          }
+
+          <div style="margin-top: 16px; text-align: right;">
+            <Space>
+              <SpaceItem>
+                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" OnClick="@GoToRuleBooks">
+                  <Icon Type="setting" /> 管理规则书
+                </Button>
+              </SpaceItem>
+              @if (selectedRuleBook != null)
+              {
+                <SpaceItem>
+                  <Button Type="@ButtonType.Link" Size="@ButtonSize.Small"
+                    OnClick="@(() => PreviewRuleBook(selectedRuleBook.Id))">
+                    <Icon Type="eye" /> 预览规则
+                  </Button>
+                </SpaceItem>
+              }
+            </Space>
           </div>
         </Card>
       </AntDesign.Col>
@@ -180,6 +223,12 @@
   private string bookName = "";
   private readonly ChatLogAnalyzer _analyzer = new();
 
+  // 规则书相关变量
+  private List<ChatLogAnalysisRuleBook> ruleBooks = new();
+  private int? selectedRuleBookId;
+  private ChatLogAnalysisRuleBook? selectedRuleBook;
+  private bool loadingRuleBooks = false;
+
   protected override async Task OnInitializedAsync()
   {
     await LoadData();
@@ -231,6 +280,9 @@
       var nextId = await ChatLogService.GetNextChatLogIdAsync(ChatLogId);
       hasPrevious = previousId.HasValue;
       hasNext = nextId.HasValue;
+
+      // 加载规则书列表
+      await LoadRuleBooks();
     }
     catch (Exception ex)
     {
@@ -388,5 +440,40 @@
       // 如果获取页码失败，则回到第一页
       Navigation.NavigateTo($"/chatlogs/{BookId}");
     }
+  }
+
+  // 规则书相关方法
+  private async Task LoadRuleBooks()
+  {
+    try
+    {
+      loadingRuleBooks = true;
+      ruleBooks = await RuleBookService.GetAllRuleBooksAsync();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"加载规则书列表时出错: {ex.Message}");
+      MessageService.Error($"加载规则书失败：{ex.Message}");
+    }
+    finally
+    {
+      loadingRuleBooks = false;
+    }
+  }
+
+  private void OnRuleBookSelectionChanged(ChatLogAnalysisRuleBook ruleBook)
+  {
+    selectedRuleBook = ruleBook;
+    StateHasChanged();
+  }
+
+  private void GoToRuleBooks()
+  {
+    Navigation.NavigateTo("/rulebooks");
+  }
+
+  private void PreviewRuleBook(int ruleBookId)
+  {
+    Navigation.NavigateTo($"/rulebooks/edit/{ruleBookId}");
   }
 }

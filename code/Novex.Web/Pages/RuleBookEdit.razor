@@ -1,0 +1,270 @@
+@page "/rulebooks/create"
+@page "/rulebooks/edit/{ruleBookId:int}"
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using Novex.Analyzer
+@using Microsoft.AspNetCore.Components
+@inject AnalysisRuleBookService RuleBookService
+@inject NavigationManager Navigation
+@inject IMessageService MessageService
+
+<PageTitle>@(IsEdit ? "编辑规则书" : "新建规则书")</PageTitle>
+
+<div style="margin-bottom: 16px;">
+  <div style="display: flex; align-items: center;">
+    <Button Type="@ButtonType.Link" OnClick="@GoBack">
+      <Icon Type="arrow-left" /> 返回规则书列表
+    </Button>
+    <h3 style="margin: 0 0 0 16px;">@(IsEdit ? "编辑规则书" : "新建规则书")</h3>
+  </div>
+</div>
+
+@if (loading)
+{
+  <div style="text-align: center; padding: 40px;">
+    <Spin Size="@SpinSize.Large" />
+  </div>
+}
+else
+{
+  <Form Model="@ruleBook" OnFinish="@OnFinish" OnFinishFailed="@OnFinishFailed" LabelColSpan="4" WrapperColSpan="20">
+    <FormItem Label="名称" Required>
+      <Input @bind-Value="@ruleBook.Name" Placeholder="请输入规则书名称" MaxLength="200" />
+    </FormItem>
+
+    <FormItem Label="描述">
+      <TextArea @bind-Value="@ruleBook.Description" Placeholder="请输入规则书描述" MaxLength="1000" Rows="3" ShowCount />
+    </FormItem>
+
+    <FormItem Label="规则内容" Required>
+      <div style="margin-bottom: 8px;">
+        <Text Type="@TextElementType.Secondary" style="font-size: 12px;">
+          请输入 YAML 格式的规则书内容。
+          <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" OnClick="@ShowSampleContent">
+            查看示例
+          </Button>
+        </Text>
+      </div>
+      <TextArea @bind-Value="@ruleBook.Content" Placeholder="请输入 YAML 格式的规则书内容" Rows="20"
+        style="font-family: 'Courier New', monospace; font-size: 13px;" />
+
+      @if (!string.IsNullOrEmpty(validationError))
+      {
+        <div style="margin-top: 8px; color: #ff4d4f; font-size: 14px;">
+          <Icon Type="exclamation-circle" style="margin-right: 4px;" />
+          @validationError
+        </div>
+      }
+    </FormItem>
+
+    <FormItem WrapperColOffset="4">
+      <Space>
+        <SpaceItem>
+          <Button Type="@ButtonType.Default" OnClick="@ValidateContent" Loading="@validating">
+            <Icon Type="check-circle" /> 验证规则
+          </Button>
+        </SpaceItem>
+        <SpaceItem>
+          <Button Type="@ButtonType.Primary" HtmlType="submit" Loading="@saving">
+            <Icon Type="save" /> @(IsEdit ? "保存" : "创建")
+          </Button>
+        </SpaceItem>
+        <SpaceItem>
+          <Button Type="@ButtonType.Default" OnClick="@GoBack">
+            取消
+          </Button>
+        </SpaceItem>
+      </Space>
+    </FormItem>
+  </Form>
+}
+
+<!-- 示例内容模态框 -->
+<Modal Title="YAML 规则书示例" @bind-Visible="@showSampleModal" Width="800" Footer="null">
+  <div
+    style="background: #f5f5f5; padding: 16px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 13px; white-space: pre-wrap;">
+    @sampleContent</div>
+  <div style="margin-top: 16px; text-align: right;">
+    <Button Type="@ButtonType.Primary" OnClick="@(() => showSampleModal = false)">关闭</Button>
+  </div>
+</Modal>
+
+@code {
+  [Parameter] public int? RuleBookId { get; set; }
+
+  private ChatLogAnalysisRuleBook ruleBook = new();
+  private bool loading = false;
+  private bool saving = false;
+  private bool validating = false;
+  private string validationError = string.Empty;
+  private bool showSampleModal = false;
+
+  private bool IsEdit => RuleBookId.HasValue;
+
+  private readonly string sampleContent = @"Version: ""1.0""
+Description: ""Dream Phone 小说处理规则 - 提取主要故事内容并生成标题摘要""
+
+ExtractionRules:
+- Id: ""remove_html_comments""
+Name: ""删除HTML注释""
+MatcherType: ""Regex""
+Pattern: ""<!--.*?-->""
+Options:
+Multiline: true
+Singleline: true
+Global: true
+Action: ""Remove""
+Target: ""Source""
+Priority: 10
+Enabled: true
+
+- Id: ""extract_dream_content""
+Name: ""提取梦境内容""
+MatcherType: ""Markup""
+Pattern: ""<dream>(.*?)</dream>""
+Options:
+Multiline: true
+Singleline: true
+Action: ""Extract""
+Target: ""MainBody""
+Priority: 20
+Enabled: true
+
+TransformationRules:
+- Id: ""generate_title_from_content""
+Name: ""从内容生成标题""
+SourceField: ""MainBody""
+TargetField: ""Title""
+TransformationType: ""Truncate""
+Parameters:
+max_length: 50
+Priority: 100
+Enabled: true
+
+AiGenerationRule:
+Enabled: false
+Provider: ""custom""
+Model: """"
+Targets:
+- ""Summary""
+";
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (IsEdit && RuleBookId.HasValue)
+    {
+      await LoadRuleBook();
+    }
+    else
+    {
+      // 为新建设置默认内容
+      ruleBook.Content = sampleContent;
+    }
+  }
+
+  private async Task LoadRuleBook()
+  {
+    try
+    {
+      loading = true;
+      var existingRuleBook = await RuleBookService.GetRuleBookByIdAsync(RuleBookId!.Value);
+      if (existingRuleBook != null)
+      {
+        ruleBook = existingRuleBook;
+      }
+      else
+      {
+        MessageService.Error("规则书不存在");
+        Navigation.NavigateTo("/rulebooks");
+      }
+    }
+    catch (Exception ex)
+    {
+      MessageService.Error($"加载规则书失败: {ex.Message}");
+      Navigation.NavigateTo("/rulebooks");
+    }
+    finally
+    {
+      loading = false;
+    }
+  }
+
+  private async Task ValidateContent()
+  {
+    validating = true;
+    validationError = string.Empty;
+
+    try
+    {
+      if (string.IsNullOrWhiteSpace(ruleBook.Content))
+      {
+        validationError = "规则内容不能为空";
+        return;
+      }
+
+      var ruleEngine = new RuleEngine();
+      var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(ruleBook.Content));
+
+      MessageService.Success("规则验证通过！");
+    }
+    catch (Exception ex)
+    {
+      validationError = ex.Message;
+    }
+    finally
+    {
+      validating = false;
+    }
+  }
+
+  private async Task OnFinish()
+  {
+    // 先验证内容
+    await ValidateContent();
+    if (!string.IsNullOrEmpty(validationError))
+    {
+      return;
+    }
+
+    saving = true;
+
+    try
+    {
+      if (IsEdit)
+      {
+        await RuleBookService.UpdateRuleBookAsync(ruleBook);
+        MessageService.Success("规则书更新成功");
+      }
+      else
+      {
+        await RuleBookService.CreateRuleBookAsync(ruleBook);
+        MessageService.Success("规则书创建成功");
+      }
+
+      Navigation.NavigateTo("/rulebooks");
+    }
+    catch (Exception ex)
+    {
+      MessageService.Error($"保存规则书失败: {ex.Message}");
+    }
+    finally
+    {
+      saving = false;
+    }
+  }
+
+  private void OnFinishFailed()
+  {
+    MessageService.Warning("请填写必填字段");
+  }
+
+  private void GoBack()
+  {
+    Navigation.NavigateTo("/rulebooks");
+  }
+
+  private void ShowSampleContent()
+  {
+    showSampleModal = true;
+  }
+}
