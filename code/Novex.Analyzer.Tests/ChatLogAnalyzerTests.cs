@@ -14,14 +14,14 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithValidMessageAndRule_ReturnsResult()
+  public async Task AnalyzeAsync_WithValidMessageAndRule_ReturnsResult()
   {
     // Arrange
     var message = "这是一条测试消息，用来验证分析功能是否正常工作。";
     var rule = "general";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result);
@@ -32,47 +32,47 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithEmptyMessage_ThrowsArgumentException()
+  public async Task AnalyzeAsync_WithEmptyMessage_ThrowsArgumentException()
   {
     // Arrange
     var message = "";
     var rule = "general";
 
     // Act & Assert
-    Assert.Throws<ArgumentException>(() => _analyzer.Analyze(message, rule));
+    await Assert.ThrowsAsync<ArgumentException>(() => _analyzer.AnalyzeAsync(message, rule));
   }
 
   [Fact]
-  public void Analyze_WithNullMessage_ThrowsArgumentException()
+  public async Task AnalyzeAsync_WithNullMessage_ThrowsArgumentException()
   {
     // Arrange
     string message = null!;
     var rule = "general";
 
     // Act & Assert
-    Assert.Throws<ArgumentException>(() => _analyzer.Analyze(message, rule));
+    await Assert.ThrowsAsync<ArgumentException>(() => _analyzer.AnalyzeAsync(message, rule));
   }
 
   [Fact]
-  public void Analyze_WithEmptyRule_ThrowsArgumentException()
+  public async Task AnalyzeAsync_WithEmptyRule_ThrowsArgumentException()
   {
     // Arrange
     var message = "测试消息";
     var rule = "";
 
     // Act & Assert
-    Assert.Throws<ArgumentException>(() => _analyzer.Analyze(message, rule));
+    await Assert.ThrowsAsync<ArgumentException>(() => _analyzer.AnalyzeAsync(message, rule));
   }
 
   [Fact]
-  public void Analyze_WithLengthRule_AnalyzesLength()
+  public async Task AnalyzeAsync_WithLengthRule_AnalyzesLength()
   {
     // Arrange
     var message = "短消息";
     var rule = "length";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result);
@@ -81,14 +81,14 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithSentimentRulePositive_DetectsPositiveSentiment()
+  public async Task AnalyzeAsync_WithSentimentRulePositive_DetectsPositiveSentiment()
   {
     // Arrange
     var message = "我很开心，今天心情很好，感到非常快乐！";
     var rule = "sentiment";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result);
@@ -97,14 +97,14 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithSentimentRuleNegative_DetectsNegativeSentiment()
+  public async Task AnalyzeAsync_WithSentimentRuleNegative_DetectsNegativeSentiment()
   {
     // Arrange
     var message = "我很难过，今天心情很差，感到非常悲伤。";
     var rule = "sentiment";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result);
@@ -113,14 +113,14 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithKeywordRule_AnalyzesKeywords()
+  public async Task AnalyzeAsync_WithKeywordRule_AnalyzesKeywords()
   {
     // Arrange
     var message = "这是一个测试，我在测试这个功能是否正常工作。";
     var rule = "keyword";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result);
@@ -129,14 +129,14 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithLongMessage_TruncatesTitle()
+  public async Task AnalyzeAsync_WithLongMessage_TruncatesTitle()
   {
     // Arrange - 确保消息超过50个字符
     var message = "这是一条非常长的消息，用来测试标题截断功能是否正常工作，标题应该会被截断并添加省略号以确保长度超过五十个字符的限制要求";
     var rule = "general";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result.Title);
@@ -145,14 +145,14 @@ public class ChatLogAnalyzerTests
   }
 
   [Fact]
-  public void Analyze_WithShortMessage_DoesNotTruncateTitle()
+  public async Task AnalyzeAsync_WithShortMessage_DoesNotTruncateTitle()
   {
     // Arrange
     var message = "短消息";
     var rule = "general";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result.Title);
@@ -166,13 +166,13 @@ public class ChatLogAnalyzerTests
   [InlineData("keyword")]
   [InlineData("general")]
   [InlineData("unknown")]
-  public void Analyze_WithDifferentRules_ReturnsValidResults(string rule)
+  public async Task AnalyzeAsync_WithDifferentRules_ReturnsValidResults(string rule)
   {
     // Arrange
     var message = "这是一条测试消息，包含一些常见的词汇和标点符号！";
 
     // Act
-    var result = _analyzer.Analyze(message, rule);
+    var result = await _analyzer.AnalyzeAsync(message, rule);
 
     // Assert
     Assert.NotNull(result);

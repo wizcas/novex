@@ -13,7 +13,7 @@ public class ChatLogAnalyzer
   /// <param name="message">要分析的消息内容</param>
   /// <param name="rule">分析规则</param>
   /// <returns>分析结果</returns>
-  public ChatLogAnalysisResult Analyze(string message, string rule)
+  public async Task<ChatLogAnalysisResult> AnalyzeAsync(string message, string rule)
   {
     // 基本验证
     if (string.IsNullOrWhiteSpace(message))
@@ -26,12 +26,15 @@ public class ChatLogAnalyzer
       throw new ArgumentException("分析规则不能为空", nameof(rule));
     }
 
+    // 模拟异步分析过程，添加短暂延迟
+    await Task.Delay(100);
+
     // 创建分析结果
     var result = new ChatLogAnalysisResult
     {
-      Title = ExtractTitle(message),
-      Summary = ExtractSummary(message, rule),
-      MainBody = AnalyzeContent(message, rule),
+      Title = await ExtractTitleAsync(message),
+      Summary = await ExtractSummaryAsync(message, rule),
+      MainBody = await AnalyzeContentAsync(message, rule),
       CreatedAt = DateTime.Now
     };
 
@@ -41,8 +44,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 提取标题（取消息的前50个字符）
   /// </summary>
-  private string? ExtractTitle(string message)
+  private async Task<string?> ExtractTitleAsync(string message)
   {
+    // 模拟异步处理
+    await Task.Delay(10);
+
     if (string.IsNullOrEmpty(message))
       return null;
 
@@ -54,8 +60,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 生成摘要
   /// </summary>
-  private string? ExtractSummary(string message, string rule)
+  private async Task<string?> ExtractSummaryAsync(string message, string rule)
   {
+    // 模拟异步处理
+    await Task.Delay(20);
+
     var summary = $"根据规则 '{rule}' 分析消息";
 
     if (message.Length > 100)
@@ -73,8 +82,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 分析消息内容
   /// </summary>
-  private string AnalyzeContent(string message, string rule)
+  private async Task<string> AnalyzeContentAsync(string message, string rule)
   {
+    // 模拟异步分析处理
+    await Task.Delay(50);
+
     var analysis = new System.Text.StringBuilder();
 
     analysis.AppendLine($"消息分析报告");
@@ -92,16 +104,16 @@ public class ChatLogAnalyzer
     switch (rule.ToLower())
     {
       case "length":
-        AnalyzeLength(message, analysis);
+        await AnalyzeLengthAsync(message, analysis);
         break;
       case "sentiment":
-        AnalyzeSentiment(message, analysis);
+        await AnalyzeSentimentAsync(message, analysis);
         break;
       case "keyword":
-        AnalyzeKeywords(message, analysis);
+        await AnalyzeKeywordsAsync(message, analysis);
         break;
       default:
-        AnalyzeGeneral(message, analysis);
+        await AnalyzeGeneralAsync(message, analysis);
         break;
     }
 
@@ -116,8 +128,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 长度分析
   /// </summary>
-  private void AnalyzeLength(string message, System.Text.StringBuilder analysis)
+  private async Task AnalyzeLengthAsync(string message, System.Text.StringBuilder analysis)
   {
+    // 模拟异步分析处理
+    await Task.Delay(10);
+
     analysis.AppendLine($"长度分析:");
 
     if (message.Length < 10)
@@ -137,8 +152,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 情感分析（简单版本）
   /// </summary>
-  private void AnalyzeSentiment(string message, System.Text.StringBuilder analysis)
+  private async Task AnalyzeSentimentAsync(string message, System.Text.StringBuilder analysis)
   {
+    // 模拟异步分析处理
+    await Task.Delay(30);
+
     analysis.AppendLine($"情感分析:");
 
     var positiveWords = new[] { "开心", "快乐", "高兴", "喜欢", "爱", "好", "棒", "赞" };
@@ -164,8 +182,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 关键词分析
   /// </summary>
-  private void AnalyzeKeywords(string message, System.Text.StringBuilder analysis)
+  private async Task AnalyzeKeywordsAsync(string message, System.Text.StringBuilder analysis)
   {
+    // 模拟异步分析处理
+    await Task.Delay(20);
+
     analysis.AppendLine($"关键词分析:");
 
     // 简单的关键词统计
@@ -186,8 +207,11 @@ public class ChatLogAnalyzer
   /// <summary>
   /// 通用分析
   /// </summary>
-  private void AnalyzeGeneral(string message, System.Text.StringBuilder analysis)
+  private async Task AnalyzeGeneralAsync(string message, System.Text.StringBuilder analysis)
   {
+    // 模拟异步分析处理
+    await Task.Delay(15);
+
     analysis.AppendLine($"通用分析:");
     analysis.AppendLine($"- 消息类型: 文本消息");
     analysis.AppendLine($"- 包含标点符号: {(ContainsPunctuation(message) ? "是" : "否")}");

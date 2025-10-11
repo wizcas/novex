@@ -106,14 +106,15 @@
 
         <Card Title="分析规则" Bordered="true" style="margin-top: 16px;">
           <div style="color: #666; font-style: italic;">
-            <p>当前使用模拟分析规则：</p>
+            <p>当前使用 Novex.Analyzer 分析引擎：</p>
             <ul>
-              <li>标题：提取对话内容前30个字符</li>
-              <li>摘要：提取前3行内容，最多100字符</li>
-              <li>正文：格式化段落，清理空行</li>
+              <li>规则类型：(未知) - 通用分析</li>
+              <li>标题：提取消息前50个字符</li>
+              <li>摘要：根据分析规则生成</li>
+              <li>正文：生成详细分析报告</li>
             </ul>
             <p style="margin-top: 8px; font-size: 12px;">
-              <Icon Type="info-circle" /> 后续可替换为AI分析接口
+              <Icon Type="experiment" /> 支持长度分析、情感分析、关键词分析等多种规则
             </p>
           </div>
         </Card>
@@ -175,9 +176,16 @@
   private bool hasPrevious = false;
   private bool hasNext = false;
   private string bookName = "";
+  private readonly Novex.Analyzer.ChatLogAnalyzer _analyzer = new();
 
   protected override async Task OnInitializedAsync()
   {
+    await LoadData();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    // 当路由参数改变时重新加载数据
     await LoadData();
   }
 
@@ -242,7 +250,12 @@
       isAnalyzing = true;
       StateHasChanged();
 
-      var result = await AnalysisService.AnalyzeChatLogAsync(ChatLogId);
+      // 使用新的 ChatLogAnalyzer 进行异步分析
+      var result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
+      
+      // 设置 ChatLogId 以保持与现有结构的兼容性
+      result.ChatLogId = ChatLogId;
+      
       analysisResult.Title = result.Title;
       analysisResult.Summary = result.Summary;
       analysisResult.MainBody = result.MainBody;
