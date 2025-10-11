@@ -6,6 +6,7 @@
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
 @inject NavigationManager Navigation
+@inject IMessageService MessageService
 
 <div style="margin-bottom: 16px;">
   <h3 style="margin: 0;">
@@ -234,6 +235,7 @@
     catch (Exception ex)
     {
       Console.WriteLine($"加载数据时出错: {ex.Message}");
+      await MessageService.ErrorAsync($"加载数据失败：{ex.Message}");
     }
     finally
     {
@@ -261,11 +263,13 @@
       analysisResult.Summary = result.Summary;
       analysisResult.MainBody = result.MainBody;
 
+      await MessageService.SuccessAsync("分析完成！");
       StateHasChanged();
     }
     catch (Exception ex)
     {
       Console.WriteLine($"分析内容时出错: {ex.Message}");
+      await MessageService.ErrorAsync($"分析失败：{ex.Message}");
     }
     finally
     {
@@ -291,11 +295,13 @@
       analysisResult = savedResult;
 
       Console.WriteLine("分析结果保存成功！");
+      await MessageService.SuccessAsync("分析结果保存成功！");
       StateHasChanged();
     }
     catch (Exception ex)
     {
       Console.WriteLine($"保存分析结果时出错: {ex.Message}");
+      await MessageService.ErrorAsync($"保存失败：{ex.Message}");
     }
     finally
     {
@@ -304,11 +310,12 @@
     }
   }
 
-  private void ClearAnalysis()
+  private async Task ClearAnalysis()
   {
     analysisResult.Title = "";
     analysisResult.Summary = "";
     analysisResult.MainBody = "";
+    await MessageService.InfoAsync("分析结果已清空");
     StateHasChanged();
   }
 
@@ -330,6 +337,7 @@
     catch (Exception ex)
     {
       Console.WriteLine($"导航到上一条记录时出错: {ex.Message}");
+      await MessageService.ErrorAsync($"导航失败：{ex.Message}");
     }
     finally
     {
@@ -356,6 +364,7 @@
     catch (Exception ex)
     {
       Console.WriteLine($"导航到下一条记录时出错: {ex.Message}");
+      await MessageService.ErrorAsync($"导航失败：{ex.Message}");
     }
     finally
     {
@@ -375,6 +384,7 @@
     catch (Exception ex)
     {
       Console.WriteLine($"获取页码时出错: {ex.Message}");
+      await MessageService.WarningAsync("无法获取准确页码，将返回第一页");
       // 如果获取页码失败，则回到第一页
       Navigation.NavigateTo($"/chatlogs/{BookId}");
     }
