@@ -2,6 +2,7 @@
 @using Novex.Data.Models
 @using Novex.Data.Services
 @using Novex.Analyzer
+@using Novex.Analyzer.Models
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
@@ -107,7 +108,7 @@
           </Form>
         </Card>
 
-        <Card Title="分析规则" Bordered="true" style="margin-top: 16px;">
+        <Card Title="规则书" Bordered="true" style="margin-top: 16px;">
           <div style="margin-bottom: 16px;">
             <div style="margin-bottom: 8px;">
               <Text Strong>选择规则书：</Text>
@@ -305,8 +306,32 @@
       isAnalyzing = true;
       StateHasChanged();
 
-      // 使用新的 ChatLogAnalyzer 进行异步分析
-      var result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
+      ChatLogAnalysisResult result;
+
+      if (selectedRuleBook != null)
+      {
+        // 使用选中的规则书进行分析
+        try
+        {
+          var ruleEngine = new RuleEngine();
+          var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(selectedRuleBook.Content));
+          result = await ruleEngine.ExecuteRulesAsync(chatLog.Mes, parsedRuleBook);
+          await MessageService.SuccessAsync($"使用规则书「{selectedRuleBook.Name}」分析完成！");
+        }
+        catch (Exception ruleEx)
+        {
+          Console.WriteLine($"使用规则书分析失败: {ruleEx.Message}");
+          await MessageService.WarningAsync($"规则书分析失败，将使用默认分析：{ruleEx.Message}");
+          // 如果规则书分析失败，回退到默认分析
+          result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
+        }
+      }
+      else
+      {
+        // 使用默认的 ChatLogAnalyzer 进行分析
+        result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
+        await MessageService.SuccessAsync("使用默认引擎分析完成！");
+      }
 
       // 设置 ChatLogId 以保持与现有结构的兼容性
       result.ChatLogId = ChatLogId;
@@ -315,7 +340,6 @@
       analysisResult.Summary = result.Summary;
       analysisResult.MainBody = result.MainBody;
 
-      await MessageService.SuccessAsync("分析完成！");
       StateHasChanged();
     }
     catch (Exception ex)
