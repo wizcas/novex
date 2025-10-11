@@ -1,0 +1,78 @@
+Version: "1.0"
+Description: "Dream Phone 小说处理规则 - 提取主要故事内容并生成标题摘要"
+
+ExtractionRules:
+  # 1. 提取<dream>标签内的主要内容
+  - Id: "extract_dream_content"
+    Name: "提取梦境内容"
+    MatcherType: "Regex"
+    Pattern: "<dream>(.*?)</dream>"
+    Options:
+      Multiline: true
+      Singleline: true
+    Action: "Extract"
+    Target: "MainBody"
+    Priority: 10
+    Enabled: true
+
+  # 2. 从<plot>中提取摘要
+  - Id: "extract_plot_summary"
+    Name: "提取情节摘要"
+    MatcherType: "Regex"
+    Pattern: "摘要:([^\\n]*(?:\\n(?!当前章节|个人线|当前角色|长期事件|事件名)[^\\n]*)*)"
+    Options:
+      Multiline: true
+      Singleline: true
+    Action: "Extract"
+    Target: "Summary"
+    Priority: 20
+    Enabled: true
+
+  # 3. 提取事件名和章节名作为标题
+  - Id: "extract_title_from_plot"
+    Name: "提取标题"
+    MatcherType: "Regex"
+    Pattern: "(?:当前章节: ([^\\n]+)|事件名:([^\\n]+))"
+    Options:
+      Multiline: true
+    Action: "Extract"
+    Target: "Title"
+    Priority: 30
+    Enabled: true
+
+TransformationRules:
+  # 1. 清理并格式化标题
+  - Id: "format_title"
+    Name: "格式化标题"
+    SourceField: "Title"
+    TargetField: "Title"
+    TransformationType: "Format"
+    Parameters:
+      max_length: 100
+    Priority: 100
+    Enabled: true
+
+  # 2. 清理摘要内容
+  - Id: "clean_summary"
+    Name: "清理摘要"
+    SourceField: "Summary"
+    TargetField: "Summary"
+    TransformationType: "Format"
+    Parameters:
+      max_length: 500
+    Priority: 110
+    Enabled: true
+
+  # 3. 清理正文内容
+  - Id: "clean_main_body"
+    Name: "清理正文"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "Format"
+    Parameters:
+      preserve_formatting: true
+    Priority: 120
+    Enabled: true
+
+AiGenerationRule:
+  Enabled: false
