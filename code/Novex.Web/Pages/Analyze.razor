@@ -1,6 +1,7 @@
 @page "/chatlogs/{bookId:int}/{chatLogId:int}/analyze"
 @using Novex.Data.Models
 @using Novex.Data.Services
+@using Novex.Analyzer
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
@@ -176,7 +177,7 @@
   private bool hasPrevious = false;
   private bool hasNext = false;
   private string bookName = "";
-  private readonly Novex.Analyzer.ChatLogAnalyzer _analyzer = new();
+  private readonly ChatLogAnalyzer _analyzer = new();
 
   protected override async Task OnInitializedAsync()
   {
@@ -252,10 +253,10 @@
 
       // 使用新的 ChatLogAnalyzer 进行异步分析
       var result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
-      
+
       // 设置 ChatLogId 以保持与现有结构的兼容性
       result.ChatLogId = ChatLogId;
-      
+
       analysisResult.Title = result.Title;
       analysisResult.Summary = result.Summary;
       analysisResult.MainBody = result.MainBody;
@@ -280,10 +281,16 @@
       isSaving = true;
       StateHasChanged();
 
+      // 确保设置了 ChatLogId
       analysisResult.ChatLogId = ChatLogId;
-      await AnalysisService.SaveAnalysisResultAsync(analysisResult);
 
-      // 显示保存成功消息（这里可以使用 Ant Design 的 Message 组件）
+      // 保存分析结果（支持空值）
+      var savedResult = await AnalysisService.SaveAnalysisResultAsync(analysisResult);
+
+      // 更新当前分析结果为保存后的结果
+      analysisResult = savedResult;
+
+      Console.WriteLine("分析结果保存成功！");
       StateHasChanged();
     }
     catch (Exception ex)
