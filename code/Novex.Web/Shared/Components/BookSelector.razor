@@ -1,0 +1,86 @@
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using AntDesign
+@inject IBookService BookService
+
+<Select TItemValue="string" TItem="Book" DataSource="@books" @bind-Value="SelectedBookId"
+  @bind-Value:after="OnBookChanged" ItemValue="b => b.Id.ToString()" ItemLabel="b => b.Name" Style="@Style"
+  Placeholder="@(IsLoading ? "加载中..." : Placeholder)" ShowSearch="@ShowSearch" AllowClear="@AllowClear"
+  Loading="@IsLoading" Size="@Size">
+  <SuffixIcon>
+    <Icon Type="@SuffixIconType" />
+  </SuffixIcon>
+</Select>
+
+@code {
+  [Parameter] public string? SelectedBookId { get; set; }
+  [Parameter] public EventCallback<string?> SelectedBookIdChanged { get; set; }
+  [Parameter] public EventCallback<Book?> OnBookSelected { get; set; }
+  [Parameter] public string Style { get; set; } = "width: 100%;";
+  [Parameter] public string Placeholder { get; set; } = "搜索并选择书目";
+  [Parameter] public bool ShowSearch { get; set; } = true;
+  [Parameter] public bool AllowClear { get; set; } = true;
+  [Parameter] public string SuffixIconType { get; set; } = "book";
+  [Parameter] public InputSize Size { get; set; } = InputSize.Default;
+
+  private List<Book> books = new();
+  private bool IsLoading { get; set; } = true;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadBooksAsync();
+  }
+
+  private async Task LoadBooksAsync()
+  {
+    try
+    {
+      IsLoading = true;
+      StateHasChanged();
+      books = await BookService.GetAllBooksAsync();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"加载书目时出错: {ex.Message}");
+      books = new List<Book>();
+    }
+    finally
+    {
+      IsLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task OnBookChanged()
+  {
+    var selectedBook = !string.IsNullOrEmpty(SelectedBookId)
+    ? books.FirstOrDefault(b => b.Id.ToString() == SelectedBookId)
+    : null;
+
+    await SelectedBookIdChanged.InvokeAsync(SelectedBookId);
+    await OnBookSelected.InvokeAsync(selectedBook);
+  }
+
+  /// <summary>
+  /// 刷新书目列表
+  /// </summary>
+  public async Task RefreshBooks()
+  {
+    await LoadBooksAsync();
+  }
+
+  /// <summary>
+  /// 获取当前选中的书目
+  /// </summary>
+  public Book? GetSelectedBook()
+  {
+    return !string.IsNullOrEmpty(SelectedBookId)
+    ? books.FirstOrDefault(b => b.Id.ToString() == SelectedBookId)
+    : null;
+  }
+
+  /// <summary>
+  /// 获取所有书目列表
+  /// </summary>
+  public List<Book> GetAllBooks() => books;
+}

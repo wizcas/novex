@@ -1,7 +1,7 @@
 ﻿@page "/"
 @using Novex.Data.Models
 @using Novex.Data.Services
-@inject IBookService BookService
+@using Novex.Web.Shared.Components
 @inject NavigationManager Navigation
 
 <PageTitle>Novex - SillyTavern 聊天记录管理</PageTitle>
@@ -21,15 +21,14 @@
         <AntDesign.Col Span="8">
             <Card Style="height: 100%;">
                 <div slot="cover" style="padding: 24px 24px 0; text-align: center;">
-                    <Icon Type="book" style="font-size: 48px; color: #1890ff;"/>
+                    <Icon Type="book" style="font-size: 48px; color: #1890ff;" />
                 </div>
                 <Flex Direction="FlexDirection.Vertical" Justify="FlexJustify.SpaceBetween" Gap="FlexGap.Middle">
-                    <CardMeta Title="书目管理"
-                              Description="管理和组织您的聊天记录集合。创建、查看、删除书目，并可以清空书目中的聊天记录。"/>
+                    <CardMeta Title="书目管理" Description="管理和组织您的聊天记录集合。创建、查看、删除书目，并可以清空书目中的聊天记录。" />
                     <div style="margin-top: 16px; text-align: center;">
                         <a href="/books" style="text-decoration: none;">
                             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large">
-                                <Icon Type="book"/>
+                                <Icon Type="book" />
                                 书目管理
                             </Button>
                         </a>
@@ -41,15 +40,15 @@
         <AntDesign.Col Span="8">
             <Card Style="height: 100%;">
                 <div slot="cover" style="padding: 24px 24px 0; text-align: center;">
-                    <Icon Type="cloud-upload" style="font-size: 48px; color: #52c41a;"/>
+                    <Icon Type="cloud-upload" style="font-size: 48px; color: #52c41a;" />
                 </div>
                 <Flex Direction="FlexDirection.Vertical" Justify="FlexJustify.SpaceBetween" Gap="FlexGap.Middle">
                     <CardMeta Title="导入聊天记录"
-                              Description="从 SillyTavern 导出的 JSONL 文件中导入聊天记录到指定书目。支持自动解析角色名、消息内容和发送时间。"/>
+                        Description="从 SillyTavern 导出的 JSONL 文件中导入聊天记录到指定书目。支持自动解析角色名、消息内容和发送时间。" />
                     <div style="margin-top: 16px; text-align: center;">
                         <a href="/import" style="text-decoration: none;">
                             <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large">
-                                <Icon Type="cloud-upload"/>
+                                <Icon Type="cloud-upload" />
                                 开始导入
                             </Button>
                         </a>
@@ -61,30 +60,20 @@
         <AntDesign.Col Span="8">
             <Card Style="height: 100%;">
                 <div slot="cover" style="padding: 24px 24px 0; text-align: center;">
-                    <Icon Type="message" style="font-size: 48px; color: #fa8c16;"/>
+                    <Icon Type="message" style="font-size: 48px; color: #fa8c16;" />
                 </div>
                 <Flex Direction="FlexDirection.Vertical" Justify="FlexJustify.SpaceBetween" Gap="FlexGap.Middle">
-                    <CardMeta Title="浏览聊天记录"
-                              Description="选择书目后直接跳转到对应的聊天记录页面，支持模糊搜索快速找到目标书目。"/>
+                    <CardMeta Title="浏览聊天记录" Description="选择书目后直接跳转到对应的聊天记录页面，支持模糊搜索快速找到目标书目。" />
                     <div style="margin-top: 16px;">
-                        <Select DataSource="@_books" Value="@_selectedBookId"
-                                ValueChanged="@((string bookId) => OnBookSelected(bookId))"
-                                ItemValue="b => b.Id.ToString()"
-                                ItemLabel="b => b.Name" Style="width: 100%;"
-                                Placeholder="@(_isLoadingBooks ? "加载中..." : "搜索并选择书目")" ShowSearch="true"
-                                AllowClear="true"
-                                Loading="@_isLoadingBooks">
-                            <SuffixIcon>
-                                <Icon Type="eye"/>
-                            </SuffixIcon>
-                        </Select>
+                        <BookSelector @bind-SelectedBookId="_selectedBookId" OnBookSelected="OnBookSelected"
+                            Placeholder="搜索并选择书目" SuffixIconType="eye" />
                     </div>
                 </Flex>
             </Card>
         </AntDesign.Col>
     </Row>
 
-    <Divider/>
+    <Divider />
 
     <div>
         <Title Level="2">
@@ -97,7 +86,7 @@
                 <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: flex-start;">
                         <Avatar Style="background-color: #1890ff; margin-right: 12px; flex-shrink: 0;">
-                            <Icon Type="folder"/>
+                            <Icon Type="folder" />
                         </Avatar>
                         <div>
                             <Title Level="5" style="margin: 0 0 8px 0;">书目组织</Title>
@@ -113,7 +102,7 @@
                 <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: flex-start;">
                         <Avatar Style="background-color: #52c41a; margin-right: 12px; flex-shrink: 0;">
-                            <Icon Type="thunderbolt"/>
+                            <Icon Type="thunderbolt" />
                         </Avatar>
                         <div>
                             <Title Level="5" style="margin: 0 0 8px 0;">智能解析</Title>
@@ -129,7 +118,7 @@
                 <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: flex-start;">
                         <Avatar Style="background-color: #722ed1; margin-right: 12px; flex-shrink: 0;">
-                            <Icon Type="database"/>
+                            <Icon Type="database" />
                         </Avatar>
                         <div>
                             <Title Level="5" style="margin: 0 0 8px 0;">数据结构化</Title>
@@ -145,7 +134,7 @@
                 <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: flex-start;">
                         <Avatar Style="background-color: #fa541c; margin-right: 12px; flex-shrink: 0;">
-                            <Icon Type="search"/>
+                            <Icon Type="search" />
                         </Avatar>
                         <div>
                             <Title Level="5" style="margin: 0 0 8px 0;">高效查询</Title>
@@ -161,7 +150,7 @@
                 <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: flex-start;">
                         <Avatar Style="background-color: #13c2c2; margin-right: 12px; flex-shrink: 0;">
-                            <Icon Type="eye"/>
+                            <Icon Type="eye" />
                         </Avatar>
                         <div>
                             <Title Level="5" style="margin: 0 0 8px 0;">详情浏览</Title>
@@ -177,7 +166,7 @@
                 <Card Size="@CardSize.Small" style="margin-bottom: 16px;">
                     <div style="display: flex; align-items: flex-start;">
                         <Avatar Style="background-color: #eb2f96; margin-right: 12px; flex-shrink: 0;">
-                            <Icon Type="bg-colors"/>
+                            <Icon Type="bg-colors" />
                         </Avatar>
                         <div>
                             <Title Level="5" style="margin: 0 0 8px 0;">可视化区分</Title>
@@ -191,45 +180,19 @@
         </Row>
 
         <Alert Type="@AlertType.Info" ShowIcon="true" style="margin-top: 24px;" Message="本地存储"
-               Description="使用 SQLite 数据库本地存储，快速可靠，保护您的数据隐私"/>
+            Description="使用 SQLite 数据库本地存储，快速可靠，保护您的数据隐私" />
     </div>
 </Flex>
 
 @code {
-    private List<Book> _books = new();
     private string? _selectedBookId;
-    private bool _isLoadingBooks = true;
 
-    protected async override Task OnInitializedAsync()
+    private void OnBookSelected(Book? book)
     {
-        await LoadBooksAsync();
-    }
-
-    private async Task LoadBooksAsync()
-    {
-        try
+        if (book != null)
         {
-            _isLoadingBooks = true;
-            _books = await BookService.GetAllBooksAsync();
-        }
-        catch (Exception ex)
-        {
-            // 可以在这里添加错误处理，比如显示通知
-            Console.WriteLine($"加载书目时出错: {ex.Message}");
-        }
-        finally
-        {
-            _isLoadingBooks = false;
+            _selectedBookId = book.Id.ToString();
+            Navigation.NavigateTo($"/chatlogs/{book.Id}");
         }
     }
-
-    private void OnBookSelected(string bookId)
-    {
-        _selectedBookId = bookId;
-        if (!string.IsNullOrEmpty(bookId))
-        {
-            Navigation.NavigateTo($"/chatlogs/{bookId}");
-        }
-    }
-
 }

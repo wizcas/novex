@@ -179,7 +179,7 @@
         </Column>
         <Column TData="ChatLogSummary" Title="预览">
           <Template>
-            <div style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="">
               @if (!string.IsNullOrEmpty(context.Summary))
               {
                 <span>@context.Summary</span>
@@ -1089,7 +1089,7 @@
   {
     // 刷新页面数据
     await LoadChatLogs();
-    
+
     // 显示完成消息
     if (result.ErrorCount > 0)
     {

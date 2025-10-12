@@ -1,0 +1,118 @@
+@page "/chatlogs"
+@using Novex.Data.Models
+@using Novex.Web.Shared.Components
+@using AntDesign
+@inject NavigationManager Navigation
+
+<PageTitle>选择书目 - 聊天记录</PageTitle>
+
+<div class="book-selection-page">
+  <div style="max-width: 800px; margin: 0 auto; padding: 24px;">
+    <div style="text-align: center; margin-bottom: 48px;">
+      <Title Level="1">
+        <Icon Type="message" style="margin-right: 8px; color: #1890ff;" />
+        浏览聊天记录
+      </Title>
+      <Text Type="@TextElementType.Secondary" Style="font-size: 16px; margin-top: 16px; display: block;">
+        请选择要查看聊天记录的书目
+      </Text>
+    </div>
+
+    <Row Justify="@RowJustify.Center">
+      <AntDesign.Col Xs="24" Sm="20" Md="16" Lg="12" Xl="10">
+        <Card>
+          <div style="padding: 24px;">
+            <div style="margin-bottom: 16px;">
+              <Text Strong="true" Style="display: block; margin-bottom: 8px;">选择书目:</Text>
+              <BookSelector @bind-SelectedBookId="selectedBookId" OnBookSelected="OnBookSelected"
+                Placeholder="搜索并选择要查看的书目" SuffixIconType="eye" Size="@InputSize.Large" />
+            </div>
+
+            @if (selectedBook != null)
+            {
+              <div
+                style="margin-top: 24px; padding: 16px; background-color: #f6f8ff; border-radius: 6px; border: 1px solid #d6e7ff;">
+                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                  <Icon Type="info-circle" Style="color: #1890ff; margin-right: 8px;" />
+                  <Text Strong="true">已选择书目</Text>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <Text Strong="true">名称:</Text>
+                  <Text Style="margin-left: 8px;">@selectedBook.Name</Text>
+                </div>
+                <div style="margin-bottom: 16px;">
+                  <Text Strong="true">创建时间:</Text>
+                  <Text Style="margin-left: 8px;">@selectedBook.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")</Text>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                  <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Icon="@IconType.Outline.ArrowRight"
+                    OnClick="NavigateToChatlogs">
+                    查看聊天记录
+                  </Button>
+                </div>
+              </div>
+            }
+
+            @if (showEmptyState)
+            {
+              <div style="margin-top: 24px; text-align: center; padding: 32px;">
+                <Empty>
+                  <DescriptionTemplate>
+                    <Text Type="@TextElementType.Secondary">暂无可用书目</Text>
+                    <br />
+                    <Text Type="@TextElementType.Secondary">请先创建书目并导入聊天记录。</Text>
+                  </DescriptionTemplate>
+                  <ChildContent>
+                    <Space>
+                      <SpaceItem>
+                        <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Book"
+                          OnClick="@(() => Navigation.NavigateTo("/books"))">
+                          书目管理
+                        </Button>
+                      </SpaceItem>
+                      <SpaceItem>
+                        <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Import"
+                          OnClick="@(() => Navigation.NavigateTo("/import"))">
+                          导入记录
+                        </Button>
+                      </SpaceItem>
+                    </Space>
+                  </ChildContent>
+                </Empty>
+              </div>
+            }
+          </div>
+        </Card>
+      </AntDesign.Col>
+    </Row>
+
+    <div style="text-align: center; margin-top: 32px;">
+      <Button Type="@ButtonType.Default" Icon="@IconType.Outline.ArrowLeft"
+        OnClick="@(() => Navigation.NavigateTo("/"))">
+        返回首页
+      </Button>
+    </div>
+  </div>
+</div>
+
+@code {
+  private string? selectedBookId;
+  private Book? selectedBook;
+  private bool showEmptyState = false;
+
+  private void OnBookSelected(Book? book)
+  {
+    selectedBook = book;
+    showEmptyState = false;
+    StateHasChanged();
+  }
+
+  private void NavigateToChatlogs()
+  {
+    if (selectedBook != null)
+    {
+      Navigation.NavigateTo($"/chatlogs/{selectedBook.Id}");
+    }
+  }
+}
