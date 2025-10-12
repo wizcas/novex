@@ -36,7 +36,6 @@ public class RuleEngine
     {
             { TransformationType.Format, new FormatTransformationProcessor() },
             { TransformationType.Truncate, new TruncateProcessor() },
-            { TransformationType.Custom, new CustomTransformationProcessor() }, // Keep for backward compatibility
             { TransformationType.RegexExtraction, new RegexExtractionProcessor() },
             { TransformationType.RemoveHtmlComments, new RemoveHtmlCommentsProcessor() },
             { TransformationType.RemoveRunBlocks, new RemoveRunBlocksProcessor() },

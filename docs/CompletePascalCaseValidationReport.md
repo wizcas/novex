@@ -127,7 +127,6 @@
 - ✅ `RemoveRunBlocksProcessor.cs`
 - ✅ `RemoveXmlTagsProcessor.cs`
 - ✅ `FormatTextProcessor.cs`
-- ✅ `CustomTransformationProcessor.cs`
 - ✅ `TruncateProcessor.cs`
 - ✅ `TruncateTransformationProcessor.cs`
 - ✅ `PreserveFormattingProcessor.cs`

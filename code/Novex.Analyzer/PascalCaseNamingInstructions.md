@@ -99,11 +99,6 @@ Parameters:
   RemoveExtraNewlines: true
   NormalizeSpaces: true
   
-  # CustomTransformationProcessor
-  Condition: 'TitleIsEmpty'
-  MaxLength: 50
-  PreserveFormatting: true
-  
   # TruncateProcessor
   AddEllipsis: true
 ```
@@ -179,7 +174,6 @@ var expectedPascalCaseParams = new[]
 - ✅ RemoveRunBlocksProcessor
 - ✅ RemoveXmlTagsProcessor
 - ✅ FormatTextProcessor
-- ✅ CustomTransformationProcessor
 - ✅ TruncateProcessor
 - ✅ PreserveFormattingProcessor
 

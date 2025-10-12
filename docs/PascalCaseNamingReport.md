@@ -123,7 +123,7 @@ AiGenerationRule:
 - ✅ RemoveHtmlCommentsProcessor 参数: `RemoveComments`
 - ✅ RemoveRunBlocksProcessor 参数: `RemoveRunBlocks`
 - ✅ RemoveXmlTagsProcessor 参数: `RemoveXmlTags`
-- ✅ CustomTransformationProcessor 参数: `Condition`, `MaxLength`
+- ✅ TruncateProcessor 参数: `MaxLength`, `AddEllipsis`
 - ✅ Markup 处理器参数: `ExtractHtml`
 
 ### 📊 **数据结构**

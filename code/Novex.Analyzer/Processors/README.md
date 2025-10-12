@@ -21,11 +21,7 @@ Transformation processors handle content modification and extraction:
 
 - **FormatTransformationProcessor.cs** - Basic formatting with max length support
 - **TruncateTransformationProcessor.cs** - Content truncation based on length
-- **CustomTransformationProcessor.cs** - Advanced processing including:
-  - Regex pattern matching and extraction
-  - Format string processing
-  - HTML comment removal
-  - Run block removal
+- **TruncateProcessor.cs** - Content truncation with ellipsis support
   - XML tag removal
   - Whitespace cleaning
   - Formatting preservation

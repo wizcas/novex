@@ -401,11 +401,6 @@ public enum TransformationType
   Calculate,
 
   /// <summary>
-  /// 自定义转换
-  /// </summary>
-  Custom,
-
-  /// <summary>
   /// 正则表达式提取
   /// </summary>
   RegexExtraction,

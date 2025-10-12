@@ -150,9 +150,8 @@ TransformationRules:
   Name: '生成简单标题'
   SourceField: 'source'
   TargetField: 'title'
-  TransformationType: 'Custom'
+  TransformationType: 'Truncate'
   Parameters:
-    Condition: 'TitleIsEmpty'
     MaxLength: 50
   Priority: 100
   Enabled: true

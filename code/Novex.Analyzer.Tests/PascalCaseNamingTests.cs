@@ -176,8 +176,11 @@ public class PascalCaseNamingTests
                 // FormatTextProcessor 参数
                 "FormatText", "RemoveExtraNewlines", "NormalizeSpaces",
                 
-                // CustomTransformationProcessor 参数
-                "Condition", "MaxLength", "PreserveFormatting",
+                // TruncateProcessor 参数
+                "MaxLength",
+                
+                // PreserveFormattingProcessor 参数  
+                "PreserveFormatting",
                 
                 // TruncateProcessor 参数
                 "AddEllipsis",
@@ -367,13 +370,12 @@ TransformationRules:
   Priority: 130
   Enabled: true
 
-- Id: 'CustomTransform'
-  Name: '自定义转换'
+- Id: 'TruncateTransform'
+  Name: '文本截断转换'
   SourceField: 'Title'
   TargetField: 'Title'
-  TransformationType: 'Custom'
+  TransformationType: 'Truncate'
   Parameters:
-    Condition: 'TitleIsEmpty'
     MaxLength: 50
   Priority: 140
   Enabled: true
