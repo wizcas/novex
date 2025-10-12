@@ -1,3 +1,4 @@
+using HtmlAgilityPack;
 using Novex.Analyzer.Models;
 using Novex.Data.Models;
 using System.Text.Json;
@@ -286,9 +287,9 @@ public class RuleEngine
     }
 
     // 4. 将结果映射到ChatLogAnalysisResult
-    result.Title = extractedData.GetValueOrDefault("title", "").Trim();
-    result.Summary = extractedData.GetValueOrDefault("summary", "").Trim();
-    result.MainBody = extractedData.GetValueOrDefault("main_body", "").Trim();
+    result.Title = extractedData.GetValueOrDefault("Title", extractedData.GetValueOrDefault("title", "")).Trim();
+    result.Summary = extractedData.GetValueOrDefault("Summary", extractedData.GetValueOrDefault("summary", "")).Trim();
+    result.MainBody = extractedData.GetValueOrDefault("MainBody", extractedData.GetValueOrDefault("main_body", "")).Trim();
 
     return result;
   }
@@ -417,8 +418,66 @@ public class RuleEngine
 
   private async Task<List<string>> FindMarkupMatchesAsync(string content, ExtractionRule rule)
   {
-    // 简化的Markup匹配，实际可以使用HtmlAgilityPack等专业库
-    return await FindRegexMatchesAsync(content, rule);
+    var results = new List<string>();
+
+    try
+    {
+      var doc = new HtmlDocument();
+      doc.LoadHtml(content);
+
+      // 如果Pattern是XPath选择器
+      if (rule.Pattern.StartsWith("//") || rule.Pattern.StartsWith("/"))
+      {
+        var nodes = doc.DocumentNode.SelectNodes(rule.Pattern);
+        if (nodes != null)
+        {
+          var maxMatches = rule.Options.MaxMatches > 0 ? rule.Options.MaxMatches : int.MaxValue;
+          foreach (var node in nodes.Take(maxMatches))
+          {
+            // 根据需要返回节点的内容或HTML
+            var extractHtml = rule.Options.CustomOptions.GetValueOrDefault("extract_html", false);
+            var value = (extractHtml is bool boolVal && boolVal)
+              ? node.OuterHtml
+              : node.InnerText;
+            results.Add(value);
+
+            if (!rule.Options.Global) break;
+          }
+        }
+      }
+      // 如果Pattern是标签名
+      else if (!rule.Pattern.Contains("<") && !rule.Pattern.Contains(">"))
+      {
+        var nodes = doc.DocumentNode.SelectNodes($"//{rule.Pattern}");
+        if (nodes != null)
+        {
+          var maxMatches = rule.Options.MaxMatches > 0 ? rule.Options.MaxMatches : int.MaxValue;
+          foreach (var node in nodes.Take(maxMatches))
+          {
+            var extractHtml = rule.Options.CustomOptions.GetValueOrDefault("extract_html", false);
+            var value = (extractHtml is bool boolVal && boolVal)
+              ? node.OuterHtml
+              : node.InnerText;
+            results.Add(value);
+
+            if (!rule.Options.Global) break;
+          }
+        }
+      }
+      // 如果Pattern是HTML标签格式（如<tag>content</tag>），使用正则表达式作为备用
+      else
+      {
+        return await FindRegexMatchesAsync(content, rule);
+      }
+    }
+    catch (Exception ex)
+    {
+      // 如果HtmlAgilityPack解析失败，回退到正则表达式
+      Console.WriteLine($"HtmlAgilityPack parsing failed for rule {rule.Id}: {ex.Message}. Falling back to regex.");
+      return await FindRegexMatchesAsync(content, rule);
+    }
+
+    return await Task.FromResult(results);
   }
 
   private async Task<List<string>> FindTextMatchesAsync(string content, ExtractionRule rule)
@@ -482,13 +541,13 @@ public class RuleEngine
   private static string GetTargetKey(TargetField target, string? customTargetName)
   {
     return target switch {
-      TargetField.Title => "title",
-      TargetField.Summary => "summary",
-      TargetField.MainBody => "main_body",
-      TargetField.Source => "source",
-      TargetField.Custom => customTargetName ?? "custom",
-      TargetField.Ignore => "ignore",
-      _ => "unknown"
+      TargetField.Title => "Title",
+      TargetField.Summary => "Summary",
+      TargetField.MainBody => "MainBody",
+      TargetField.Source => "Source",
+      TargetField.Custom => customTargetName ?? "Custom",
+      TargetField.Ignore => "Ignore",
+      _ => "Unknown"
     };
   }
 }
@@ -591,18 +650,142 @@ public class CustomTransformationProcessor : ITransformationProcessor
 {
   public Task<string> ProcessAsync(string input, Dictionary<string, object> parameters)
   {
-    // 处理自定义转换逻辑
-    if (parameters.TryGetValue("condition", out var conditionObj) && conditionObj.ToString() == "title_is_empty")
+    var result = input;
+
+    // Debug: 输出参数信息（已注释）
+    // Console.WriteLine($"CustomTransformationProcessor - Input length: {input.Length}");
+
+    // 处理正则表达式提取和格式化
+    var patternObj = parameters.GetValueOrDefault("Pattern") ?? parameters.GetValueOrDefault("pattern");
+    if (patternObj != null)
     {
-      // 如果标题为空，从摘要中提取前几个词作为标题
-      if (parameters.TryGetValue("max_length", out var maxLengthObj) && maxLengthObj is JsonElement maxLengthElement && maxLengthElement.TryGetInt32(out var maxLength))
+      var pattern = patternObj.ToString();
+      if (!string.IsNullOrEmpty(pattern))
       {
-        var words = input.Split(new[] { ' ', '，', '。', '、' }, StringSplitOptions.RemoveEmptyEntries);
-        var title = string.Join("", words.Take(3));
-        return Task.FromResult(title.Length > maxLength ? title.Substring(0, maxLength) : title);
+        try
+        {
+          var regex = new Regex(pattern, RegexOptions.Multiline | RegexOptions.Singleline);
+          var match = regex.Match(input);
+
+
+
+          if (match.Success)
+          {
+            var formatObj = parameters.GetValueOrDefault("Format") ?? parameters.GetValueOrDefault("format");
+            if (formatObj != null)
+            {
+              var format = formatObj.ToString();
+              if (!string.IsNullOrEmpty(format))
+              {
+                // 支持 {0}, {1}, {2} 等格式化占位符
+                var groups = new string[match.Groups.Count];
+                for (int i = 0; i < match.Groups.Count; i++)
+                {
+                  groups[i] = match.Groups[i].Value.Trim();
+                }
+
+                try
+                {
+                  result = string.Format(format, groups);
+                }
+                catch (Exception ex)
+                {
+                  Console.WriteLine($"  String.Format failed: {ex.Message}");
+                  result = match.Groups.Count > 1 ? match.Groups[1].Value : match.Value;
+                }
+              }
+              else
+              {
+                result = match.Groups.Count > 1 ? match.Groups[1].Value : match.Value;
+              }
+            }
+            else
+            {
+              result = match.Groups.Count > 1 ? match.Groups[1].Value : match.Value;
+            }
+          }
+        }
+        catch (Exception ex)
+        {
+          Console.WriteLine($"Regex processing failed: {ex.Message}");
+          // 如果正则表达式失败，保持原始输入
+        }
       }
     }
 
-    return Task.FromResult(input);
+    // 移除 HTML 注释
+    // 处理 RemoveComments 参数（可能是 bool 或 string）
+    var shouldRemoveComments = false;
+    var removeCommentsValue = parameters.GetValueOrDefault("RemoveComments") ?? parameters.GetValueOrDefault("remove_comments");
+    if (removeCommentsValue != null)
+    {
+      if (removeCommentsValue is bool boolValue)
+      {
+        shouldRemoveComments = boolValue;
+      }
+      else if (removeCommentsValue is string stringValue &&
+              (stringValue.Equals("true", StringComparison.OrdinalIgnoreCase)))
+      {
+        shouldRemoveComments = true;
+      }
+    }
+
+    if (shouldRemoveComments)
+    {
+      result = Regex.Replace(result, @"<!--.*?-->", "", RegexOptions.Singleline);
+    }
+
+    // 移除 run 块
+    var shouldRemoveRunBlocks = false;
+    var removeRunBlocksValue = parameters.GetValueOrDefault("RemoveRunBlocks") ?? parameters.GetValueOrDefault("remove_run_blocks");
+    if (removeRunBlocksValue != null)
+    {
+      if (removeRunBlocksValue is bool boolValue)
+      {
+        shouldRemoveRunBlocks = boolValue;
+      }
+      else if (removeRunBlocksValue is string stringValue &&
+              (stringValue.Equals("true", StringComparison.OrdinalIgnoreCase)))
+      {
+        shouldRemoveRunBlocks = true;
+      }
+    }
+
+    if (shouldRemoveRunBlocks)
+    {
+      result = Regex.Replace(result, @"<!--run:.*?-->", "", RegexOptions.Singleline);
+    }
+
+    // 清理空白字符
+    var cleanWhitespaceValue = parameters.GetValueOrDefault("CleanWhitespace") ?? parameters.GetValueOrDefault("clean_whitespace");
+    if (cleanWhitespaceValue is bool cleanWhitespace && cleanWhitespace)
+    {
+      result = Regex.Replace(result.Trim(), @"\s+", " ");
+      result = Regex.Replace(result, @"\n\s*\n\s*\n", "\n\n"); // 减少多余的空行
+    }
+
+    // 保持格式化（保留段落结构）
+    var preserveFormattingValue = parameters.GetValueOrDefault("PreserveFormatting") ?? parameters.GetValueOrDefault("preserve_formatting");
+    if (preserveFormattingValue is bool preserveFormatting && preserveFormatting)
+    {
+      // 保持基本的段落结构，但清理过多的空行
+      result = Regex.Replace(result, @"\n{3,}", "\n\n");
+    }
+
+    // 处理标题为空的情况（兼容旧逻辑）
+    if (parameters.TryGetValue("condition", out var conditionObj) && conditionObj.ToString() == "title_is_empty")
+    {
+      if (parameters.TryGetValue("max_length", out var maxLengthObj) && maxLengthObj is JsonElement maxLengthElement && maxLengthElement.TryGetInt32(out var maxLength))
+      {
+        var words = result.Split(new[] { ' ', '，', '。', '、' }, StringSplitOptions.RemoveEmptyEntries);
+        var title = string.Join("", words.Take(3));
+        result = title.Length > maxLength ? title.Substring(0, maxLength) : title;
+      }
+    }
+
+
+    var finalResult = result?.Trim() ?? "";
+
+    return Task.FromResult(finalResult);
   }
 }

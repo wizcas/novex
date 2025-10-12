@@ -13,17 +13,17 @@ public class RuleEngineTests
     // Arrange
     var ruleEngine = new RuleEngine();
     var yaml = @"
-version: ""1.0""
-description: ""Test Rule Book""
-extraction_rules:
-  - id: ""test_rule""
-    name: ""Test Rule""
-    matcher_type: ""text""
-    pattern: ""test""
-    action: ""extract""
-    target: ""title""
-    priority: 10
-    enabled: true
+Version: ""1.0""
+Description: ""Test Rule Book""
+ExtractionRules:
+  - Id: ""test_rule""
+    Name: ""Test Rule""
+    MatcherType: ""Text""
+    Pattern: ""test""
+    Action: ""Extract""
+    Target: ""Title""
+    Priority: 10
+    Enabled: true
 ";
 
     // Act
@@ -55,8 +55,8 @@ extraction_rules:
     // Arrange
     var ruleEngine = new RuleEngine();
     var yaml = @"
-version: ""invalid""
-description: ""Test Rule Book""
+Version: ""invalid""
+Description: ""Test Rule Book""
 ";
 
     // Act & Assert
@@ -70,8 +70,8 @@ description: ""Test Rule Book""
     // Arrange
     var ruleEngine = new RuleEngine();
     var yaml = @"
-version: """"
-description: ""Test Rule Book""
+Version: """"
+Description: ""Test Rule Book""
 ";
 
     // Act & Assert
@@ -85,25 +85,25 @@ description: ""Test Rule Book""
     // Arrange
     var ruleEngine = new RuleEngine();
     var yaml = @"
-version: ""1.0""
-description: ""Test Rule Book""
-extraction_rules:
-  - id: ""duplicate_id""
-    name: ""Test Rule 1""
-    matcher_type: ""text""
-    pattern: ""test1""
-    action: ""extract""
-    target: ""title""
-    priority: 10
-    enabled: true
-  - id: ""duplicate_id""
-    name: ""Test Rule 2""
-    matcher_type: ""text""
-    pattern: ""test2""
-    action: ""extract""
-    target: ""summary""
-    priority: 20
-    enabled: true
+Version: ""1.0""
+Description: ""Test Rule Book""
+ExtractionRules:
+  - Id: ""duplicate_id""
+    Name: ""Test Rule 1""
+    MatcherType: ""Text""
+    Pattern: ""test1""
+    Action: ""Extract""
+    Target: ""Title""
+    Priority: 10
+    Enabled: true
+  - Id: ""duplicate_id""
+    Name: ""Test Rule 2""
+    MatcherType: ""Text""
+    Pattern: ""test2""
+    Action: ""Extract""
+    Target: ""Summary""
+    Priority: 20
+    Enabled: true
 ";
 
     // Act & Assert
@@ -117,17 +117,17 @@ extraction_rules:
     // Arrange
     var ruleEngine = new RuleEngine();
     var yaml = @"
-version: ""1.0""
-description: ""Test Rule Book""
-extraction_rules:
-  - id: ""invalid_regex""
-    name: ""Invalid Regex""
-    matcher_type: ""regex""
-    pattern: ""[invalid regex(""
-    action: ""extract""
-    target: ""title""
-    priority: 10
-    enabled: true
+Version: ""1.0""
+Description: ""Test Rule Book""
+ExtractionRules:
+  - Id: ""invalid_regex""
+    Name: ""Invalid Regex""
+    MatcherType: ""Regex""
+    Pattern: ""[invalid regex(""
+    Action: ""Extract""
+    Target: ""Title""
+    Priority: 10
+    Enabled: true
 ";
 
     // Act & Assert
@@ -209,5 +209,77 @@ extraction_rules:
     // Assert
     Assert.NotNull(result);
     // Note: This test will pass when ExecuteRulesAsync is properly implemented
+  }
+
+  [Fact]
+  public async Task ExecuteRulesAsync_MarkupWithHtmlAgilityPack_ShouldExtractContent()
+  {
+    // Arrange
+    var ruleEngine = new RuleEngine();
+    var sourceContent = @"
+<root>
+  <dream>
+    <content>这是梦境的内容</content>
+    <character>主角</character>
+  </dream>
+  <plot>
+    <summary>这是情节摘要</summary>
+    <events>事件名: 测试事件</events>
+  </plot>
+</root>";
+
+    var ruleBook = new AnalysisRuleBook {
+      Version = "1.0",
+      Description = "HtmlAgilityPack Test",
+      ExtractionRules = new List<ExtractionRule>
+            {
+                new ExtractionRule
+                {
+                    Id = "extract_dream_xpath",
+                    Name = "Extract Dream Content using XPath",
+                    MatcherType = MatcherType.Markup,
+                    Pattern = "//dream//content",
+                    Options = new MatchOptions
+                    {
+                        Global = true,
+                        CustomOptions = new Dictionary<string, object>
+                        {
+                            { "extract_html", false }
+                        }
+                    },
+                    Action = ActionType.Extract,
+                    Target = TargetField.MainBody,
+                    Priority = 10,
+                    Enabled = true
+                },
+                new ExtractionRule
+                {
+                    Id = "extract_plot_tagname",
+                    Name = "Extract Plot using Tag Name",
+                    MatcherType = MatcherType.Markup,
+                    Pattern = "summary",
+                    Options = new MatchOptions
+                    {
+                        Global = false,
+                        CustomOptions = new Dictionary<string, object>
+                        {
+                            { "extract_html", false }
+                        }
+                    },
+                    Action = ActionType.Extract,
+                    Target = TargetField.Summary,
+                    Priority = 20,
+                    Enabled = true
+                }
+            }
+    };
+
+    // Act
+    var result = await ruleEngine.ExecuteRulesAsync(sourceContent, ruleBook);
+
+    // Assert
+    Assert.NotNull(result);
+    Assert.Equal("这是梦境的内容", result.MainBody?.Trim());
+    Assert.Equal("这是情节摘要", result.Summary?.Trim());
   }
 }

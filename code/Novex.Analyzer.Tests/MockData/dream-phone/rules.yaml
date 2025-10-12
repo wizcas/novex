@@ -1,0 +1,92 @@
+Version: "1.0"
+Description: "Dream Phone 规则 - 使用混合方式处理"
+
+ExtractionRules:
+  # 1. 使用 markup 方式提取 plot 标签内容
+  - Id: "ExtractPlotContent"
+    Name: "提取情节内容"
+    MatcherType: "Markup"
+    Pattern: "<plot>(.*?)</plot>"
+    Options:
+      Multiline: true
+      Singleline: true
+      Global: false
+      MaxMatches: 1
+    Action: "Extract"
+    Target: "Custom"
+    CustomTargetName: "PlotContent"
+    Priority: 10
+    Enabled: true
+
+  # 2. 使用 markup 方式提取 dream 标签内容
+  - Id: "ExtractDreamContent"
+    Name: "提取梦境内容"
+    MatcherType: "Markup"
+    Pattern: "<dream>(.*?)</dream>"
+    Options:
+      Multiline: true
+      Singleline: true
+      Global: false
+      MaxMatches: 1
+    Action: "Extract"
+    Target: "MainBody"
+    Priority: 20
+    Enabled: true
+
+  # 3. 兜底提取规则 - 如果没有特殊标签，提取全部内容
+  - Id: "ExtractFullContent"
+    Name: "提取全部内容"
+    MatcherType: "Markup"
+    Pattern: "(.*)"
+    Options:
+      Multiline: true
+      Singleline: true
+      Global: false
+      MaxMatches: 1
+    Action: "Extract"
+    Target: "MainBody"
+    Priority: 30
+    Enabled: true
+
+TransformationRules:
+  # 1. 从情节内容提取标题
+  - Id: "ExtractTitleFromPlot"
+    Name: "提取标题"
+    SourceField: "PlotContent"
+    TargetField: "Title"
+    TransformationType: "Custom"
+    Parameters:
+      Pattern: "当前章节: ([^\\n]+).*?事件名:([^\\n\\(]+)"
+      Format: "{1}/{2}" # Groups[1] 和 Groups[2] 是捕获组
+      CleanWhitespace: true
+    Priority: 100
+    Enabled: true
+
+  # 2. 从情节内容提取摘要
+  - Id: "ExtractSummaryFromPlot"
+    Name: "提取摘要"
+    SourceField: "PlotContent"
+    TargetField: "Summary"
+    TransformationType: "Custom"
+    Parameters:
+      Pattern: "摘要:([^\\n]*(?:\\n(?!当前章节|个人线|当前角色|长期事件|事件名)[^\\n]*)*)"
+      Format: "{1}"
+      CleanWhitespace: true
+    Priority: 110
+    Enabled: true
+
+  # 3. 清理梦境内容，移除注释和格式化
+  - Id: "CleanDreamContent"
+    Name: "清理梦境内容"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "Custom"
+    Parameters:
+      RemoveComments: true
+      RemoveRunBlocks: true
+      PreserveFormatting: true
+    Priority: 120
+    Enabled: true
+
+AiGenerationRule:
+  Enabled: false

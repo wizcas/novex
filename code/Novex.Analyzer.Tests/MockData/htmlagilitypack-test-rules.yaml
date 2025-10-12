@@ -1,0 +1,59 @@
+Version: "1.0"
+Description: "Dream Phone 小说处理规则 - 使用 HtmlAgilityPack 处理 markup"
+
+ExtractionRules:
+  # 1. 使用XPath选择器提取<dream>标签内的内容
+  - Id: "extract_dream_content_xpath"
+    Name: "使用XPath提取梦境内容"
+    MatcherType: "Markup"
+    Pattern: "//dream"
+    Options:
+      Global: true
+      CustomOptions:
+        extract_html: false # 提取内部文本而不是HTML
+    Action: "Extract"
+    Target: "MainBody"
+    Priority: 10
+    Enabled: true
+
+  # 2. 使用标签名提取所有<plot>内容
+  - Id: "extract_plot_content"
+    Name: "提取情节内容"
+    MatcherType: "Markup"
+    Pattern: "plot" # 简单的标签名
+    Options:
+      Global: true
+      CustomOptions:
+        extract_html: false
+    Action: "Extract"
+    Target: "Summary"
+    Priority: 20
+    Enabled: true
+
+  # 3. 使用XPath选择器提取特定的文本内容
+  - Id: "extract_title_xpath"
+    Name: "使用XPath提取标题"
+    MatcherType: "Markup"
+    Pattern: "//plot//text()[contains(., '事件名:')]"
+    Options:
+      Global: false
+      MaxMatches: 1
+    Action: "Extract"
+    Target: "Title"
+    Priority: 30
+    Enabled: true
+
+TransformationRules:
+  # 清理和格式化提取的内容
+  - Id: "clean_extracted_content"
+    Name: "清理提取内容"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "Format"
+    Parameters:
+      preserve_formatting: true
+    Priority: 100
+    Enabled: true
+
+AiGenerationRule:
+  Enabled: false
