@@ -1,50 +1,22 @@
 @using Novex.Data.Models
 @using Novex.Data.Services
-@using AntDesign
 @inject AnalysisRuleBookService AnalysisRuleBookService
 
-@if (UseFormItem)
-{
-  <FormItem Label="@Label">
-    <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="SelectedRuleBookId"
-      @bind-Value:after="OnSelectionChanged" Placeholder="@Placeholder" Loading="@IsLoading" AllowClear="@AllowClear"
-      Style="width: 100%;" DataSource="ruleBooks" ItemValue="ruleBook => ruleBook.Id"
-      ItemLabel="ruleBook => ruleBook.Name">
-      <ItemTemplate Context="ruleBook">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span>@ruleBook.Name</span>
-          <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
-            @ruleBook.CreatedAt.ToString("yyyy-MM-dd")
-          </Text>
-        </div>
-      </ItemTemplate>
-    </Select>
-  </FormItem>
-}
-else
-{
-  <div>
-    @if (!string.IsNullOrEmpty(Label))
-    {
-      <div style="margin-bottom: 8px;">
-        <Text Strong="true">@Label:</Text>
+<BaseFormComponent UseFormItem="@UseFormItem" Label="@Label">
+  <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="SelectedRuleBookId"
+    @bind-Value:after="OnSelectionChanged" Placeholder="@Placeholder" Loading="@IsLoading" AllowClear="@AllowClear"
+    Style="width: 100%;" DataSource="ruleBooks" ItemValue="ruleBook => ruleBook.Id"
+    ItemLabel="ruleBook => ruleBook.Name">
+    <ItemTemplate Context="ruleBook">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span>@ruleBook.Name</span>
+        <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+          @ruleBook.CreatedAt.ToString("yyyy-MM-dd")
+        </Text>
       </div>
-    }
-    <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="SelectedRuleBookId"
-      @bind-Value:after="OnSelectionChanged" Placeholder="@Placeholder" Loading="@IsLoading" AllowClear="@AllowClear"
-      Style="width: 100%;" DataSource="ruleBooks" ItemValue="ruleBook => ruleBook.Id"
-      ItemLabel="ruleBook => ruleBook.Name">
-      <ItemTemplate Context="ruleBook">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span>@ruleBook.Name</span>
-          <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
-            @ruleBook.CreatedAt.ToString("yyyy-MM-dd")
-          </Text>
-        </div>
-      </ItemTemplate>
-    </Select>
-  </div>
-}
+    </ItemTemplate>
+  </Select>
+</BaseFormComponent>
 
 @if (ShowDescription && selectedRuleBook != null && !string.IsNullOrEmpty(selectedRuleBook.Description))
 {
