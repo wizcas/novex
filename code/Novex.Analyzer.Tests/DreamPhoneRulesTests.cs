@@ -139,7 +139,84 @@ public class DreamPhoneRulesTests
     Assert.Equal(MatcherType.Regex, ruleBook.ExtractionRules[2].MatcherType);
 
     // 验证转换规则
-    Assert.Equal(3, ruleBook.TransformationRules.Count);
-    Assert.All(ruleBook.TransformationRules, rule => Assert.Equal(TransformationType.Custom, rule.TransformationType));
+    Assert.Equal(8, ruleBook.TransformationRules.Count);
+
+    // 验证前两个规则使用RegexExtraction
+    Assert.Equal(TransformationType.RegexExtraction, ruleBook.TransformationRules[0].TransformationType);
+    Assert.Equal(TransformationType.RegexExtraction, ruleBook.TransformationRules[1].TransformationType);
+
+    // 验证清理规则使用专门的处理器
+    Assert.Equal(TransformationType.RemoveHtmlComments, ruleBook.TransformationRules[2].TransformationType);
+    Assert.Equal(TransformationType.RemoveRunBlocks, ruleBook.TransformationRules[3].TransformationType);
+    Assert.Equal(TransformationType.RemoveXmlTags, ruleBook.TransformationRules[4].TransformationType);
+    Assert.Equal(TransformationType.CleanWhitespace, ruleBook.TransformationRules[5].TransformationType);
+    Assert.Equal(TransformationType.CleanWhitespace, ruleBook.TransformationRules[6].TransformationType);
+    Assert.Equal(TransformationType.CleanWhitespace, ruleBook.TransformationRules[7].TransformationType);
+  }
+
+  [Fact]
+  public async Task ProcessContentWithDreamTag_ShouldOnlyExtractDreamContent()
+  {
+    // Arrange
+    var ruleEngine = new RuleEngine();
+
+    var testContent = @"<plot>
+当前章节: 第一章
+事件名: 测试事件
+摘要: 这是测试摘要
+</plot>
+
+<dream>
+这是 dream 标签内的内容。
+只有这部分应该被提取到 MainBody。
+</dream>
+
+这是 dream 标签之外的内容。
+这部分不应该被提取到 MainBody。";
+
+    var rulesYaml = @"
+Version: ""1.0""
+Description: ""测试规则""
+
+ExtractionRules:
+  - Id: ""ExtractDreamContent""
+    Name: ""提取梦境内容""
+    MatcherType: ""Markup""
+    Pattern: ""dream""
+    Action: ""Extract""
+    Target: ""MainBody""
+    Priority: 20
+    Enabled: true
+
+  - Id: ""ExtractFullContent""
+    Name: ""提取全部内容作为正文""
+    MatcherType: ""Regex""
+    Pattern: ""^(.*)$""
+    Options:
+      Multiline: true
+      Singleline: true
+    Action: ""Extract""
+    Target: ""MainBody""
+    Priority: 30
+    Enabled: true
+";
+
+    var ruleBook = ruleEngine.ParseRuleBook(rulesYaml);
+
+    // Act
+    var result = await ruleEngine.ExecuteRulesAsync(testContent, ruleBook);
+
+    // Assert
+    Assert.NotNull(result);
+    Assert.NotNull(result.MainBody);
+
+    // 验证只包含 dream 内容，不包含外部内容
+    Assert.Contains("这是 dream 标签内的内容", result.MainBody);
+    Assert.Contains("只有这部分应该被提取到 MainBody", result.MainBody);
+    Assert.DoesNotContain("这部分不应该被提取到 MainBody", result.MainBody);
+    Assert.DoesNotContain("dream 标签之外的内容", result.MainBody);
+
+    // 验证不包含 plot 内容（因为 plot 不是目标）
+    Assert.DoesNotContain("当前章节: 第一章", result.MainBody);
   }
 }

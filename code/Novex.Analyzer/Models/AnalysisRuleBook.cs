@@ -403,7 +403,47 @@ public enum TransformationType
   /// <summary>
   /// 自定义转换
   /// </summary>
-  Custom
+  Custom,
+
+  /// <summary>
+  /// 正则表达式提取
+  /// </summary>
+  RegexExtraction,
+
+  /// <summary>
+  /// 移除HTML注释
+  /// </summary>
+  RemoveHtmlComments,
+
+  /// <summary>
+  /// 移除运行块
+  /// </summary>
+  RemoveRunBlocks,
+
+  /// <summary>
+  /// 移除XML标签
+  /// </summary>
+  RemoveXmlTags,
+
+  /// <summary>
+  /// 清理空白字符
+  /// </summary>
+  CleanWhitespace,
+
+  /// <summary>
+  /// 保持格式化
+  /// </summary>
+  PreserveFormatting,
+
+  /// <summary>
+  /// 生成标题
+  /// </summary>
+  GenerateTitle,
+
+  /// <summary>
+  /// 清理URL
+  /// </summary>
+  CleanUrl
 }
 
 /// <summary>

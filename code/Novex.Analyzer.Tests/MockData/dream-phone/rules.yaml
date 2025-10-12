@@ -54,11 +54,10 @@ TransformationRules:
     Name: "提取标题"
     SourceField: "PlotContent"
     TargetField: "Title"
-    TransformationType: "Custom"
+    TransformationType: "RegexExtraction"
     Parameters:
       Pattern: "当前章节: ([^\\n]+).*?事件名:([^\\n\\(]+)"
       Format: "{1}/{2}" # Groups[1] 和 Groups[2] 是捕获组
-      CleanWhitespace: true
     Priority: 100
     Enabled: true
 
@@ -67,26 +66,76 @@ TransformationRules:
     Name: "提取摘要"
     SourceField: "PlotContent"
     TargetField: "Summary"
-    TransformationType: "Custom"
+    TransformationType: "RegexExtraction"
     Parameters:
       Pattern: "摘要:([^\\n]*(?:\\n(?!当前章节|个人线|当前角色|长期事件|事件名)[^\\n]*)*)"
       Format: "{1}"
-      CleanWhitespace: true
     Priority: 110
     Enabled: true
 
-  # 3. 清理正文内容 - 移除XML标签和注释
-  - Id: "CleanMainBodyContent"
-    Name: "清理正文内容"
+  # 3. 清理正文内容 - 移除HTML注释
+  - Id: "RemoveHtmlComments"
+    Name: "移除HTML注释"
     SourceField: "MainBody"
     TargetField: "MainBody"
-    TransformationType: "Custom"
+    TransformationType: "RemoveHtmlComments"
     Parameters:
       RemoveComments: true
-      RemoveRunBlocks: true
-      RemoveXmlTags: true
-      PreserveFormatting: true
     Priority: 120
+    Enabled: true
+
+  # 4. 移除运行块
+  - Id: "RemoveRunBlocks"
+    Name: "移除运行块"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "RemoveRunBlocks"
+    Parameters:
+      RemoveRunBlocks: true
+    Priority: 130
+    Enabled: true
+
+  # 5. 移除XML标签
+  - Id: "RemoveXmlTags"
+    Name: "移除XML标签"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "RemoveXmlTags"
+    Parameters:
+      RemoveXmlTags: true
+    Priority: 140
+    Enabled: true
+
+  # 6. 清理空白字符并保持格式
+  - Id: "CleanAndPreserveFormat"
+    Name: "清理空白字符并保持格式"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "CleanWhitespace"
+    Parameters:
+      CleanWhitespace: true
+    Priority: 150
+    Enabled: true
+
+  # 7. 最终清理步骤 - 标题和摘要
+  - Id: "CleanTitleWhitespace"
+    Name: "清理标题空白字符"
+    SourceField: "Title"
+    TargetField: "Title"
+    TransformationType: "CleanWhitespace"
+    Parameters:
+      CleanWhitespace: true
+    Priority: 160
+    Enabled: true
+
+  - Id: "CleanSummaryWhitespace"
+    Name: "清理摘要空白字符"
+    SourceField: "Summary"
+    TargetField: "Summary"
+    TransformationType: "CleanWhitespace"
+    Parameters:
+      CleanWhitespace: true
+    Priority: 170
     Enabled: true
 
 AiGenerationRule:

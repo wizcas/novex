@@ -35,8 +35,16 @@ public class RuleEngine
     _transformationProcessors = new Dictionary<TransformationType, ITransformationProcessor>
     {
             { TransformationType.Format, new FormatTransformationProcessor() },
-            { TransformationType.Truncate, new TruncateTransformationProcessor() },
-            { TransformationType.Custom, new CustomTransformationProcessor() }
+            { TransformationType.Truncate, new TruncateProcessor() },
+            { TransformationType.Custom, new CustomTransformationProcessor() }, // Keep for backward compatibility
+            { TransformationType.RegexExtraction, new RegexExtractionProcessor() },
+            { TransformationType.RemoveHtmlComments, new RemoveHtmlCommentsProcessor() },
+            { TransformationType.RemoveRunBlocks, new RemoveRunBlocksProcessor() },
+            { TransformationType.RemoveXmlTags, new RemoveXmlTagsProcessor() },
+            { TransformationType.CleanWhitespace, new CleanWhitespaceProcessor() },
+            { TransformationType.PreserveFormatting, new PreserveFormattingProcessor() },
+            { TransformationType.GenerateTitle, new GenerateTitleProcessor() },
+            { TransformationType.CleanUrl, new CleanUrlProcessor() }
         };
   }
 
@@ -300,6 +308,9 @@ public class RuleEngine
     var workingContent = sourceContent;
     var sortedRules = rules.Where(r => r.Enabled).OrderBy(r => r.Priority).ToList();
 
+    // 按Target分组，跟踪哪些目标已经成功提取
+    var extractedTargets = new HashSet<string>();
+
     foreach (var rule in sortedRules)
     {
       try
@@ -310,10 +321,13 @@ public class RuleEngine
         switch (rule.Action)
         {
           case ActionType.Extract:
-            if (processedMatches.Any())
+            var targetKey = GetTargetKey(rule.Target, rule.CustomTargetName);
+
+            // 只有当目标字段还没有被成功提取时，才执行提取
+            if (processedMatches.Any() && !extractedTargets.Contains(targetKey))
             {
-              var targetKey = GetTargetKey(rule.Target, rule.CustomTargetName);
               extractedData[targetKey] = string.Join("\n", processedMatches);
+              extractedTargets.Add(targetKey);
             }
             break;
 
