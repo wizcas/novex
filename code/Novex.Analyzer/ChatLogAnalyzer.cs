@@ -59,9 +59,12 @@ public class ChatLogAnalyzer
   /// </summary>
   private bool IsYamlRuleBook(string rule)
   {
-    return rule.TrimStart().StartsWith("version:") ||
-           rule.Contains("extraction_rules:") ||
-           rule.Contains("transformation_rules:");
+    var ruleLower = rule.ToLower();
+    return ruleLower.TrimStart().StartsWith("version:") ||
+           ruleLower.Contains("extraction_rules:") ||
+           ruleLower.Contains("transformation_rules:") ||
+           ruleLower.TrimStart().StartsWith("extractionrules:") ||
+           ruleLower.TrimStart().StartsWith("transformationrules:");
   }
 
   /// <summary>

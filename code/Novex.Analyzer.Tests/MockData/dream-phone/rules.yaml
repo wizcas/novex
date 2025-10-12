@@ -73,7 +73,22 @@ TransformationRules:
     Priority: 110
     Enabled: true
 
-  # 3. 清理正文内容 - 移除HTML注释
+  # 3. 移除热议内容块
+  - Id: "RemoveDiscussionBlocks"
+    Name: "移除微博和论坛热议内容"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "RegexExtraction"
+    Parameters:
+      RemoveMultipleBlocks:
+        - start: "【微博热议】"
+          end: "[由微博管理器自动生成]"
+        - start: "【论坛热议】"
+          end: "[由论坛管理器自动生成]"
+    Priority: 115
+    Enabled: true
+
+  # 4. 清理正文内容 - 移除HTML注释
   - Id: "RemoveHtmlComments"
     Name: "移除HTML注释"
     SourceField: "MainBody"
@@ -84,7 +99,7 @@ TransformationRules:
     Priority: 120
     Enabled: true
 
-  # 4. 移除运行块
+  # 5. 移除运行块
   - Id: "RemoveRunBlocks"
     Name: "移除运行块"
     SourceField: "MainBody"
@@ -95,7 +110,7 @@ TransformationRules:
     Priority: 130
     Enabled: true
 
-  # 5. 移除XML标签
+  # 6. 移除XML标签
   - Id: "RemoveXmlTags"
     Name: "移除XML标签"
     SourceField: "MainBody"
@@ -106,18 +121,19 @@ TransformationRules:
     Priority: 140
     Enabled: true
 
-  # 6. 清理空白字符并保持格式
+  # 7. 清理空白字符并限制空行
   - Id: "CleanAndPreserveFormat"
-    Name: "清理空白字符并保持格式"
+    Name: "清理空白字符并限制连续空行"
     SourceField: "MainBody"
     TargetField: "MainBody"
     TransformationType: "CleanWhitespace"
     Parameters:
       CleanWhitespace: true
+      LimitEmptyLines: true
     Priority: 150
     Enabled: true
 
-  # 7. 最终清理步骤 - 标题和摘要
+  # 8. 最终清理步骤 - 标题和摘要
   - Id: "CleanTitleWhitespace"
     Name: "清理标题空白字符"
     SourceField: "Title"

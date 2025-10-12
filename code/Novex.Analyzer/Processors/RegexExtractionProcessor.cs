@@ -11,6 +11,9 @@ public class RegexExtractionProcessor : ITransformationProcessor
   {
     var result = input;
 
+    // 处理内容块移除（在其他处理之前）
+    result = RemoveContentBlocks(result, parameters);
+
     // 处理正则表达式提取和格式化
     var patternObj = parameters.GetValueOrDefault("Pattern") ?? parameters.GetValueOrDefault("pattern");
     if (patternObj != null)
@@ -21,7 +24,7 @@ public class RegexExtractionProcessor : ITransformationProcessor
         try
         {
           var regex = new Regex(pattern, RegexOptions.Multiline | RegexOptions.Singleline);
-          var match = regex.Match(input);
+          var match = regex.Match(result);
 
           if (match.Success)
           {
@@ -62,11 +65,121 @@ public class RegexExtractionProcessor : ITransformationProcessor
         catch (Exception ex)
         {
           Console.WriteLine($"Regex processing failed: {ex.Message}");
-          // 如果正则表达式失败，保持原始输入
+          // 如果正则表达式失败，使用已经处理过的result
+        }
+      }
+    }
+    // 如果没有Pattern参数，返回经过块移除处理的结果
+
+    return Task.FromResult(result?.Trim() ?? "");
+  }
+
+  private string RemoveContentBlocks(string input, Dictionary<string, object> parameters)
+  {
+    var result = input;
+
+    // 通用的内容块移除功能
+    var removeBlocksValue = parameters.GetValueOrDefault("RemoveBlocks") ?? parameters.GetValueOrDefault("remove_blocks");
+    if (GetBooleanParameter(removeBlocksValue))
+    {
+      // 获取起始标记
+      var blockStartValue = parameters.GetValueOrDefault("BlockStart") ?? parameters.GetValueOrDefault("block_start");
+      var blockEndValue = parameters.GetValueOrDefault("BlockEnd") ?? parameters.GetValueOrDefault("block_end");
+
+      if (blockStartValue != null && blockEndValue != null)
+      {
+        var blockStart = blockStartValue.ToString();
+        var blockEnd = blockEndValue.ToString();
+
+        if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
+        {
+          // 转义特殊字符并构建正则表达式
+          var escapedStart = Regex.Escape(blockStart);
+          var escapedEnd = Regex.Escape(blockEnd);
+          var pattern = $"{escapedStart}.*?{escapedEnd}";
+
+          result = Regex.Replace(result, pattern, "", RegexOptions.Singleline | RegexOptions.IgnoreCase);
         }
       }
     }
 
-    return Task.FromResult(result?.Trim() ?? "");
+    // 支持多个块的移除（通过数组配置）
+    var removeMultipleBlocksValue = parameters.GetValueOrDefault("RemoveMultipleBlocks") ?? parameters.GetValueOrDefault("remove_multiple_blocks");
+
+    if (removeMultipleBlocksValue != null)
+    {
+      // 处理 YAML 解析的 List<Dictionary<string, object>>
+      if (removeMultipleBlocksValue is System.Collections.IList blocksList)
+      {
+        foreach (var blockItem in blocksList)
+        {
+          if (blockItem is Dictionary<string, object> blockDict)
+          {
+            var blockStart = blockDict.GetValueOrDefault("start")?.ToString() ?? "";
+            var blockEnd = blockDict.GetValueOrDefault("end")?.ToString() ?? "";
+
+            if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
+            {
+              var escapedStart = Regex.Escape(blockStart);
+              var escapedEnd = Regex.Escape(blockEnd);
+              var pattern = $"{escapedStart}.*?{escapedEnd}";
+
+              result = Regex.Replace(result, pattern, "", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            }
+          }
+          else if (blockItem is Dictionary<object, object> blockObjDict)
+          {
+            var blockStart = blockObjDict.GetValueOrDefault("start")?.ToString() ?? "";
+            var blockEnd = blockObjDict.GetValueOrDefault("end")?.ToString() ?? "";
+
+            if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
+            {
+              var escapedStart = Regex.Escape(blockStart);
+              var escapedEnd = Regex.Escape(blockEnd);
+              var pattern = $"{escapedStart}.*?{escapedEnd}";
+
+              result = Regex.Replace(result, pattern, "", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            }
+          }
+        }
+      }
+      // 处理 JSON 解析的 JsonElement
+      else if (removeMultipleBlocksValue is System.Text.Json.JsonElement blocksElement && blocksElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+      {
+        foreach (var blockElement in blocksElement.EnumerateArray())
+        {
+          if (blockElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+          {
+            var blockStart = "";
+            var blockEnd = "";
+
+            if (blockElement.TryGetProperty("start", out var startElement))
+              blockStart = startElement.GetString() ?? "";
+            if (blockElement.TryGetProperty("end", out var endElement))
+              blockEnd = endElement.GetString() ?? "";
+
+            if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
+            {
+              var escapedStart = Regex.Escape(blockStart);
+              var escapedEnd = Regex.Escape(blockEnd);
+              var pattern = $"{escapedStart}.*?{escapedEnd}";
+
+              result = Regex.Replace(result, pattern, "", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private bool GetBooleanParameter(object? value)
+  {
+    if (value == null) return false;
+    if (value is bool boolValue) return boolValue;
+    if (value is string stringValue)
+      return string.Equals(stringValue, "true", StringComparison.OrdinalIgnoreCase);
+    return false;
   }
 }
