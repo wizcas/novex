@@ -180,7 +180,14 @@
         <Column TData="ChatLogSummary" Title="预览">
           <Template>
             <div style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              @((MarkupString)FormatPreview(context.Name, context.SendDate, context.Preview))
+              @if (!string.IsNullOrEmpty(context.Summary))
+              {
+                <span>@context.Summary</span>
+              }
+              else
+              {
+                <span style="color: #999; font-style: italic;">暂无摘要</span>
+              }
             </div>
           </Template>
         </Column>
@@ -843,16 +850,7 @@
     return characterColors[idx];
   }
 
-  private string FormatPreview(string name, DateTime sendDate, string preview)
-  {
-    // 提取预览中的消息部分（去掉角色名和时间）
-    var expectedPrefix = $"{name} {sendDate:yyyy-MM-dd HH:mm} ";
-    var message = preview.StartsWith(expectedPrefix) ? preview[expectedPrefix.Length..] : preview;
 
-    return $"<span class='chat-name'>{name}</span> " +
-           $"<span class='chat-date'>{sendDate:yyyy-MM-dd HH:mm}</span> " +
-           $"<span class='chat-message'>{message}</span>";
-  }
 
   [JSInvokable]
   public async Task OnKeyDown(string key)

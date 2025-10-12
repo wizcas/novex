@@ -36,6 +36,7 @@ public class ChatLogSummary
   public DateTime SendDate { get; set; }
   public string Preview { get; set; } = string.Empty;
   public int Index { get; set; }
+  public string? Summary { get; set; }
 }
 public class ChatLogService : IChatLogService
 {
@@ -219,6 +220,7 @@ public class ChatLogService : IChatLogService
     var skip = (page - 1) * pageSize;
 
     return await query
+        .Include(c => c.AnalysisResult)
         .OrderBy(c => c.Index)
         .Skip(skip)
         .Take(pageSize)
@@ -227,7 +229,8 @@ public class ChatLogService : IChatLogService
           Name = c.Name,
           SendDate = c.SendDate,
           Preview = c.Preview,
-          Index = c.Index
+          Index = c.Index,
+          Summary = c.AnalysisResult != null ? c.AnalysisResult.Summary : null
         })
         .ToListAsync();
   }
