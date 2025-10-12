@@ -315,7 +315,6 @@
           var ruleEngine = new RuleEngine();
           var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(selectedRuleBook.Content));
           result = await ruleEngine.ExecuteRulesAsync(chatLog.Mes, parsedRuleBook);
-          await MessageService.SuccessAsync($"使用规则书「{selectedRuleBook.Name}」分析完成！");
         }
         catch (Exception ruleEx)
         {
@@ -329,7 +328,6 @@
       {
         // 使用默认的 ChatLogAnalyzer 进行分析
         result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
-        await MessageService.SuccessAsync("使用默认引擎分析完成！");
       }
 
       // 设置 ChatLogId 以保持与现有结构的兼容性
@@ -339,15 +337,24 @@
       analysisResult.Summary = result.Summary;
       analysisResult.MainBody = result.MainBody;
 
+      // 先停止loading状态，再显示成功消息
+      isAnalyzing = false;
       StateHasChanged();
+
+      // 显示成功消息
+      if (selectedRuleBook != null)
+      {
+        await MessageService.SuccessAsync($"使用规则书「{selectedRuleBook.Name}」分析完成！");
+      }
+      else
+      {
+        await MessageService.SuccessAsync("使用默认引擎分析完成！");
+      }
     }
     catch (Exception ex)
     {
       Console.WriteLine($"分析内容时出错: {ex.Message}");
       await MessageService.ErrorAsync($"分析失败：{ex.Message}");
-    }
-    finally
-    {
       isAnalyzing = false;
       StateHasChanged();
     }
