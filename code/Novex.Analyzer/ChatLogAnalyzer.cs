@@ -61,10 +61,8 @@ public class ChatLogAnalyzer
   {
     var ruleLower = rule.ToLower();
     return ruleLower.TrimStart().StartsWith("version:") ||
-           ruleLower.Contains("extraction_rules:") ||
-           ruleLower.Contains("transformation_rules:") ||
-           ruleLower.TrimStart().StartsWith("extractionrules:") ||
-           ruleLower.TrimStart().StartsWith("transformationrules:");
+           ruleLower.Contains("extractionrules:") ||
+           ruleLower.Contains("transformationrules:");
   }
 
   /// <summary>

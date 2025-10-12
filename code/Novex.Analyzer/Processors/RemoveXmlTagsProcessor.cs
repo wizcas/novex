@@ -12,7 +12,7 @@ public class RemoveXmlTagsProcessor : ITransformationProcessor
     var result = input;
 
     // 处理 RemoveXmlTags 参数（可能是 bool 或 string）
-    var shouldRemoveXmlTags = GetBooleanParameter(parameters, "RemoveXmlTags", "remove_xml_tags");
+    var shouldRemoveXmlTags = GetBooleanParameter(parameters, "RemoveXmlTags");
 
     if (shouldRemoveXmlTags)
     {
@@ -27,9 +27,9 @@ public class RemoveXmlTagsProcessor : ITransformationProcessor
     return Task.FromResult(result);
   }
 
-  private static bool GetBooleanParameter(Dictionary<string, object> parameters, string primaryKey, string fallbackKey)
+  private static bool GetBooleanParameter(Dictionary<string, object> parameters, string primaryKey)
   {
-    var value = parameters.GetValueOrDefault(primaryKey) ?? parameters.GetValueOrDefault(fallbackKey);
+    var value = parameters.GetValueOrDefault(primaryKey);
     if (value != null)
     {
       if (value is bool boolValue)

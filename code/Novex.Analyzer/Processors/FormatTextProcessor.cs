@@ -11,12 +11,12 @@ public class FormatTextProcessor : IPostProcessor
   {
     var result = input;
 
-    if (parameters.GetValueOrDefault("remove_extra_newlines") is true)
+    if (parameters.GetValueOrDefault("RemoveExtraNewlines") is true)
     {
       result = Regex.Replace(result, @"\n\s*\n\s*\n", "\n\n");
     }
 
-    if (parameters.GetValueOrDefault("normalize_spaces") is true)
+    if (parameters.GetValueOrDefault("NormalizeSpaces") is true)
     {
       result = Regex.Replace(result, @"[ \t]+", " ");
     }

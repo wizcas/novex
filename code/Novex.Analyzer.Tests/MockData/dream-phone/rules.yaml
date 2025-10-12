@@ -80,11 +80,11 @@ TransformationRules:
     TargetField: "MainBody"
     TransformationType: "RegexExtraction"
     Parameters:
-      RemoveMultipleBlocks:
-        - start: "【微博热议】"
-          end: "[由微博管理器自动生成]"
-        - start: "【论坛热议】"
-          end: "[由论坛管理器自动生成]"
+      RemoveBlocks:
+        - Start: "【微博热议】"
+          End: "[由微博管理器自动生成]"
+        - Start: "【论坛热议】"
+          End: "[由论坛管理器自动生成]"
     Priority: 115
     Enabled: true
 

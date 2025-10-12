@@ -12,7 +12,7 @@ public class RemoveRunBlocksProcessor : ITransformationProcessor
     var result = input;
 
     // 处理 RemoveRunBlocks 参数（可能是 bool 或 string）
-    var shouldRemoveRunBlocks = GetBooleanParameter(parameters, "RemoveRunBlocks", "remove_run_blocks");
+    var shouldRemoveRunBlocks = GetBooleanParameter(parameters, "RemoveRunBlocks");
 
     if (shouldRemoveRunBlocks)
     {
@@ -22,9 +22,9 @@ public class RemoveRunBlocksProcessor : ITransformationProcessor
     return Task.FromResult(result);
   }
 
-  private static bool GetBooleanParameter(Dictionary<string, object> parameters, string primaryKey, string fallbackKey)
+  private static bool GetBooleanParameter(Dictionary<string, object> parameters, string primaryKey)
   {
-    var value = parameters.GetValueOrDefault(primaryKey) ?? parameters.GetValueOrDefault(fallbackKey);
+    var value = parameters.GetValueOrDefault(primaryKey);
     if (value != null)
     {
       if (value is bool boolValue)

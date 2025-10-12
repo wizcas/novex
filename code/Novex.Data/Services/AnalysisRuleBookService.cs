@@ -132,32 +132,33 @@ public class AnalysisRuleBookService
   /// </summary>
   public async Task<ChatLogAnalysisRuleBook> CreateDefaultRuleBookAsync()
   {
-    var defaultContent = @"version: '1.0'
-description: '默认分析规则 - 简单提取标题、摘要和正文'
+    var defaultContent = @"Version: '1.0'
+Description: '默认分析规则 - 简单提取标题、摘要和正文'
 
-extraction_rules:
-- id: 'extract_title'
-  name: '提取标题'
-  matcher_type: 'Text'
-  pattern: ''
-  action: 'Extract'
-  target: 'Title'
-  priority: 10
-  enabled: true
+ExtractionRules:
+- Id: 'extract_title'
+  Name: '提取标题'
+  MatcherType: 'Text'
+  Pattern: ''
+  Action: 'Extract'
+  Target: 'Title'
+  Priority: 10
+  Enabled: true
 
-transformation_rules:
-- id: 'generate_simple_title'
-  name: '生成简单标题'
-  source_field: 'source'
-  target_field: 'title'
-  transformation_type: 'Custom'
-  parameters:
-    max_length: 50
-  priority: 100
-  enabled: true
+TransformationRules:
+- Id: 'generate_simple_title'
+  Name: '生成简单标题'
+  SourceField: 'source'
+  TargetField: 'title'
+  TransformationType: 'Custom'
+  Parameters:
+    Condition: 'TitleIsEmpty'
+    MaxLength: 50
+  Priority: 100
+  Enabled: true
 
-ai_generation_rule:
-  enabled: false
+AiGenerationRule:
+  Enabled: false
 ";
 
     var defaultRuleBook = new ChatLogAnalysisRuleBook {

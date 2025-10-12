@@ -15,7 +15,7 @@ public class RegexExtractionProcessor : ITransformationProcessor
     result = RemoveContentBlocks(result, parameters);
 
     // 处理正则表达式提取和格式化
-    var patternObj = parameters.GetValueOrDefault("Pattern") ?? parameters.GetValueOrDefault("pattern");
+    var patternObj = parameters.GetValueOrDefault("Pattern");
     if (patternObj != null)
     {
       var pattern = patternObj.ToString();
@@ -28,7 +28,7 @@ public class RegexExtractionProcessor : ITransformationProcessor
 
           if (match.Success)
           {
-            var formatObj = parameters.GetValueOrDefault("Format") ?? parameters.GetValueOrDefault("format");
+            var formatObj = parameters.GetValueOrDefault("Format");
             if (formatObj != null)
             {
               var format = formatObj.ToString();
@@ -78,45 +78,20 @@ public class RegexExtractionProcessor : ITransformationProcessor
   {
     var result = input;
 
-    // 通用的内容块移除功能
-    var removeBlocksValue = parameters.GetValueOrDefault("RemoveBlocks") ?? parameters.GetValueOrDefault("remove_blocks");
-    if (GetBooleanParameter(removeBlocksValue))
-    {
-      // 获取起始标记
-      var blockStartValue = parameters.GetValueOrDefault("BlockStart") ?? parameters.GetValueOrDefault("block_start");
-      var blockEndValue = parameters.GetValueOrDefault("BlockEnd") ?? parameters.GetValueOrDefault("block_end");
-
-      if (blockStartValue != null && blockEndValue != null)
-      {
-        var blockStart = blockStartValue.ToString();
-        var blockEnd = blockEndValue.ToString();
-
-        if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
-        {
-          // 转义特殊字符并构建正则表达式
-          var escapedStart = Regex.Escape(blockStart);
-          var escapedEnd = Regex.Escape(blockEnd);
-          var pattern = $"{escapedStart}.*?{escapedEnd}";
-
-          result = Regex.Replace(result, pattern, "", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-        }
-      }
-    }
-
     // 支持多个块的移除（通过数组配置）
-    var removeMultipleBlocksValue = parameters.GetValueOrDefault("RemoveMultipleBlocks") ?? parameters.GetValueOrDefault("remove_multiple_blocks");
+    var removeBlocksValue = parameters.GetValueOrDefault("RemoveBlocks");
 
-    if (removeMultipleBlocksValue != null)
+    if (removeBlocksValue != null)
     {
       // 处理 YAML 解析的 List<Dictionary<string, object>>
-      if (removeMultipleBlocksValue is System.Collections.IList blocksList)
+      if (removeBlocksValue is System.Collections.IList blocksList)
       {
         foreach (var blockItem in blocksList)
         {
           if (blockItem is Dictionary<string, object> blockDict)
           {
-            var blockStart = blockDict.GetValueOrDefault("start")?.ToString() ?? "";
-            var blockEnd = blockDict.GetValueOrDefault("end")?.ToString() ?? "";
+            var blockStart = blockDict.GetValueOrDefault("Start")?.ToString() ?? "";
+            var blockEnd = blockDict.GetValueOrDefault("End")?.ToString() ?? "";
 
             if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
             {
@@ -129,8 +104,8 @@ public class RegexExtractionProcessor : ITransformationProcessor
           }
           else if (blockItem is Dictionary<object, object> blockObjDict)
           {
-            var blockStart = blockObjDict.GetValueOrDefault("start")?.ToString() ?? "";
-            var blockEnd = blockObjDict.GetValueOrDefault("end")?.ToString() ?? "";
+            var blockStart = blockObjDict.GetValueOrDefault("Start")?.ToString() ?? "";
+            var blockEnd = blockObjDict.GetValueOrDefault("End")?.ToString() ?? "";
 
             if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))
             {
@@ -144,7 +119,7 @@ public class RegexExtractionProcessor : ITransformationProcessor
         }
       }
       // 处理 JSON 解析的 JsonElement
-      else if (removeMultipleBlocksValue is System.Text.Json.JsonElement blocksElement && blocksElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+      else if (removeBlocksValue is System.Text.Json.JsonElement blocksElement && blocksElement.ValueKind == System.Text.Json.JsonValueKind.Array)
       {
         foreach (var blockElement in blocksElement.EnumerateArray())
         {
@@ -153,9 +128,9 @@ public class RegexExtractionProcessor : ITransformationProcessor
             var blockStart = "";
             var blockEnd = "";
 
-            if (blockElement.TryGetProperty("start", out var startElement))
+            if (blockElement.TryGetProperty("Start", out var startElement))
               blockStart = startElement.GetString() ?? "";
-            if (blockElement.TryGetProperty("end", out var endElement))
+            if (blockElement.TryGetProperty("End", out var endElement))
               blockEnd = endElement.GetString() ?? "";
 
             if (!string.IsNullOrEmpty(blockStart) && !string.IsNullOrEmpty(blockEnd))

@@ -16,7 +16,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
     // Console.WriteLine($"CustomTransformationProcessor - Input length: {input.Length}");
 
     // 处理正则表达式提取和格式化
-    var patternObj = parameters.GetValueOrDefault("Pattern") ?? parameters.GetValueOrDefault("pattern");
+    var patternObj = parameters.GetValueOrDefault("Pattern");
     if (patternObj != null)
     {
       var pattern = patternObj.ToString();
@@ -31,7 +31,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
 
           if (match.Success)
           {
-            var formatObj = parameters.GetValueOrDefault("Format") ?? parameters.GetValueOrDefault("format");
+            var formatObj = parameters.GetValueOrDefault("Format");
             if (formatObj != null)
             {
               var format = formatObj.ToString();
@@ -76,7 +76,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
     // 移除 HTML 注释
     // 处理 RemoveComments 参数（可能是 bool 或 string）
     var shouldRemoveComments = false;
-    var removeCommentsValue = parameters.GetValueOrDefault("RemoveComments") ?? parameters.GetValueOrDefault("remove_comments");
+    var removeCommentsValue = parameters.GetValueOrDefault("RemoveComments");
     if (removeCommentsValue != null)
     {
       if (removeCommentsValue is bool boolValue)
@@ -97,7 +97,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
 
     // 移除 run 块
     var shouldRemoveRunBlocks = false;
-    var removeRunBlocksValue = parameters.GetValueOrDefault("RemoveRunBlocks") ?? parameters.GetValueOrDefault("remove_run_blocks");
+    var removeRunBlocksValue = parameters.GetValueOrDefault("RemoveRunBlocks");
     if (removeRunBlocksValue != null)
     {
       if (removeRunBlocksValue is bool boolValue)
@@ -118,7 +118,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
 
     // 移除 XML 标签
     var shouldRemoveXmlTags = false;
-    var removeXmlTagsValue = parameters.GetValueOrDefault("RemoveXmlTags") ?? parameters.GetValueOrDefault("remove_xml_tags");
+    var removeXmlTagsValue = parameters.GetValueOrDefault("RemoveXmlTags");
     if (removeXmlTagsValue != null)
     {
       if (removeXmlTagsValue is bool boolValue)
@@ -143,7 +143,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
     }
 
     // 清理空白字符
-    var cleanWhitespaceValue = parameters.GetValueOrDefault("CleanWhitespace") ?? parameters.GetValueOrDefault("clean_whitespace");
+    var cleanWhitespaceValue = parameters.GetValueOrDefault("CleanWhitespace");
     if (cleanWhitespaceValue is bool cleanWhitespace && cleanWhitespace)
     {
       result = Regex.Replace(result.Trim(), @"\s+", " ");
@@ -151,7 +151,7 @@ public class CustomTransformationProcessor : ITransformationProcessor
     }
 
     // 保持格式化（保留段落结构）
-    var preserveFormattingValue = parameters.GetValueOrDefault("PreserveFormatting") ?? parameters.GetValueOrDefault("preserve_formatting");
+    var preserveFormattingValue = parameters.GetValueOrDefault("PreserveFormatting");
     if (preserveFormattingValue is bool preserveFormatting && preserveFormatting)
     {
       // 保持基本的段落结构，但清理过多的空行
@@ -159,9 +159,9 @@ public class CustomTransformationProcessor : ITransformationProcessor
     }
 
     // 处理标题为空的情况（兼容旧逻辑）
-    if (parameters.TryGetValue("condition", out var conditionObj) && conditionObj.ToString() == "title_is_empty")
+    if (parameters.TryGetValue("Condition", out var conditionObj) && conditionObj.ToString() == "TitleIsEmpty")
     {
-      if (parameters.TryGetValue("max_length", out var maxLengthObj) && maxLengthObj is JsonElement maxLengthElement && maxLengthElement.TryGetInt32(out var maxLength))
+      if (parameters.TryGetValue("MaxLength", out var maxLengthObj) && maxLengthObj is JsonElement maxLengthElement && maxLengthElement.TryGetInt32(out var maxLength))
       {
         var words = result.Split(new[] { ' ', '，', '。', '、' }, StringSplitOptions.RemoveEmptyEntries);
         var title = string.Join("", words.Take(3));

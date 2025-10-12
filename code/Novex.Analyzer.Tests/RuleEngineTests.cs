@@ -179,7 +179,7 @@ ExtractionRules:
         {
                 new ExtractionRule
                 {
-                    Id = "remove_comments",
+                    Id = "RemoveComments",
                     Name = "Remove Comments",
                     MatcherType = MatcherType.Regex,
                     Pattern = @"<!--.*?-->",
@@ -244,7 +244,7 @@ ExtractionRules:
                         Global = true,
                         CustomOptions = new Dictionary<string, object>
                         {
-                            { "extract_html", false }
+                            { "ExtractHtml", false }
                         }
                     },
                     Action = ActionType.Extract,
@@ -263,7 +263,7 @@ ExtractionRules:
                         Global = false,
                         CustomOptions = new Dictionary<string, object>
                         {
-                            { "extract_html", false }
+                            { "ExtractHtml", false }
                         }
                     },
                     Action = ActionType.Extract,

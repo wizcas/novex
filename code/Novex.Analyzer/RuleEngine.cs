@@ -450,7 +450,7 @@ public class RuleEngine
           foreach (var node in nodes.Take(maxMatches))
           {
             // 根据需要返回节点的内容或HTML
-            var extractHtml = rule.Options.CustomOptions.GetValueOrDefault("extract_html", false);
+            var extractHtml = rule.Options.CustomOptions.GetValueOrDefault("ExtractHtml", false);
             var value = (extractHtml is bool boolVal && boolVal)
               ? node.OuterHtml
               : node.InnerText;
@@ -469,7 +469,7 @@ public class RuleEngine
           var maxMatches = rule.Options.MaxMatches > 0 ? rule.Options.MaxMatches : int.MaxValue;
           foreach (var node in nodes.Take(maxMatches))
           {
-            var extractHtml = rule.Options.CustomOptions.GetValueOrDefault("extract_html", false);
+            var extractHtml = rule.Options.CustomOptions.GetValueOrDefault("ExtractHtml", false);
             var value = (extractHtml is bool boolVal && boolVal)
               ? node.OuterHtml
               : node.InnerText;

@@ -12,7 +12,7 @@ public class RemoveHtmlCommentsProcessor : ITransformationProcessor
     var result = input;
 
     // 处理 RemoveComments 参数（可能是 bool 或 string）
-    var shouldRemoveComments = GetBooleanParameter(parameters, "RemoveComments", "remove_comments");
+    var shouldRemoveComments = GetBooleanParameter(parameters, "RemoveComments");
 
     if (shouldRemoveComments)
     {
@@ -22,9 +22,9 @@ public class RemoveHtmlCommentsProcessor : ITransformationProcessor
     return Task.FromResult(result);
   }
 
-  private static bool GetBooleanParameter(Dictionary<string, object> parameters, string primaryKey, string fallbackKey)
+  private static bool GetBooleanParameter(Dictionary<string, object> parameters, string primaryKey)
   {
-    var value = parameters.GetValueOrDefault(primaryKey) ?? parameters.GetValueOrDefault(fallbackKey);
+    var value = parameters.GetValueOrDefault(primaryKey);
     if (value != null)
     {
       if (value is bool boolValue)

@@ -12,7 +12,7 @@ public class CleanWhitespaceProcessor : ITransformationProcessor
     var result = input;
 
     // 清理空白字符
-    var cleanWhitespaceValue = parameters.GetValueOrDefault("CleanWhitespace") ?? parameters.GetValueOrDefault("clean_whitespace");
+    var cleanWhitespaceValue = parameters.GetValueOrDefault("CleanWhitespace");
     if (GetBooleanParameter(cleanWhitespaceValue))
     {
       // 只清理行内的空白字符，保留换行符
@@ -24,7 +24,7 @@ public class CleanWhitespaceProcessor : ITransformationProcessor
     }
 
     // 限制连续空行
-    var limitEmptyLinesValue = parameters.GetValueOrDefault("LimitEmptyLines") ?? parameters.GetValueOrDefault("limit_empty_lines");
+    var limitEmptyLinesValue = parameters.GetValueOrDefault("LimitEmptyLines");
     if (GetBooleanParameter(limitEmptyLinesValue))
     {
       // 将连续的多个空行替换为最多一个空行
