@@ -298,7 +298,7 @@ public class RuleEngine
     // 4. 将结果映射到ChatLogAnalysisResult
     result.Title = extractedData.GetValueOrDefault("Title", extractedData.GetValueOrDefault("title", "")).Trim();
     result.Summary = extractedData.GetValueOrDefault("Summary", extractedData.GetValueOrDefault("summary", "")).Trim();
-    result.MainBody = extractedData.GetValueOrDefault("MainBody", extractedData.GetValueOrDefault("main_body", "")).Trim();
+    result.MainBody = extractedData.GetValueOrDefault("MainBody", "").Trim();
 
     return result;
   }

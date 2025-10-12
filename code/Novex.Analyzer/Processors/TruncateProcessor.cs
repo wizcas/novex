@@ -15,7 +15,7 @@ public class TruncateProcessor : ITransformationProcessor
       return Task.FromResult(result);
 
     // 获取最大长度参数
-    if (parameters.TryGetValue("max_length", out var maxLengthObj) &&
+    if (parameters.TryGetValue("MaxLength", out var maxLengthObj) &&
         maxLengthObj is JsonElement maxLengthElement &&
         maxLengthElement.TryGetInt32(out var maxLength) &&
         maxLength > 0)
@@ -25,7 +25,7 @@ public class TruncateProcessor : ITransformationProcessor
         result = result.Substring(0, maxLength);
 
         // 检查是否需要添加省略号
-        if (GetBooleanParameter(parameters, "add_ellipsis"))
+        if (GetBooleanParameter(parameters, "AddEllipsis"))
         {
           result += "...";
         }

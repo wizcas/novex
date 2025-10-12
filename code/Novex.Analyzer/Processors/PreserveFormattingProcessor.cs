@@ -12,7 +12,7 @@ public class PreserveFormattingProcessor : ITransformationProcessor
     var result = input;
 
     // 保持格式化（保留段落结构）
-    var preserveFormattingValue = parameters.GetValueOrDefault("PreserveFormatting") ?? parameters.GetValueOrDefault("preserve_formatting");
+    var preserveFormattingValue = parameters.GetValueOrDefault("PreserveFormatting");
     if (preserveFormattingValue is bool preserveFormatting && preserveFormatting)
     {
       // 保持基本的段落结构，但清理过多的空行
