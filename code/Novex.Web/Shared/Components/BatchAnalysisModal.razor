@@ -8,456 +8,433 @@
 @inject AnalysisRuleBookService RuleBookService
 @inject IMessageService MessageService
 
-<Modal Title="批量分析" 
-       Visible="@IsVisible" 
-       OnCancel="@OnCancel"
-       Footer="@modalFooter"
-       Width="800"
-       Keyboard="false"
-       MaskClosable="false">
-    <div>
-        @if (!isAnalyzing)
-        {
-            <!-- 配置阶段 -->
-            <Form Model="@batchConfig" Layout="@FormLayout.Vertical">
-                <RuleBookSelector @bind-SelectedRuleBookId="batchConfig.RuleBookId"
-                                  OnRuleBookSelected="OnRuleBookSelected"
-                                  Label="选择规则书"
-                                  ShowDescription="true"
-                                  ShowManageLink="false"
-                                  UseFormItem="true" />
+<Modal Title="批量分析" Visible="@IsVisible" OnCancel="@OnCancel" Footer="@modalFooter" Width="800" Keyboard="false"
+  MaskClosable="false">
+  <div>
+    @if (!isAnalyzing)
+    {
+      <!-- 配置阶段 -->
+      <Form Model="@batchConfig" Layout="@FormLayout.Vertical">
+        <RuleBookSelector @bind-SelectedRuleBookId="batchConfig.RuleBookId" OnRuleBookSelected="OnRuleBookSelected"
+          Label="选择规则书" ShowDescription="true" ShowManageLink="false" UseFormItem="true" />
 
-                <FloorRangeSelector @bind-StartValue="batchConfig.StartIndex"
-                                    @bind-EndValue="batchConfig.EndIndex"
-                                    OnRangeChanged="OnRangeChanged"
-                                    MinValue="@minIndex"
-                                    MaxValue="@maxIndex"
-                                    Label="楼层范围"
-                                    ShowRangeInfo="true"
-                                    UseFormItem="true" />
+        <FloorRangeSelector @bind-StartValue="batchConfig.StartIndex" @bind-EndValue="batchConfig.EndIndex"
+          OnRangeChanged="OnRangeChanged" MinValue="@minIndex" MaxValue="@maxIndex" Label="楼层范围" ShowRangeInfo="true"
+          UseFormItem="true" />
 
-                <FormItem Label="分析选项">
-                    <div>
-                        <div style="margin-bottom: 8px;">
-                            <Checkbox @bind-Value="batchConfig.SkipExisting">
-                                跳过已分析的记录
-                            </Checkbox>
-                        </div>
-                        <div>
-                            <Checkbox @bind-Value="batchConfig.OverwriteExisting">
-                                覆盖已有分析结果
-                            </Checkbox>
-                        </div>
-                    </div>
-                </FormItem>
-
-                @if (estimatedCount > 0)
-                {
-                    <div style="margin-top: 16px; padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;">
-                        <div style="margin-bottom: 12px; font-weight: 600; color: #0369a1;">
-                            <Icon Type="info-circle" style="margin-right: 8px;" />
-                            分析预览
-                        </div>
-                        <div>
-                            <p><strong>楼层范围：</strong>@batchConfig.StartIndex - @batchConfig.EndIndex</p>
-                            <p><strong>预计处理记录数：</strong>@estimatedCount 条</p>
-                            <p><strong>使用规则书：</strong>@(selectedRuleBook?.Name ?? "未选择")</p>
-                            @if (batchConfig.SkipExisting)
-                            {
-                                <p><Text Type="@TextElementType.Secondary">将跳过已分析的记录</Text></p>
-                            }
-                            @if (batchConfig.OverwriteExisting)
-                            {
-                                <p><Text Type="@TextElementType.Warning">将覆盖已有的分析结果</Text></p>
-                            }
-                        </div>
-                    </div>
-                }
-            </Form>
-        }
-        else
-        {
-            <!-- 分析进度阶段 -->
-            <div style="padding: 24px 0;">
-                <div style="text-align: center; margin-bottom: 24px;">
-                    <Title Level="4">正在进行批量分析...</Title>
-                </div>
-
-                <Progress Percent="@progressPercent" 
-                          Status="@(isCancelling ? ProgressStatus.Exception : ProgressStatus.Active)"
-                          Style="margin-bottom: 16px;" />
-
-                <div style="display: flex; justify-content: space-around; margin-bottom: 16px;">
-                    <div style="text-align: center;">
-                        <Statistic Title="已处理" Value="@processedCount" />
-                    </div>
-                    <div style="text-align: center;">
-                        <Statistic Title="总数" Value="@totalCount" />
-                    </div>
-                    <div style="text-align: center;">
-                        <Statistic Title="成功率" Value="@(totalCount > 0 ? Math.Round((double)successCount / processedCount * 100, 1) : 0)" 
-                                   Suffix="%" />
-                    </div>
-                </div>
-
-                @if (!string.IsNullOrEmpty(currentProcessingInfo))
-                {
-                    <div style="margin-bottom: 16px;">
-                        <Text Type="@TextElementType.Secondary">
-                            当前处理：@currentProcessingInfo
-                        </Text>
-                    </div>
-                }
-
-                @if (errors.Any())
-                {
-                    <div style="margin-bottom: 16px; padding: 12px; background: #fffbf0; border: 1px solid #fbbf24; border-radius: 6px;">
-                        <div style="margin-bottom: 8px; font-weight: 600; color: #b45309;">
-                            <Icon Type="exclamation-circle" style="margin-right: 8px;" />
-                            发现 @errors.Count 个错误
-                        </div>
-                        <div style="max-height: 150px; overflow-y: auto;">
-                            @foreach (var error in errors.Take(5))
-                            {
-                                <div style="margin-bottom: 4px;">
-                                    <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
-                                        @error
-                                    </Text>
-                                </div>
-                            }
-                            @if (errors.Count > 5)
-                            {
-                                <div>
-                                    <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
-                                        ...还有 @(errors.Count - 5) 个错误
-                                    </Text>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @if (isCancelling)
-                {
-                    <Alert Type="@AlertType.Warning" 
-                           Message="正在取消分析..." 
-                           ShowIcon="true"
-                           Style="margin-bottom: 16px;" />
-                }
+        <FormItem Label="分析选项">
+          <div>
+            <div style="margin-bottom: 8px;">
+              <Checkbox @bind-Value="batchConfig.SkipExisting">
+                跳过已分析的记录
+              </Checkbox>
             </div>
+            <div>
+              <Checkbox @bind-Value="batchConfig.OverwriteExisting">
+                覆盖已有分析结果
+              </Checkbox>
+            </div>
+          </div>
+        </FormItem>
+
+        @if (estimatedCount > 0)
+        {
+          <div style="margin-top: 16px; padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;">
+            <div style="margin-bottom: 12px; font-weight: 600; color: #0369a1;">
+              <Icon Type="info-circle" style="margin-right: 8px;" />
+              分析预览
+            </div>
+            <div>
+              <p><strong>楼层范围：</strong>@batchConfig.StartIndex - @batchConfig.EndIndex</p>
+              <p><strong>预计处理记录数：</strong>@estimatedCount 条</p>
+              <p><strong>使用规则书：</strong>@(selectedRuleBook?.Name ?? "未选择")</p>
+              @if (batchConfig.SkipExisting)
+              {
+                <p><Text Type="@TextElementType.Secondary">将跳过已分析的记录</Text></p>
+              }
+              @if (batchConfig.OverwriteExisting)
+              {
+                <p><Text Type="@TextElementType.Warning">将覆盖已有的分析结果</Text></p>
+              }
+            </div>
+          </div>
         }
-    </div>
+      </Form>
+    }
+    else
+    {
+      <!-- 分析进度阶段 -->
+      <div style="padding: 24px 0;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <Title Level="4">正在进行批量分析...</Title>
+        </div>
+
+        <Progress Percent="@progressPercent" Status="@(isCancelling? ProgressStatus.Exception: ProgressStatus.Active)"
+          Style="margin-bottom: 16px;" />
+
+        <div style="display: flex; justify-content: space-around; margin-bottom: 16px;">
+          <div style="text-align: center;">
+            <Statistic Title="已处理" Value="@processedCount" />
+          </div>
+          <div style="text-align: center;">
+            <Statistic Title="总数" Value="@totalCount" />
+          </div>
+          <div style="text-align: center;">
+            <Statistic Title="成功率"
+              Value="@(totalCount > 0 ? Math.Round((double)successCount / processedCount * 100, 1) : 0)" Suffix="%" />
+          </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(currentProcessingInfo))
+        {
+          <div style="margin-bottom: 16px;">
+            <Text Type="@TextElementType.Secondary">
+              当前处理：@currentProcessingInfo
+            </Text>
+          </div>
+        }
+
+        @if (errors.Any())
+        {
+          <div
+            style="margin-bottom: 16px; padding: 12px; background: #fffbf0; border: 1px solid #fbbf24; border-radius: 6px;">
+            <div style="margin-bottom: 8px; font-weight: 600; color: #b45309;">
+              <Icon Type="exclamation-circle" style="margin-right: 8px;" />
+              发现 @errors.Count 个错误
+            </div>
+            <div style="max-height: 150px; overflow-y: auto;">
+              @foreach (var error in errors.Take(5))
+              {
+                <div style="margin-bottom: 4px;">
+                  <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+                    @error
+                  </Text>
+                </div>
+              }
+              @if (errors.Count > 5)
+              {
+                <div>
+                  <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+                    ...还有 @(errors.Count - 5) 个错误
+                  </Text>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @if (isCancelling)
+        {
+          <Alert Type="@AlertType.Warning" Message="正在取消分析..." ShowIcon="true" Style="margin-bottom: 16px;" />
+        }
+      </div>
+    }
+  </div>
 </Modal>
 
 @code {
-    [Parameter] public bool IsVisible { get; set; }
-    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
-    [Parameter] public EventCallback OnCancel { get; set; }
-    [Parameter] public EventCallback<BatchAnalysisResult> OnCompleted { get; set; }
-    [Parameter] public int BookId { get; set; }
+  [Parameter] public bool IsVisible { get; set; }
+  [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+  [Parameter] public EventCallback OnCancel { get; set; }
+  [Parameter] public EventCallback<BatchAnalysisResult> OnCompleted { get; set; }
+  [Parameter] public int BookId { get; set; }
 
-    private BatchAnalysisConfig batchConfig = new();
-    private ChatLogAnalysisRuleBook? selectedRuleBook;
-    private int minIndex = 1;
-    private int maxIndex = 100;
-    private int estimatedCount = 0;
+  private BatchAnalysisConfig batchConfig = new();
+  private ChatLogAnalysisRuleBook? selectedRuleBook;
+  private int minIndex = 1;
+  private int maxIndex = 100;
+  private int estimatedCount = 0;
 
-    // 分析状态
-    private bool isAnalyzing = false;
-    private bool isCancelling = false;
-    private CancellationTokenSource? cancellationTokenSource;
+  // 分析状态
+  private bool isAnalyzing = false;
+  private bool isCancelling = false;
+  private CancellationTokenSource? cancellationTokenSource;
 
-    // 进度信息
-    private int processedCount = 0;
-    private int totalCount = 0;
-    private int successCount = 0;
-    private double progressPercent = 0;
-    private string currentProcessingInfo = string.Empty;
-    private List<string> errors = new();
+  // 进度信息
+  private int processedCount = 0;
+  private int totalCount = 0;
+  private int successCount = 0;
+  private double progressPercent = 0;
+  private string currentProcessingInfo = string.Empty;
+  private List<string> errors = new();
 
-    private ChatLogAnalyzer analyzer = new();
+  private ChatLogAnalyzer analyzer = new();
 
-    protected override async Task OnParametersSetAsync()
+  protected override async Task OnParametersSetAsync()
+  {
+    if (IsVisible && BookId > 0)
     {
-        if (IsVisible && BookId > 0)
+      await LoadInitialData();
+    }
+  }
+
+  private async Task LoadInitialData()
+  {
+    // 获取楼层范围
+    var range = await ChatLogService.GetIndexRangeAsync(BookId);
+    minIndex = range.MinIndex;
+    maxIndex = range.MaxIndex;
+
+    // 初始化默认配置
+    batchConfig.BookId = BookId;
+    batchConfig.StartIndex = minIndex;
+    batchConfig.EndIndex = maxIndex;
+    batchConfig.SkipExisting = true;
+    batchConfig.OverwriteExisting = false;
+
+    await UpdateEstimatedCount();
+  }
+
+  private async Task OnRuleBookSelected(ChatLogAnalysisRuleBook? ruleBook)
+  {
+    selectedRuleBook = ruleBook;
+    await UpdateEstimatedCount();
+  }
+
+  private async Task OnRangeChanged((int start, int end) range)
+  {
+    batchConfig.StartIndex = range.start;
+    batchConfig.EndIndex = range.end;
+    await UpdateEstimatedCount();
+  }
+
+  private async Task UpdateEstimatedCount()
+  {
+    if (BookId <= 0) return;
+
+    try
+    {
+      estimatedCount = await ChatLogService.GetTotalCountWithFiltersAsync(
+      BookId,
+      null,
+      batchConfig.StartIndex,
+      batchConfig.EndIndex);
+    }
+    catch
+    {
+      estimatedCount = 0;
+    }
+  }
+
+  private async Task StartBatchAnalysis()
+  {
+    if (selectedRuleBook == null)
+    {
+      MessageService.Error("请先选择规则书");
+      return;
+    }
+
+    if (estimatedCount == 0)
+    {
+      MessageService.Warning("选定范围内没有记录");
+      return;
+    }
+
+    // 重置状态
+    isAnalyzing = true;
+    isCancelling = false;
+    processedCount = 0;
+    successCount = 0;
+    totalCount = estimatedCount;
+    progressPercent = 0;
+    currentProcessingInfo = string.Empty;
+    errors.Clear();
+
+    cancellationTokenSource = new CancellationTokenSource();
+
+    try
+    {
+      await PerformBatchAnalysis(cancellationTokenSource.Token);
+
+      if (!isCancelling)
+      {
+        MessageService.Success($"批量分析完成！成功处理 {successCount}/{processedCount} 条记录");
+
+        var result = new BatchAnalysisResult
         {
-            await LoadInitialData();
-        }
+          ProcessedCount = processedCount,
+          SuccessCount = successCount,
+          ErrorCount = errors.Count,
+          Errors = errors.ToList()
+        };
+
+        await OnCompleted.InvokeAsync(result);
+        await CloseModal();
+      }
     }
-
-    private async Task LoadInitialData()
+    catch (OperationCanceledException)
     {
-        // 获取楼层范围
-        var range = await ChatLogService.GetIndexRangeAsync(BookId);
-        minIndex = range.MinIndex;
-        maxIndex = range.MaxIndex;
-
-        // 初始化默认配置
-        batchConfig.BookId = BookId;
-        batchConfig.StartIndex = minIndex;
-        batchConfig.EndIndex = maxIndex;
-        batchConfig.SkipExisting = true;
-        batchConfig.OverwriteExisting = false;
-
-        await UpdateEstimatedCount();
+      MessageService.Warning("批量分析已取消");
     }
-
-    private async Task OnRuleBookSelected(ChatLogAnalysisRuleBook? ruleBook)
+    catch (Exception ex)
     {
-        selectedRuleBook = ruleBook;
-        await UpdateEstimatedCount();
+      MessageService.Error($"批量分析失败：{ex.Message}");
     }
-
-    private async Task OnRangeChanged((int start, int end) range)
+    finally
     {
-        batchConfig.StartIndex = range.start;
-        batchConfig.EndIndex = range.end;
-        await UpdateEstimatedCount();
+      isAnalyzing = false;
+      isCancelling = false;
+      cancellationTokenSource?.Dispose();
+      cancellationTokenSource = null;
     }
+  }
 
-    private async Task UpdateEstimatedCount()
+  private async Task PerformBatchAnalysis(CancellationToken cancellationToken)
+  {
+    const int pageSize = 50;
+    int page = 1;
+
+    while (!cancellationToken.IsCancellationRequested)
     {
-        if (BookId <= 0) return;
+      var chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+      BookId,
+      null,
+      batchConfig.StartIndex,
+      batchConfig.EndIndex,
+      page,
+      pageSize);
+
+      if (!chatLogs.Any())
+        break;
+
+      foreach (var chatLogSummary in chatLogs)
+      {
+        if (cancellationToken.IsCancellationRequested)
+          return;
 
         try
         {
-            estimatedCount = await ChatLogService.GetTotalCountWithFiltersAsync(
-                BookId, 
-                null, 
-                batchConfig.StartIndex, 
-                batchConfig.EndIndex);
-        }
-        catch
-        {
-            estimatedCount = 0;
-        }
-    }
+          currentProcessingInfo = $"楼层 {chatLogSummary.Index} - {chatLogSummary.Name}";
+          StateHasChanged();
 
-    private async Task StartBatchAnalysis()
-    {
-        if (selectedRuleBook == null)
-        {
-            MessageService.Error("请先选择规则书");
-            return;
-        }
+          // 检查是否已有分析结果
+          var existingResult = await AnalysisService.GetAnalysisResultAsync(chatLogSummary.Id);
 
-        if (estimatedCount == 0)
-        {
-            MessageService.Warning("选定范围内没有记录");
-            return;
-        }
+          if (existingResult != null && batchConfig.SkipExisting && !batchConfig.OverwriteExisting)
+          {
+            processedCount++;
+            successCount++;
+            UpdateProgress();
+            continue;
+          }
 
-        // 重置状态
-        isAnalyzing = true;
-        isCancelling = false;
-        processedCount = 0;
-        successCount = 0;
-        totalCount = estimatedCount;
-        progressPercent = 0;
-        currentProcessingInfo = string.Empty;
-        errors.Clear();
+          // 获取完整的聊天记录
+          var fullChatLog = await ChatLogService.GetChatLogByIdAsync(chatLogSummary.Id);
+          if (fullChatLog == null)
+          {
+            errors.Add($"楼层 {chatLogSummary.Index}: 无法获取完整记录");
+            processedCount++;
+            UpdateProgress();
+            continue;
+          }
 
-        cancellationTokenSource = new CancellationTokenSource();
+          // 执行分析
+          var analysisResult = await analyzer.AnalyzeAsync(fullChatLog.Mes, selectedRuleBook?.Content ?? "");
+          analysisResult.ChatLogId = chatLogSummary.Id;
 
-        try
-        {
-            await PerformBatchAnalysis(cancellationTokenSource.Token);
-            
-            if (!isCancelling)
-            {
-                MessageService.Success($"批量分析完成！成功处理 {successCount}/{processedCount} 条记录");
-                
-                var result = new BatchAnalysisResult
-                {
-                    ProcessedCount = processedCount,
-                    SuccessCount = successCount,
-                    ErrorCount = errors.Count,
-                    Errors = errors.ToList()
-                };
-                
-                await OnCompleted.InvokeAsync(result);
-                await CloseModal();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            MessageService.Warning("批量分析已取消");
+          // 保存结果
+          await AnalysisService.SaveAnalysisResultAsync(analysisResult);
+
+          successCount++;
         }
         catch (Exception ex)
         {
-            MessageService.Error($"批量分析失败：{ex.Message}");
+          errors.Add($"楼层 {chatLogSummary.Index}: {ex.Message}");
         }
-        finally
-        {
-            isAnalyzing = false;
-            isCancelling = false;
-            cancellationTokenSource?.Dispose();
-            cancellationTokenSource = null;
-        }
+
+        processedCount++;
+        UpdateProgress();
+
+        // 短暂延迟以避免UI阻塞
+        await Task.Delay(10, cancellationToken);
+      }
+
+      page++;
+    }
+  }
+
+  private void UpdateProgress()
+  {
+    if (totalCount > 0)
+    {
+      progressPercent = Math.Round((double)processedCount / totalCount * 100, 1);
+    }
+    StateHasChanged();
+  }
+
+  private void CancelAnalysis()
+  {
+    if (cancellationTokenSource != null && !isCancelling)
+    {
+      isCancelling = true;
+      cancellationTokenSource.Cancel();
+    }
+  }
+
+  private async Task CloseModal()
+  {
+    if (isAnalyzing && !isCancelling)
+    {
+      CancelAnalysis();
+      return;
     }
 
-    private async Task PerformBatchAnalysis(CancellationToken cancellationToken)
-    {
-        const int pageSize = 50;
-        int page = 1;
-        
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            var chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
-                BookId,
-                null,
-                batchConfig.StartIndex,
-                batchConfig.EndIndex,
-                page,
-                pageSize);
+    isAnalyzing = false;
+    isCancelling = false;
+    await IsVisibleChanged.InvokeAsync(false);
+    await OnCancel.InvokeAsync();
+  }
 
-            if (!chatLogs.Any())
-                break;
-
-            foreach (var chatLogSummary in chatLogs)
+  private RenderFragment modalFooter => @<Template>
+  <div style="display: flex; justify-content: space-between; width: 100%;">
+    <div>
+      @if (isAnalyzing && !isCancelling)
             {
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                try
-                {
-                    currentProcessingInfo = $"楼层 {chatLogSummary.Index} - {chatLogSummary.Name}";
-                    StateHasChanged();
-
-                    // 检查是否已有分析结果
-                    var existingResult = await AnalysisService.GetAnalysisResultAsync(chatLogSummary.Id);
-                    
-                    if (existingResult != null && batchConfig.SkipExisting && !batchConfig.OverwriteExisting)
-                    {
-                        processedCount++;
-                        successCount++;
-                        UpdateProgress();
-                        continue;
-                    }
-
-                    // 获取完整的聊天记录
-                    var fullChatLog = await ChatLogService.GetChatLogByIdAsync(chatLogSummary.Id);
-                    if (fullChatLog == null)
-                    {
-                        errors.Add($"楼层 {chatLogSummary.Index}: 无法获取完整记录");
-                        processedCount++;
-                        UpdateProgress();
-                        continue;
-                    }
-
-                    // 执行分析
-                    var analysisResult = await analyzer.AnalyzeAsync(fullChatLog.Mes, selectedRuleBook?.Content ?? "");
-                    analysisResult.ChatLogId = chatLogSummary.Id;
-
-                    // 保存结果
-                    await AnalysisService.SaveAnalysisResultAsync(analysisResult);
-                    
-                    successCount++;
-                }
-                catch (Exception ex)
-                {
-                    errors.Add($"楼层 {chatLogSummary.Index}: {ex.Message}");
-                }
-                
-                processedCount++;
-                UpdateProgress();
-                
-                // 短暂延迟以避免UI阻塞
-                await Task.Delay(10, cancellationToken);
+      <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Stop" OnClick="CancelAnalysis" Danger="true">
+        取消分析
+      </Button>
             }
+    </div>
+    <div>
+      @if (!isAnalyzing)
+            {
+      <Space>
+        <SpaceItem>
+          <Button OnClick="CloseModal">取消</Button>
+        </SpaceItem>
+        <SpaceItem>
+          <Button Type="@ButtonType.Primary" OnClick="StartBatchAnalysis"
+            Disabled="@(selectedRuleBook == null || estimatedCount == 0)">
+            开始分析
+          </Button>
+        </SpaceItem>
+      </Space>
+            }
+            else
+            {
+      <Button OnClick="CloseModal" Disabled="@(!isCancelling && isAnalyzing)">
+        @(isCancelling ? "正在取消..." : "关闭")
+      </Button>
+            }
+    </div>
+  </div>
+</Template>;
 
-            page++;
-        }
-    }
+public class BatchAnalysisConfig
+  {
+    public int BookId { get; set; }
+    public int? RuleBookId { get; set; }
+    public int StartIndex { get; set; }
+    public int EndIndex { get; set; }
+    public bool SkipExisting { get; set; } = true;
+    public bool OverwriteExisting { get; set; } = false;
+  }
 
-    private void UpdateProgress()
-    {
-        if (totalCount > 0)
-        {
-            progressPercent = Math.Round((double)processedCount / totalCount * 100, 1);
-        }
-        StateHasChanged();
-    }
-
-    private async Task CancelAnalysis()
-    {
-        if (cancellationTokenSource != null && !isCancelling)
-        {
-            isCancelling = true;
-            cancellationTokenSource.Cancel();
-            StateHasChanged();
-        }
-    }
-
-    private async Task CloseModal()
-    {
-        if (isAnalyzing && !isCancelling)
-        {
-            await CancelAnalysis();
-            return;
-        }
-
-        isAnalyzing = false;
-        isCancelling = false;
-        await IsVisibleChanged.InvokeAsync(false);
-        await OnCancel.InvokeAsync();
-    }
-
-    private RenderFragment modalFooter => @<Template>
-        <div style="display: flex; justify-content: space-between; width: 100%;">
-            <div>
-                @if (isAnalyzing && !isCancelling)
-                {
-                    <Button Type="@ButtonType.Default" 
-                            Icon="@IconType.Outline.Stop"
-                            OnClick="CancelAnalysis"
-                            Danger="true">
-                        取消分析
-                    </Button>
-                }
-            </div>
-            <div>
-                @if (!isAnalyzing)
-                {
-                    <Space>
-                        <SpaceItem>
-                            <Button OnClick="CloseModal">取消</Button>
-                        </SpaceItem>
-                        <SpaceItem>
-                            <Button Type="@ButtonType.Primary" 
-                                    OnClick="StartBatchAnalysis"
-                                    Disabled="@(selectedRuleBook == null || estimatedCount == 0)">
-                                开始分析
-                            </Button>
-                        </SpaceItem>
-                    </Space>
-                }
-                else
-                {
-                    <Button OnClick="CloseModal" 
-                            Disabled="@(!isCancelling && isAnalyzing)">
-                        @(isCancelling ? "正在取消..." : "关闭")
-                    </Button>
-                }
-            </div>
-        </div>
-    </Template>;
-
-    public class BatchAnalysisConfig
-    {
-        public int BookId { get; set; }
-        public int? RuleBookId { get; set; }
-        public int StartIndex { get; set; }
-        public int EndIndex { get; set; }
-        public bool SkipExisting { get; set; } = true;
-        public bool OverwriteExisting { get; set; } = false;
-    }
-
-    public class BatchAnalysisResult
-    {
-        public int ProcessedCount { get; set; }
-        public int SuccessCount { get; set; }
-        public int ErrorCount { get; set; }
-        public List<string> Errors { get; set; } = new();
-    }
+  public class BatchAnalysisResult
+  {
+    public int ProcessedCount { get; set; }
+    public int SuccessCount { get; set; }
+    public int ErrorCount { get; set; }
+    public List<string> Errors { get; set; } = new();
+  }
 }

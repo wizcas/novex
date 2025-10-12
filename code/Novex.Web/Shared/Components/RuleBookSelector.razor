@@ -59,12 +59,12 @@
   protected override async Task OnInitializedAsync()
   {
     await LoadRuleBooks();
-    await UpdateSelectedRuleBook();
+    UpdateSelectedRuleBook();
   }
 
-  protected override async Task OnParametersSetAsync()
+  protected override void OnParametersSet()
   {
-    await UpdateSelectedRuleBook();
+    UpdateSelectedRuleBook();
   }
 
   private async Task LoadRuleBooks()
@@ -89,7 +89,7 @@
     }
   }
 
-  private async Task UpdateSelectedRuleBook()
+  private void UpdateSelectedRuleBook()
   {
     if (SelectedRuleBookId.HasValue && ruleBooks != null)
     {
@@ -103,7 +103,7 @@
 
   private async Task OnSelectionChanged()
   {
-    await UpdateSelectedRuleBook();
+    UpdateSelectedRuleBook();
     await SelectedRuleBookIdChanged.InvokeAsync(SelectedRuleBookId);
     await OnRuleBookSelected.InvokeAsync(selectedRuleBook);
   }
@@ -114,7 +114,7 @@
   public async Task RefreshRuleBooks()
   {
     await LoadRuleBooks();
-    await UpdateSelectedRuleBook();
+    UpdateSelectedRuleBook();
   }
 
   /// <summary>
