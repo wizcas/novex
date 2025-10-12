@@ -13,6 +13,7 @@ public class NovexDbContext : DbContext
   public DbSet<Book> Books { get; set; }
   public DbSet<ChatLogAnalysisResult> ChatLogAnalysisResults { get; set; }
   public DbSet<ChatLogAnalysisRuleBook> ChatLogAnalysisRuleBooks { get; set; }
+  public DbSet<BookChapter> BookChapters { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -77,6 +78,26 @@ public class NovexDbContext : DbContext
 
       // 创建唯一约束确保规则书名称不重复
       entity.HasIndex(e => e.Name).IsUnique();
+    });
+
+    modelBuilder.Entity<BookChapter>(entity => {
+      entity.HasKey(e => e.Id);
+      entity.Property(e => e.BookId).IsRequired();
+      entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+      entity.Property(e => e.Content).IsRequired();
+      entity.Property(e => e.Order).IsRequired();
+      entity.Property(e => e.CreatedAt).IsRequired();
+      entity.Property(e => e.UpdatedAt);
+
+      // 外键关系
+      entity.HasOne(e => e.Book)
+          .WithMany()
+          .HasForeignKey(e => e.BookId)
+          .OnDelete(DeleteBehavior.Cascade);
+
+      // 创建索引以优化查询性能
+      entity.HasIndex(e => e.BookId);
+      entity.HasIndex(e => new { e.BookId, e.Order }).IsUnique();
     });
   }
 }

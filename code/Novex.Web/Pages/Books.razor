@@ -93,6 +93,13 @@
                             </Button>
                         </SpaceItem>
                         <SpaceItem>
+                            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" 
+                                OnClick="() => ComposeBook(context.Id)">
+                                <Icon Type="edit" />
+                                编纂书目
+                            </Button>
+                        </SpaceItem>
+                        <SpaceItem>
                             <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" Danger="false"
                                 Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
                                 <Icon Type="clear" />
@@ -245,6 +252,11 @@
     private void ImportChatLogs(int bookId)
     {
         Navigation.NavigateTo($"/import/{bookId}");
+    }
+
+    private void ComposeBook(int bookId)
+    {
+        Navigation.NavigateTo($"/books/{bookId}/compose");
     }
 
     private void ShowDeleteConfirm(BookSummary book)

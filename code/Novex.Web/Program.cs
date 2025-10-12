@@ -19,6 +19,7 @@ builder.Services.AddScoped<IChatLogService, ChatLogService>();
 builder.Services.AddScoped<IBookService, BookService>();
 builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 builder.Services.AddScoped<AnalysisRuleBookService>();
+builder.Services.AddScoped<IBookChapterService, BookChapterService>();
 
 WebApplication app = builder.Build();
 

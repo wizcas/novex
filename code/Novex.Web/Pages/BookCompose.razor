@@ -1,0 +1,580 @@
+@page "/books/{BookId:int}/compose"
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using AntDesign
+@inject IBookService BookService
+@inject IBookChapterService BookChapterService
+@inject IChatLogService ChatLogService
+@inject IAnalysisService AnalysisService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IMessageService MessageService
+
+<PageTitle>编纂书目 - @(currentBook?.Name ?? "加载中...")</PageTitle>
+
+<div class="compose-page">
+    <!-- 标题栏 -->
+    <div style="margin-bottom: 16px;">
+        <Row Justify="@RowJustify.SpaceBetween" Align="@RowAlign.Middle">
+            <AntDesign.Col>
+                <Title Level="2">
+                    <Icon Type="edit" style="margin-right: 8px; color: #1890ff;" />
+                    编纂书目: @(currentBook?.Name ?? "")
+                </Title>
+            </AntDesign.Col>
+            <AntDesign.Col>
+                <Button Type="@ButtonType.Default" Icon="@IconType.Outline.ArrowLeft"
+                        OnClick="@(() => Navigation.NavigateTo("/books"))">
+                    返回书目管理
+                </Button>
+            </AntDesign.Col>
+        </Row>
+    </div>
+
+    <!-- 工具栏 -->
+    <div style="margin-bottom: 16px;">
+        <Card Size="@CardSize.Small">
+            <Space>
+                <SpaceItem>
+                    <Text>导出格式：</Text>
+                </SpaceItem>
+                <SpaceItem>
+                    <Select TItemValue="string" TItem="string" @bind-Value="exportFormat" Style="width: 120px;">
+                        <SelectOption TItemValue="string" TItem="string" Value="@("md")" Label="Markdown"/>
+                        <SelectOption TItemValue="string" TItem="string" Value="@("txt")" Label="文本"/>
+                    </Select>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Download"
+                            OnClick="ExportSelectedChapter" Disabled="@(selectedChapter == null)">
+                        导出选中章节
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Download"
+                            OnClick="ExportAllChapters" Disabled="@(chapters.Count == 0)">
+                        导出全部章节
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Download"
+                            OnClick="ExportFullBook" Disabled="@(chapters.Count == 0)">
+                        导出全书
+                    </Button>
+                </SpaceItem>
+            </Space>
+        </Card>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <Row Gutter="16" Style="height: calc(100vh - 240px);">
+        <!-- 上半区域 -->
+        <AntDesign.Col Span="24" Style="height: 50%;">
+            <Row Gutter="16" Style="height: 100%;">
+                <!-- 章节列表区域 -->
+                <AntDesign.Col Span="6" Style="height: 100%;">
+                    <Card Title="章节列表" Size="@CardSize.Small" Style="height: 100%;">
+                        <Extra>
+                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
+                                    Icon="@IconType.Outline.Plus" OnClick="ShowAddChapterModal">
+                                新增章节
+                            </Button>
+                        </Extra>
+                        <ChildContent>
+                            <div style="height: calc(100% - 80px); overflow-y: auto;">
+                                @if (chapters.Any())
+                                {
+                                    <div id="chapter-list">
+                                        @foreach (var chapter in chapters)
+                                        {
+                                            <div class="chapter-item @(selectedChapter?.Id == chapter.Id ? "selected" : "")"
+                                                 @onclick="@(() => SelectChapter(chapter))"
+                                                 data-chapter-id="@chapter.Id">
+                                                <div class="chapter-content">
+                                                    <Text Strong="@(selectedChapter?.Id == chapter.Id)">
+                                                        第@(chapter.Order)章 @chapter.Title
+                                                    </Text>
+                                                    <div class="chapter-actions">
+                                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
+                                                                Icon="@IconType.Outline.Edit"
+                                                                OnClick="@(() => EditChapterTitle(chapter))"/>
+                                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
+                                                                Icon="@IconType.Outline.Delete" Danger="true"
+                                                                OnClick="@(() => DeleteChapter(chapter))"/>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <Empty Description="@("暂无章节")">
+                                        <ChildContent>
+                                            <Button Type="@ButtonType.Primary" OnClick="ShowAddChapterModal">
+                                                创建第一个章节
+                                            </Button>
+                                        </ChildContent>
+                                    </Empty>
+                                }
+                            </div>
+                        </ChildContent>
+                    </Card>
+                </AntDesign.Col>
+
+                <!-- 章节内容区域 -->
+                <AntDesign.Col Span="18" Style="height: 100%;">
+                    <Card Title="@(selectedChapter != null ? $"第{selectedChapter.Order}章 {selectedChapter.Title}" : "章节内容")"
+                          Size="@CardSize.Small" Style="height: 100%;">
+                        <ChildContent>
+                            @if (selectedChapter != null)
+                            {
+                                <TextArea @bind-Value="selectedChapter.Content"
+                                          @bind-Value:after="SaveChapterContent"
+                                          Placeholder="在此编写章节内容（支持Markdown格式）..."
+                                          Style="height: calc(100% - 40px); font-family: 'Consolas', 'Monaco', monospace;"
+                                          ShowCount="true"/>
+                            }
+                            else
+                            {
+                                <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <Text Type="@TextElementType.Secondary">请选择一个章节开始编辑</Text>
+                                </div>
+                            }
+                        </ChildContent>
+                    </Card>
+                </AntDesign.Col>
+            </Row>
+        </AntDesign.Col>
+
+        <!-- 下半区域：聊天记录区域 -->
+        <AntDesign.Col Span="24" Style="height: 50%; margin-top: 16px;">
+            <Card Title="聊天记录" Size="@CardSize.Small" Style="height: 100%;">
+                <Extra>
+                    <Space>
+                        <SpaceItem>
+                            <AntDesign.InputNumber @bind-Value="currentChatLogIndex" Min="1" Max="@totalChatLogs"
+                                         Style="width: 100px;" Placeholder="楼层"/>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button OnClick="@(() => JumpToChatLog(currentChatLogIndex))">跳转</Button>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button Icon="@IconType.Outline.Left" OnClick="PreviousChatLog"
+                                    Disabled="@(currentChatLogIndex <= 1)">上一条</Button>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button Icon="@IconType.Outline.Right" OnClick="NextChatLog"
+                                    Disabled="@(currentChatLogIndex >= totalChatLogs)">下一条</Button>
+                        </SpaceItem>
+                        <SpaceItem>
+                            <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Plus"
+                                    OnClick="InsertToChapter" Disabled="@(selectedChapter == null || currentChatLog == null)">
+                                插入到章节
+                            </Button>
+                        </SpaceItem>
+                    </Space>
+                </Extra>
+                <ChildContent>
+                    @if (currentChatLog != null)
+                    {
+                        <div style="height: calc(100% - 80px); overflow-y: auto; padding: 16px;">
+                            @if (!string.IsNullOrEmpty(currentAnalysisResult?.Title))
+                            {
+                                <div style="margin-bottom: 16px;">
+                                    <Text Strong="true" Style="font-size: 16px; color: #1890ff;">📝 标题：</Text>
+                                    <div style="background: #f6f8ff; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #1890ff;">
+                                        <Text Strong="true" Style="font-size: 15px; color: #1890ff;">@currentAnalysisResult.Title</Text>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(currentAnalysisResult?.Summary))
+                            {
+                                <div style="margin-bottom: 16px;">
+                                    <Text Strong="true" Style="font-size: 16px; color: #52c41a;">📋 摘要：</Text>
+                                    <div style="background: #f6ffed; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #52c41a;">
+                                        <Text Style="font-size: 14px; line-height: 1.6;">@currentAnalysisResult.Summary</Text>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(currentAnalysisResult?.MainBody))
+                            {
+                                <div style="margin-bottom: 16px;">
+                                    <Text Strong="true" Style="font-size: 16px; color: #fa8c16;">📄 正文内容：</Text>
+                                    <div style="background: #fff7e6; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #fa8c16; white-space: pre-wrap;">
+                                        <Text Style="font-size: 14px; line-height: 1.8;">@currentAnalysisResult.MainBody</Text>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (currentAnalysisResult == null)
+                            {
+                                <div style="text-align: center; padding: 32px;">
+                                    <Empty Description="@("该聊天记录尚未分析")">
+                                        <ChildContent>
+                                            <Button Type="@ButtonType.Primary"
+                                                    OnClick="@(() => Navigation.NavigateTo($"/chatlogs/{BookId}/{currentChatLog.Id}/analyze"))">
+                                                前往分析
+                                            </Button>
+                                        </ChildContent>
+                                    </Empty>
+                                </div>
+                            }
+
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0;">
+                                <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+                                    楼层 @currentChatLog.Index | @currentChatLog.Name | @currentChatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")
+                                </Text>
+                            </div>
+                        </div>
+                    }
+                    else if (totalChatLogs == 0)
+                    {
+                        <div style="height: calc(100% - 80px); display: flex; align-items: center; justify-content: center;">
+                            <Empty Description="@("该书目暂无聊天记录")">
+                                <ChildContent>
+                                    <Button Type="@ButtonType.Primary"
+                                            OnClick="@(() => Navigation.NavigateTo($"/import/{BookId}"))">
+                                        导入聊天记录
+                                    </Button>
+                                </ChildContent>
+                            </Empty>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="height: calc(100% - 80px); display: flex; align-items: center; justify-content: center;">
+                            <Spin Size="@SpinSize.Large"/>
+                        </div>
+                    }
+                </ChildContent>
+            </Card>
+        </AntDesign.Col>
+    </Row>
+</div>
+
+<!-- 新增章节模态框 -->
+<Modal Title="新增章节" @bind-Visible="showAddChapterModal" OnOk="AddChapter" OnCancel="@(() => showAddChapterModal = false)">
+    <Form Model="@newChapterForm">
+        <FormItem Label="章节标题">
+            <Input @bind-Value="newChapterForm.Title" Placeholder="请输入章节标题"/>
+        </FormItem>
+    </Form>
+</Modal>
+
+<!-- 编辑章节标题模态框 -->
+<Modal Title="编辑章节标题" @bind-Visible="showEditChapterModal" OnOk="UpdateChapterTitle" OnCancel="@(() => showEditChapterModal = false)">
+    <Form Model="@editChapterForm">
+        <FormItem Label="章节标题">
+            <Input @bind-Value="editChapterForm.Title" Placeholder="请输入章节标题"/>
+        </FormItem>
+    </Form>
+</Modal>
+
+<style>
+.compose-page {
+    padding: 24px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.chapter-item {
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.chapter-item:hover {
+    background-color: #f5f5f5;
+}
+
+.chapter-item.selected {
+    background-color: #e6f7ff;
+    border-color: #1890ff;
+}
+
+.chapter-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chapter-actions {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.chapter-item:hover .chapter-actions {
+    opacity: 1;
+}
+</style>
+
+@code {
+    [Parameter] public int BookId { get; set; }
+
+    private Book? currentBook;
+    private List<BookChapter> chapters = new();
+    private BookChapter? selectedChapter;
+    private ChatLog? currentChatLog;
+    private ChatLogAnalysisResult? currentAnalysisResult;
+    private int currentChatLogIndex = 1;
+    private int totalChatLogs = 0;
+    private string exportFormat = "md";
+
+    // 模态框相关
+    private bool showAddChapterModal = false;
+    private bool showEditChapterModal = false;
+    private NewChapterForm newChapterForm = new();
+    private EditChapterForm editChapterForm = new();
+    private BookChapter? editingChapter;
+
+    public class NewChapterForm
+    {
+        public string Title { get; set; } = string.Empty;
+    }
+
+    public class EditChapterForm
+    {
+        public string Title { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBookData();
+        await LoadChapters();
+        await LoadChatLogData();
+    }
+
+    private async Task LoadBookData()
+    {
+        currentBook = await BookService.GetBookByIdAsync(BookId);
+        if (currentBook == null)
+        {
+            Navigation.NavigateTo("/books");
+        }
+    }
+
+    private async Task LoadChapters()
+    {
+        chapters = await BookChapterService.GetChaptersByBookIdAsync(BookId);
+    }
+
+    private async Task LoadChatLogData()
+    {
+        totalChatLogs = await ChatLogService.GetTotalCountWithFiltersAsync(BookId);
+        if (totalChatLogs > 0)
+        {
+            await LoadCurrentChatLog();
+        }
+    }
+
+    private async Task LoadCurrentChatLog()
+    {
+        var chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(BookId, page: currentChatLogIndex, pageSize: 1);
+        currentChatLog = chatLogs.FirstOrDefault() != null
+            ? await ChatLogService.GetChatLogByIdAsync(chatLogs.First().Id)
+            : null;
+
+        if (currentChatLog != null)
+        {
+            currentAnalysisResult = await AnalysisService.GetAnalysisResultAsync(currentChatLog.Id);
+        }
+        else
+        {
+            currentAnalysisResult = null;
+        }
+    }
+
+    private async Task SelectChapter(BookChapter chapter)
+    {
+        selectedChapter = chapter;
+        StateHasChanged();
+    }
+
+    private async Task SaveChapterContent()
+    {
+        if (selectedChapter != null)
+        {
+            await BookChapterService.UpdateChapterAsync(selectedChapter);
+        }
+    }
+
+    private void ShowAddChapterModal()
+    {
+        newChapterForm = new NewChapterForm();
+        showAddChapterModal = true;
+    }
+
+    private async Task AddChapter()
+    {
+        if (string.IsNullOrWhiteSpace(newChapterForm.Title))
+        {
+            MessageService.Error("请输入章节标题");
+            return;
+        }
+
+        var nextOrder = await BookChapterService.GetNextOrderAsync(BookId);
+        var newChapter = await BookChapterService.CreateChapterAsync(BookId, newChapterForm.Title, nextOrder);
+
+        chapters.Add(newChapter);
+        selectedChapter = newChapter;
+        showAddChapterModal = false;
+
+        MessageService.Success("章节创建成功");
+        StateHasChanged();
+    }
+
+    private void EditChapterTitle(BookChapter chapter)
+    {
+        editingChapter = chapter;
+        editChapterForm = new EditChapterForm { Title = chapter.Title };
+        showEditChapterModal = true;
+    }
+
+    private async Task UpdateChapterTitle()
+    {
+        if (editingChapter == null || string.IsNullOrWhiteSpace(editChapterForm.Title))
+        {
+            MessageService.Error("请输入章节标题");
+            return;
+        }
+
+        editingChapter.Title = editChapterForm.Title;
+        await BookChapterService.UpdateChapterAsync(editingChapter);
+
+        showEditChapterModal = false;
+        MessageService.Success("章节标题更新成功");
+        StateHasChanged();
+    }
+
+    private async Task DeleteChapter(BookChapter chapter)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"确定要删除章节\"{chapter.Title}\"吗？");
+        if (!confirmed) return;
+
+        await BookChapterService.DeleteChapterAsync(chapter.Id);
+        chapters.Remove(chapter);
+
+        if (selectedChapter?.Id == chapter.Id)
+        {
+            selectedChapter = null;
+        }
+
+        MessageService.Success("章节删除成功");
+        StateHasChanged();
+    }
+
+    private async Task PreviousChatLog()
+    {
+        if (currentChatLogIndex > 1)
+        {
+            currentChatLogIndex--;
+            await LoadCurrentChatLog();
+        }
+    }
+
+    private async Task NextChatLog()
+    {
+        if (currentChatLogIndex < totalChatLogs)
+        {
+            currentChatLogIndex++;
+            await LoadCurrentChatLog();
+        }
+    }
+
+    private async Task JumpToChatLog(int index)
+    {
+        if (index >= 1 && index <= totalChatLogs)
+        {
+            currentChatLogIndex = index;
+            await LoadCurrentChatLog();
+        }
+    }
+
+    private async Task InsertToChapter()
+    {
+        if (selectedChapter == null || currentAnalysisResult?.MainBody == null) return;
+
+        // 在章节内容末尾添加新行并插入正文内容
+        var newContent = selectedChapter.Content;
+        if (!string.IsNullOrEmpty(newContent) && !newContent.EndsWith("\n"))
+        {
+            newContent += "\n\n";
+        }
+        else if (!string.IsNullOrEmpty(newContent))
+        {
+            newContent += "\n";
+        }
+
+        newContent += currentAnalysisResult.MainBody;
+        selectedChapter.Content = newContent;
+
+        await BookChapterService.UpdateChapterAsync(selectedChapter);
+        MessageService.Success($"已将楼层{currentChatLog?.Index}的内容插入到章节中");
+        StateHasChanged();
+    }
+
+    private async Task ExportSelectedChapter()
+    {
+        if (selectedChapter == null || currentBook == null) return;
+
+        var fileName = $"{currentBook.Name}-{selectedChapter.Order}-{selectedChapter.Title}.{exportFormat}";
+        var content = $"# 第{selectedChapter.Order}章 {selectedChapter.Title}\n\n{selectedChapter.Content}";
+
+        if (exportFormat == "txt")
+        {
+            content = ConvertMarkdownToText(content);
+        }
+
+        await DownloadFile(fileName, content);
+    }
+
+    private void ExportAllChapters()
+    {
+        if (chapters.Count == 0 || currentBook == null) return;
+
+        // 创建ZIP文件逻辑需要额外的NuGet包，这里先简化为单个文件
+        MessageService.Info("导出全部章节功能需要进一步实现");
+    }
+
+    private async Task ExportFullBook()
+    {
+        if (chapters.Count == 0 || currentBook == null) return;
+
+        var fileName = $"{currentBook.Name}.{exportFormat}";
+        var content = string.Join("\n\n---\n\n", chapters.Select(c =>
+            $"# 第{c.Order}章 {c.Title}\n\n{c.Content}"));
+
+        if (exportFormat == "txt")
+        {
+            content = ConvertMarkdownToText(content);
+        }
+
+        await DownloadFile(fileName, content);
+    }
+
+    private string ConvertMarkdownToText(string markdown)
+    {
+        // 简单的Markdown到文本转换，可以使用更专业的库
+        return markdown
+            .Replace("# ", "")
+            .Replace("## ", "")
+            .Replace("### ", "")
+            .Replace("**", "")
+            .Replace("*", "")
+            .Replace("---", "");
+    }
+
+    private async Task DownloadFile(string fileName, string content)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        var base64 = Convert.ToBase64String(bytes);
+
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64);
+    }
+}
