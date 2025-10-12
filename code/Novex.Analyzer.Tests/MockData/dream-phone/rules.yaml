@@ -33,11 +33,11 @@ ExtractionRules:
     Priority: 20
     Enabled: true
 
-  # 3. 兜底提取规则 - 如果没有特殊标签，提取全部内容
+  # 3. 兜底提取规则 - 如果没有 dream 和 body 标签，提取全部内容
   - Id: "ExtractFullContent"
-    Name: "提取全部内容"
-    MatcherType: "Markup"
-    Pattern: "//body"
+    Name: "提取全部内容作为正文"
+    MatcherType: "Regex"
+    Pattern: "^(.*)$"
     Options:
       Multiline: true
       Singleline: true
@@ -75,15 +75,16 @@ TransformationRules:
     Priority: 110
     Enabled: true
 
-  # 3. 清理梦境内容，移除注释和格式化
-  - Id: "CleanDreamContent"
-    Name: "清理梦境内容"
+  # 3. 清理正文内容 - 移除XML标签和注释
+  - Id: "CleanMainBodyContent"
+    Name: "清理正文内容"
     SourceField: "MainBody"
     TargetField: "MainBody"
     TransformationType: "Custom"
     Parameters:
       RemoveComments: true
       RemoveRunBlocks: true
+      RemoveXmlTags: true
       PreserveFormatting: true
     Priority: 120
     Enabled: true
