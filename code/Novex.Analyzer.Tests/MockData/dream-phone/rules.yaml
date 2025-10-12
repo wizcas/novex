@@ -6,7 +6,7 @@ ExtractionRules:
   - Id: "ExtractPlotContent"
     Name: "提取情节内容"
     MatcherType: "Markup"
-    Pattern: "<plot>(.*?)</plot>"
+    Pattern: "plot"
     Options:
       Multiline: true
       Singleline: true
@@ -22,7 +22,7 @@ ExtractionRules:
   - Id: "ExtractDreamContent"
     Name: "提取梦境内容"
     MatcherType: "Markup"
-    Pattern: "<dream>(.*?)</dream>"
+    Pattern: "dream"
     Options:
       Multiline: true
       Singleline: true
@@ -37,7 +37,7 @@ ExtractionRules:
   - Id: "ExtractFullContent"
     Name: "提取全部内容"
     MatcherType: "Markup"
-    Pattern: "(.*)"
+    Pattern: "//body"
     Options:
       Multiline: true
       Singleline: true
