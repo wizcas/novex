@@ -146,21 +146,20 @@
           }
 
           <div style="margin-top: 16px; text-align: right;">
-            <Space>
-              <SpaceItem>
-                <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" OnClick="@GoToRuleBooks">
-                  <Icon Type="setting" /> 管理规则书
-                </Button>
-              </SpaceItem>
+            <Space Size="SpaceSize.Middle">
               @if (selectedRuleBook != null)
               {
                 <SpaceItem>
-                  <Button Type="@ButtonType.Link" Size="@ButtonSize.Small"
-                    OnClick="@(() => PreviewRuleBook(selectedRuleBook.Id))">
-                    <Icon Type="eye" /> 预览规则
-                  </Button>
+                  <a href="@($"/rulebooks/edit/{selectedRuleBook.Id}")">
+                    <Icon Type="edit" /> 编辑规则
+                  </a>
                 </SpaceItem>
               }
+              <SpaceItem>
+                <a href="/rulebooks">
+                  <Icon Type="setting" /> 管理规则书
+                </a>
+              </SpaceItem>
             </Space>
           </div>
         </Card>

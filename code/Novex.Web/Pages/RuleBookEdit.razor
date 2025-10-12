@@ -237,11 +237,18 @@ Targets:
       }
       else
       {
-        await RuleBookService.CreateRuleBookAsync(ruleBook);
+        var createdRuleBook = await RuleBookService.CreateRuleBookAsync(ruleBook);
         MessageService.Success("规则书创建成功");
+        // 创建成功后，如果是新建模式，切换到编辑模式并更新 URL
+        if (createdRuleBook != null && !IsEdit)
+        {
+          Navigation.NavigateTo($"/rulebooks/edit/{createdRuleBook.Id}", false);
+          RuleBookId = createdRuleBook.Id;
+          ruleBook = createdRuleBook;
+        }
       }
 
-      Navigation.NavigateTo("/rulebooks");
+      // 移除了 Navigation.NavigateTo("/rulebooks")，保存后停留在当前页面
     }
     catch (Exception ex)
     {
