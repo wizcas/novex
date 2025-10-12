@@ -31,6 +31,11 @@ public class AnalysisRuleBook
   /// AI生成规则
   /// </summary>
   public AiGenerationRule? AiGenerationRule { get; set; }
+
+  /// <summary>
+  /// 后处理规则列表 - 在所有提取和转换完成后执行
+  /// </summary>
+  public List<PostProcessingRule> PostProcessingRules { get; set; } = new();
 }
 
 /// <summary>
@@ -475,5 +480,51 @@ public enum ProcessorType
   /// <summary>
   /// 自定义处理器
   /// </summary>
-  Custom
+  Custom,
+
+  /// <summary>
+  /// 摘要回退处理器 - 当Summary为空时从MainBody获取前N字作为摘要
+  /// </summary>
+  SummaryFallback
+}
+
+/// <summary>
+/// 后处理规则 - 在所有提取和转换完成后执行的规则
+/// </summary>
+public class PostProcessingRule
+{
+  /// <summary>
+  /// 规则ID
+  /// </summary>
+  public string Id { get; set; } = string.Empty;
+
+  /// <summary>
+  /// 规则名称
+  /// </summary>
+  public string Name { get; set; } = string.Empty;
+
+  /// <summary>
+  /// 处理器类型
+  /// </summary>
+  public ProcessorType Type { get; set; }
+
+  /// <summary>
+  /// 处理器参数
+  /// </summary>
+  public Dictionary<string, object> Parameters { get; set; } = new();
+
+  /// <summary>
+  /// 优先级（数值越小优先级越高）
+  /// </summary>
+  public int Priority { get; set; } = 100;
+
+  /// <summary>
+  /// 是否启用此规则
+  /// </summary>
+  public bool Enabled { get; set; } = true;
+
+  /// <summary>
+  /// 条件表达式（可选，用于条件性执行）
+  /// </summary>
+  public string? Condition { get; set; }
 }

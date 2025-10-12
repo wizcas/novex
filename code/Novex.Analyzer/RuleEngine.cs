@@ -17,6 +17,7 @@ public class RuleEngine
   private readonly IDeserializer _yamlDeserializer;
   private readonly Dictionary<ProcessorType, IPostProcessor> _postProcessors;
   private readonly Dictionary<TransformationType, ITransformationProcessor> _transformationProcessors;
+  private readonly Dictionary<ProcessorType, IPostProcessingRuleProcessor> _postProcessingRuleProcessors;
 
   public RuleEngine()
   {
@@ -44,6 +45,11 @@ public class RuleEngine
             { TransformationType.PreserveFormatting, new PreserveFormattingProcessor() },
             { TransformationType.GenerateTitle, new GenerateTitleProcessor() },
             { TransformationType.CleanUrl, new CleanUrlProcessor() }
+        };
+
+    _postProcessingRuleProcessors = new Dictionary<ProcessorType, IPostProcessingRuleProcessor>
+    {
+            { ProcessorType.SummaryFallback, new SummaryFallbackProcessor() }
         };
   }
 
@@ -126,6 +132,9 @@ public class RuleEngine
     {
       ValidateAiGenerationRule(ruleBook.AiGenerationRule);
     }
+
+    // 验证后处理规则
+    ValidatePostProcessingRules(ruleBook.PostProcessingRules);
   }
 
   /// <summary>
@@ -274,6 +283,48 @@ public class RuleEngine
   }
 
   /// <summary>
+  /// 验证后处理规则
+  /// </summary>
+  private void ValidatePostProcessingRules(List<PostProcessingRule> rules)
+  {
+    if (rules == null) return;
+
+    var ruleIds = new HashSet<string>();
+
+    foreach (var rule in rules)
+    {
+      // 验证规则ID唯一性
+      if (string.IsNullOrWhiteSpace(rule.Id))
+      {
+        throw new InvalidOperationException("后处理规则ID不能为空");
+      }
+
+      if (!ruleIds.Add(rule.Id))
+      {
+        throw new InvalidOperationException($"重复的后处理规则ID: {rule.Id}");
+      }
+
+      // 验证规则名称
+      if (string.IsNullOrWhiteSpace(rule.Name))
+      {
+        throw new InvalidOperationException($"后处理规则 '{rule.Id}' 的名称不能为空");
+      }
+
+      // 验证优先级
+      if (rule.Priority < 0)
+      {
+        throw new InvalidOperationException($"后处理规则 '{rule.Id}' 的优先级不能为负数");
+      }
+
+      // 验证处理器类型是否支持
+      if (!_postProcessingRuleProcessors.ContainsKey(rule.Type))
+      {
+        throw new InvalidOperationException($"后处理规则 '{rule.Id}' 使用了不支持的处理器类型: {rule.Type}");
+      }
+    }
+  }
+
+  /// <summary>
   /// 执行分析规则
   /// </summary>
   public async Task<ChatLogAnalysisResult> ExecuteRulesAsync(string sourceContent, AnalysisRuleBook ruleBook)
@@ -294,7 +345,10 @@ public class RuleEngine
       await ExecuteAiGenerationRuleAsync(extractedData, ruleBook.AiGenerationRule);
     }
 
-    // 4. 将结果映射到ChatLogAnalysisResult
+    // 4. 执行后处理规则
+    await ExecutePostProcessingRulesAsync(extractedData, ruleBook.PostProcessingRules);
+
+    // 5. 将结果映射到ChatLogAnalysisResult
     result.Title = extractedData.GetValueOrDefault("Title", extractedData.GetValueOrDefault("title", "")).Trim();
     result.Summary = extractedData.GetValueOrDefault("Summary", extractedData.GetValueOrDefault("summary", "")).Trim();
     result.MainBody = extractedData.GetValueOrDefault("MainBody", "").Trim();
@@ -563,6 +617,63 @@ public class RuleEngine
       TargetField.Ignore => "Ignore",
       _ => "Unknown"
     };
+  }
+
+  /// <summary>
+  /// 执行后处理规则
+  /// </summary>
+  private async Task ExecutePostProcessingRulesAsync(Dictionary<string, string> extractedData, List<PostProcessingRule> rules)
+  {
+    var sortedRules = rules.Where(r => r.Enabled).OrderBy(r => r.Priority).ToList();
+
+    foreach (var rule in sortedRules)
+    {
+      try
+      {
+        // 检查条件（如果有）
+        if (!string.IsNullOrWhiteSpace(rule.Condition) && !EvaluateCondition(rule.Condition, extractedData))
+        {
+          continue;
+        }
+
+        if (_postProcessingRuleProcessors.TryGetValue(rule.Type, out var processor))
+        {
+          await processor.ProcessAsync(extractedData, rule.Parameters);
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error executing post-processing rule {rule.Id}: {ex.Message}");
+      }
+    }
+  }
+
+  /// <summary>
+  /// 评估条件表达式
+  /// </summary>
+  private static bool EvaluateCondition(string condition, Dictionary<string, string> extractedData)
+  {
+    // 简单的条件评估实现
+    // 支持的格式: "FieldName==" (检查字段是否为空)
+    // 支持的格式: "FieldName!==" (检查字段是否不为空)
+    // 更复杂的条件评估可以在后续扩展
+
+    if (condition.EndsWith("=="))
+    {
+      var fieldName = condition.Substring(0, condition.Length - 2).Trim();
+      var fieldValue = extractedData.GetValueOrDefault(fieldName, "").Trim();
+      return string.IsNullOrWhiteSpace(fieldValue);
+    }
+
+    if (condition.EndsWith("!=="))
+    {
+      var fieldName = condition.Substring(0, condition.Length - 3).Trim();
+      var fieldValue = extractedData.GetValueOrDefault(fieldName, "").Trim();
+      return !string.IsNullOrWhiteSpace(fieldValue);
+    }
+
+    // 默认返回true（执行规则）
+    return true;
   }
 }
 

@@ -154,5 +154,19 @@ TransformationRules:
     Priority: 170
     Enabled: true
 
+PostProcessingRules:
+  # 摘要回退处理 - 如果没有从plot中提取到摘要，则从MainBody前50字生成摘要
+  - Id: "SummaryFallback"
+    Name: "摘要回退处理"
+    Type: "SummaryFallback"
+    Parameters:
+      MaxLength: 50
+      AddEllipsis: true
+      SourceField: "MainBody"
+      TargetField: "Summary"
+    Priority: 200
+    Enabled: true
+    Condition: "Summary=="
+
 AiGenerationRule:
   Enabled: false
