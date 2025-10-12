@@ -3,8 +3,10 @@
 @inject IBookService BookService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject IMessageService MessageService
 @using Novex.Data.Models
 @using Novex.Data.Services
+@using Novex.Web.Shared.Components
 @implements IAsyncDisposable
 
 <PageTitle>聊天记录</PageTitle>
@@ -113,6 +115,12 @@
                   <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Clear" OnClick="ClearFilter"
                           Size="@ButtonSize.Default">
                     清除筛选
+                  </Button>
+                </SpaceItem>
+                <SpaceItem>
+                  <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Experiment" OnClick="ShowBatchAnalysisModal"
+                          Size="@ButtonSize.Default">
+                    批量分析
                   </Button>
                 </SpaceItem>
               </Space>
@@ -283,6 +291,13 @@
       </div>
     </Modal>
   }
+
+  <!-- 批量分析模态框 -->
+  <BatchAnalysisModal IsVisible="@showBatchAnalysisModal"
+                      IsVisibleChanged="@((visible) => showBatchAnalysisModal = visible)"
+                      OnCancel="@(() => showBatchAnalysisModal = false)"
+                      OnCompleted="OnBatchAnalysisCompleted"
+                      BookId="@BookId" />
 </div>
 
 @code {
@@ -323,6 +338,9 @@
   private int? currentEndIndex;
   private (double, double) _floorRange = (0, 0);
   private bool _hasInitialized = false;
+
+  // 批量分析相关变量
+  private bool showBatchAnalysisModal = false;
 
   private int startIndex
   {
@@ -1061,6 +1079,28 @@
     var start = startIndex?.ToString() ?? "";
     var end = endIndex?.ToString() ?? "";
     return $"{start},{end}";
+  }
+
+  // 批量分析相关方法
+  private void ShowBatchAnalysisModal()
+  {
+    showBatchAnalysisModal = true;
+  }
+
+  private async Task OnBatchAnalysisCompleted(BatchAnalysisModal.BatchAnalysisResult result)
+  {
+    // 刷新页面数据
+    await LoadChatLogs();
+    
+    // 显示完成消息
+    if (result.ErrorCount > 0)
+    {
+      MessageService.Warning($"批量分析完成！成功处理 {result.SuccessCount}/{result.ProcessedCount} 条记录，{result.ErrorCount} 个错误");
+    }
+    else
+    {
+      MessageService.Success($"批量分析完成！成功处理 {result.SuccessCount} 条记录");
+    }
   }
 
 }

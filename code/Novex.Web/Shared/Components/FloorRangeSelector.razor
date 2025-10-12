@@ -1,0 +1,221 @@
+@if (UseFormItem)
+{
+    <FormItem Label="@Label">
+        <div>
+            <Slider Range="true"
+                    @bind-Value="sliderValue"
+                    Min="@MinValue"
+                    Max="@MaxValue"
+                    InputNumberLeft="true"
+                    InputNumberRight="true"
+                    Disabled="@IsDisabled"/>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+            <div style="width: 120px;">
+                <AntDesign.InputNumber @bind-Value="startValue"
+                                       @bind-Value:after="SyncToSlider"
+                                       Min="@MinValue"
+                                       Max="@MaxValue"
+                                       Disabled="@IsDisabled"
+                                       Style="width: 100%;" />
+            </div>
+            <div style="width: 120px;">
+                <AntDesign.InputNumber @bind-Value="endValue"
+                                       @bind-Value:after="SyncToSlider"
+                                       Min="@MinValue"
+                                       Max="@MaxValue"
+                                       Disabled="@IsDisabled"
+                                       Style="width: 100%;" />
+            </div>
+        </div>
+    </FormItem>
+}
+else
+{
+    <div>
+        @if (!string.IsNullOrEmpty(Label))
+        {
+            <div style="margin-bottom: 8px;">
+                <Text Strong="true">@Label:</Text>
+            </div>
+        }
+        <div>
+            <Slider Range="true"
+                    @bind-Value="sliderValue"
+                    Min="@MinValue"
+                    Max="@MaxValue"
+                    InputNumberLeft="true"
+                    InputNumberRight="true"
+                    Disabled="@IsDisabled"/>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+            <div style="width: 120px;">
+                <AntDesign.InputNumber @bind-Value="startValue"
+                                       @bind-Value:after="SyncToSlider"
+                                       Min="@MinValue"
+                                       Max="@MaxValue"
+                                       Disabled="@IsDisabled"
+                                       Style="width: 100%;" />
+            </div>
+            <div style="width: 120px;">
+                <AntDesign.InputNumber @bind-Value="endValue"
+                                       @bind-Value:after="SyncToSlider"
+                                       Min="@MinValue"
+                                       Max="@MaxValue"
+                                       Disabled="@IsDisabled"
+                                       Style="width: 100%;" />
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowRangeInfo)
+{
+    <div style="margin-top: 8px; text-align: right;">
+        <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+            范围：@startValue - @endValue (@(endValue - startValue + 1) 条记录)
+        </Text>
+    </div>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = "楼层范围";
+    [Parameter] public int MinValue { get; set; } = 1;
+    [Parameter] public int MaxValue { get; set; } = 100;
+    [Parameter] public int StartValue { get; set; }
+    [Parameter] public EventCallback<int> StartValueChanged { get; set; }
+    [Parameter] public int EndValue { get; set; }
+    [Parameter] public EventCallback<int> EndValueChanged { get; set; }
+    [Parameter] public EventCallback<(int start, int end)> OnRangeChanged { get; set; }
+    [Parameter] public bool IsDisabled { get; set; } = false;
+    [Parameter] public bool ShowRangeInfo { get; set; } = true;
+    [Parameter] public bool UseFormItem { get; set; } = false;
+
+    private int startValue;
+    private int endValue;
+    private (double, double) sliderValue = (0, 0);
+    private bool isInitialized = false;
+
+    protected override void OnInitialized()
+    {
+        // 初始化内部值
+        startValue = ValidateAndAdjustValue(StartValue, MinValue, MaxValue);
+        endValue = ValidateAndAdjustValue(EndValue, MinValue, MaxValue);
+
+        // 确保范围有效性
+        if (startValue > endValue)
+        {
+            endValue = startValue;
+        }
+
+        sliderValue = (startValue, endValue);
+        isInitialized = true;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!isInitialized) return;
+
+        var newStart = ValidateAndAdjustValue(StartValue, MinValue, MaxValue);
+        var newEnd = ValidateAndAdjustValue(EndValue, MinValue, MaxValue);
+
+        // 确保范围有效性
+        if (newStart > newEnd)
+        {
+            newEnd = newStart;
+        }
+
+        if (startValue != newStart || endValue != newEnd)
+        {
+            startValue = newStart;
+            endValue = newEnd;
+            sliderValue = (startValue, endValue);
+            StateHasChanged();
+        }
+    }
+
+    private int ValidateAndAdjustValue(int value, int min, int max)
+    {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private async Task SyncToSlider()
+    {
+        // 验证并调整值
+        var newStart = ValidateAndAdjustValue(startValue, MinValue, MaxValue);
+        var newEnd = ValidateAndAdjustValue(endValue, MinValue, MaxValue);
+
+        // 确保范围有效性
+        if (newStart > newEnd)
+        {
+            if (startValue != ValidateAndAdjustValue(StartValue, MinValue, MaxValue))
+            {
+                // startValue被修改了，调整endValue
+                newEnd = newStart;
+                endValue = newEnd;
+            }
+            else
+            {
+                // endValue被修改了，调整startValue
+                newStart = newEnd;
+                startValue = newStart;
+            }
+        }
+
+        startValue = newStart;
+        endValue = newEnd;
+        sliderValue = (startValue, endValue);
+
+        // 触发事件
+        await StartValueChanged.InvokeAsync(startValue);
+        await EndValueChanged.InvokeAsync(endValue);
+        await OnRangeChanged.InvokeAsync((startValue, endValue));
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// 设置新的范围
+    /// </summary>
+    public async Task SetRange(int start, int end)
+    {
+        var newStart = ValidateAndAdjustValue(start, MinValue, MaxValue);
+        var newEnd = ValidateAndAdjustValue(end, MinValue, MaxValue);
+
+        // 确保范围有效性
+        if (newStart > newEnd)
+        {
+            newEnd = newStart;
+        }
+
+        startValue = newStart;
+        endValue = newEnd;
+        sliderValue = (startValue, endValue);
+
+        await StartValueChanged.InvokeAsync(startValue);
+        await EndValueChanged.InvokeAsync(endValue);
+        await OnRangeChanged.InvokeAsync((startValue, endValue));
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// 重置到全范围
+    /// </summary>
+    public async Task ResetToFullRange()
+    {
+        await SetRange(MinValue, MaxValue);
+    }
+
+    /// <summary>
+    /// 获取当前范围
+    /// </summary>
+    public (int start, int end) GetCurrentRange() => (startValue, endValue);
+
+    /// <summary>
+    /// 获取范围内的记录数量
+    /// </summary>
+    public int GetRecordCount() => endValue - startValue + 1;
+}

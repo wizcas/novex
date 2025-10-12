@@ -1,0 +1,157 @@
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using AntDesign
+@inject AnalysisRuleBookService AnalysisRuleBookService
+
+@if (UseFormItem)
+{
+  <FormItem Label="@Label">
+    <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="SelectedRuleBookId"
+      @bind-Value:after="OnSelectionChanged" Placeholder="@Placeholder" Loading="@IsLoading" AllowClear="@AllowClear"
+      Style="width: 100%;" DataSource="ruleBooks" ItemValue="ruleBook => ruleBook.Id"
+      ItemLabel="ruleBook => ruleBook.Name">
+      <ItemTemplate Context="ruleBook">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>@ruleBook.Name</span>
+          <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+            @ruleBook.CreatedAt.ToString("yyyy-MM-dd")
+          </Text>
+        </div>
+      </ItemTemplate>
+    </Select>
+  </FormItem>
+}
+else
+{
+  <div>
+    @if (!string.IsNullOrEmpty(Label))
+    {
+      <div style="margin-bottom: 8px;">
+        <Text Strong="true">@Label:</Text>
+      </div>
+    }
+    <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="SelectedRuleBookId"
+      @bind-Value:after="OnSelectionChanged" Placeholder="@Placeholder" Loading="@IsLoading" AllowClear="@AllowClear"
+      Style="width: 100%;" DataSource="ruleBooks" ItemValue="ruleBook => ruleBook.Id"
+      ItemLabel="ruleBook => ruleBook.Name">
+      <ItemTemplate Context="ruleBook">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>@ruleBook.Name</span>
+          <Text Type="@TextElementType.Secondary" Style="font-size: 12px;">
+            @ruleBook.CreatedAt.ToString("yyyy-MM-dd")
+          </Text>
+        </div>
+      </ItemTemplate>
+    </Select>
+  </div>
+}
+
+@if (ShowDescription && selectedRuleBook != null && !string.IsNullOrEmpty(selectedRuleBook.Description))
+{
+  <div style="margin-top: 8px;">
+    <Alert Type="@AlertType.Info" Message="规则书描述" Description="@selectedRuleBook.Description" ShowIcon="true"
+      Style="margin-bottom: 16px;" />
+  </div>
+}
+
+@if (ShowManageLink && selectedRuleBook != null)
+{
+  <div style="margin-top: 8px; text-align: right;">
+    <a href="/rulebooks/edit/@selectedRuleBook.Id"
+      style="color: #1890ff; text-decoration: none; font-size: 14px; margin-right: 16px;" target="_blank">
+      <Icon Type="edit" style="margin-right: 4px;" />
+      编辑规则书
+    </a>
+    <a href="/rulebooks" style="color: #1890ff; text-decoration: none; font-size: 14px;" target="_blank">
+      <Icon Type="setting" style="margin-right: 4px;" />
+      管理规则书
+    </a>
+  </div>
+}
+
+@code {
+  [Parameter] public string Label { get; set; } = "规则书";
+  [Parameter] public string Placeholder { get; set; } = "请选择规则书";
+  [Parameter] public bool AllowClear { get; set; } = true;
+  [Parameter] public bool ShowDescription { get; set; } = true;
+  [Parameter] public bool ShowManageLink { get; set; } = true;
+  [Parameter] public bool UseFormItem { get; set; } = false;
+  [Parameter] public int? SelectedRuleBookId { get; set; }
+  [Parameter] public EventCallback<int?> SelectedRuleBookIdChanged { get; set; }
+  [Parameter] public EventCallback<ChatLogAnalysisRuleBook?> OnRuleBookSelected { get; set; }
+
+  private List<ChatLogAnalysisRuleBook>? ruleBooks;
+  private ChatLogAnalysisRuleBook? selectedRuleBook;
+  private bool IsLoading { get; set; }
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadRuleBooks();
+    await UpdateSelectedRuleBook();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    await UpdateSelectedRuleBook();
+  }
+
+  private async Task LoadRuleBooks()
+  {
+    IsLoading = true;
+    StateHasChanged();
+
+    try
+    {
+      ruleBooks = await AnalysisRuleBookService.GetAllRuleBooksAsync();
+    }
+    catch (Exception ex)
+    {
+      // 可以在这里添加错误处理逻辑
+      Console.WriteLine($"加载规则书时出错: {ex.Message}");
+      ruleBooks = new List<ChatLogAnalysisRuleBook>();
+    }
+    finally
+    {
+      IsLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task UpdateSelectedRuleBook()
+  {
+    if (SelectedRuleBookId.HasValue && ruleBooks != null)
+    {
+      selectedRuleBook = ruleBooks.FirstOrDefault(r => r.Id == SelectedRuleBookId.Value);
+    }
+    else
+    {
+      selectedRuleBook = null;
+    }
+  }
+
+  private async Task OnSelectionChanged()
+  {
+    await UpdateSelectedRuleBook();
+    await SelectedRuleBookIdChanged.InvokeAsync(SelectedRuleBookId);
+    await OnRuleBookSelected.InvokeAsync(selectedRuleBook);
+  }
+
+  /// <summary>
+  /// 刷新规则书列表
+  /// </summary>
+  public async Task RefreshRuleBooks()
+  {
+    await LoadRuleBooks();
+    await UpdateSelectedRuleBook();
+  }
+
+  /// <summary>
+  /// 获取当前选中的规则书
+  /// </summary>
+  public ChatLogAnalysisRuleBook? GetSelectedRuleBook() => selectedRuleBook;
+
+  /// <summary>
+  /// 获取所有规则书列表
+  /// </summary>
+  public List<ChatLogAnalysisRuleBook>? GetAllRuleBooks() => ruleBooks;
+}

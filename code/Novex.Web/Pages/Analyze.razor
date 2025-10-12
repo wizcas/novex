@@ -3,6 +3,7 @@
 @using Novex.Data.Services
 @using Novex.Analyzer
 @using Novex.Analyzer.Models
+@using Novex.Web.Shared.Components
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
@@ -109,30 +110,18 @@
         </Card>
 
         <Card Title="规则书" Bordered="true" style="margin-top: 16px;">
-          <div style="margin-bottom: 16px;">
-            <div style="margin-bottom: 8px;">
-              <Text Strong>选择规则书：</Text>
-            </div>
-            <Select TItemValue="int?" TItem="ChatLogAnalysisRuleBook" @bind-Value="@selectedRuleBookId"
-              Placeholder="请选择分析规则书" AllowClear="true" Loading="@loadingRuleBooks" DataSource="@ruleBooks"
-              LabelName="@nameof(ChatLogAnalysisRuleBook.Name)" ValueName="@nameof(ChatLogAnalysisRuleBook.Id)"
-              OnSelectedItemChanged="@OnRuleBookSelectionChanged">
-            </Select>
-          </div>
-
-          @if (selectedRuleBook != null)
-          {
-            <div style="margin-bottom: 16px;">
-              <Text Strong>规则描述：</Text>
-              <div style="color: #666; font-size: 14px; margin-top: 4px;">
-                @selectedRuleBook.Description
-              </div>
-            </div>
-          }
+          <RuleBookSelector SelectedRuleBookId="selectedRuleBookId"
+                            SelectedRuleBookIdChanged="OnSelectedRuleBookIdChanged"
+                            OnRuleBookSelected="OnRuleBookSelectionChanged"
+                            Label="选择规则书"
+                            Placeholder="请选择分析规则书"
+                            ShowDescription="true"
+                            ShowManageLink="true"
+                            UseFormItem="false" />
 
           @if (selectedRuleBook == null)
           {
-            <div style="color: #666; font-style: italic;">
+            <div style="color: #666; font-style: italic; margin-top: 16px;">
               <p>当前使用默认分析引擎：</p>
               <ul>
                 <li>标题：提取消息前50个字符</li>
@@ -144,24 +133,6 @@
               </p>
             </div>
           }
-
-          <div style="margin-top: 16px; text-align: right;">
-            <Space Size="SpaceSize.Middle">
-              @if (selectedRuleBook != null)
-              {
-                <SpaceItem>
-                  <a href="@($"/rulebooks/edit/{selectedRuleBook.Id}")">
-                    <Icon Type="edit" /> 编辑规则
-                  </a>
-                </SpaceItem>
-              }
-              <SpaceItem>
-                <a href="/rulebooks">
-                  <Icon Type="setting" /> 管理规则书
-                </a>
-              </SpaceItem>
-            </Space>
-          </div>
         </Card>
       </AntDesign.Col>
     </Row>
@@ -224,10 +195,8 @@
   private readonly ChatLogAnalyzer _analyzer = new();
 
   // 规则书相关变量
-  private List<ChatLogAnalysisRuleBook> ruleBooks = new();
   private int? selectedRuleBookId;
   private ChatLogAnalysisRuleBook? selectedRuleBook;
-  private bool loadingRuleBooks = false;
 
   protected override async Task OnInitializedAsync()
   {
@@ -282,7 +251,7 @@
       hasNext = nextId.HasValue;
 
       // 加载规则书列表
-      await LoadRuleBooks();
+
     }
     catch (Exception ex)
     {
@@ -473,37 +442,18 @@
   }
 
   // 规则书相关方法
-  private async Task LoadRuleBooks()
+
+  private void OnSelectedRuleBookIdChanged(int? ruleBookId)
   {
-    try
-    {
-      loadingRuleBooks = true;
-      ruleBooks = await RuleBookService.GetAllRuleBooksAsync();
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"加载规则书列表时出错: {ex.Message}");
-      MessageService.Error($"加载规则书失败：{ex.Message}");
-    }
-    finally
-    {
-      loadingRuleBooks = false;
-    }
+    selectedRuleBookId = ruleBookId;
+    StateHasChanged();
   }
 
-  private void OnRuleBookSelectionChanged(ChatLogAnalysisRuleBook ruleBook)
+  private void OnRuleBookSelectionChanged(ChatLogAnalysisRuleBook? ruleBook)
   {
     selectedRuleBook = ruleBook;
     StateHasChanged();
   }
 
-  private void GoToRuleBooks()
-  {
-    Navigation.NavigateTo("/rulebooks");
-  }
 
-  private void PreviewRuleBook(int ruleBookId)
-  {
-    Navigation.NavigateTo($"/rulebooks/edit/{ruleBookId}");
-  }
 }
