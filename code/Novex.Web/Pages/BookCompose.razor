@@ -71,7 +71,7 @@
     <!-- 主要内容区域 -->
     <Row Gutter="16" Style="height: calc(100vh - 240px);">
         <!-- 上半区域 -->
-        <AntDesign.Col Span="24" Style="height: 50%;">
+        <AntDesign.Col Span="24" Style="height: 60%;">
             <Row Gutter="16" Style="height: 100%;">
                 <!-- 章节列表区域 -->
                 <AntDesign.Col Span="6" Style="height: 100%;">
@@ -135,7 +135,7 @@
                                                   @key="@($"editor-{selectedChapter.Id}")"
                                                   @bind-Value="currentEditorValue"
                                                   OnContentChanged="OnEditorContentChanged"
-                                                  Style="height: 400px; min-height: 400px;" />
+                                                  Style="height: 425px;" />
                             }
                             else
                             {
@@ -152,7 +152,7 @@
         </AntDesign.Col>
 
         <!-- 下半区域：聊天记录区域 -->
-        <AntDesign.Col Span="24" Style="height: 50%; margin-top: 16px;">
+        <AntDesign.Col Span="24" Style="height: 40%; margin-top: 16px;">
             <Card Title="聊天记录" Size="@CardSize.Small" Style="height: 100%;">
                 <Extra>
                     <Space>
@@ -207,8 +207,8 @@
                             {
                                 <div style="margin-bottom: 16px;">
                                     <Text Strong="true" Style="font-size: 16px; color: #fa8c16;">📄 正文内容：</Text>
-                                    <div style="background: #fff7e6; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #fa8c16; white-space: pre-wrap;">
-                                        <Text Style="font-size: 14px; line-height: 1.8;">@currentAnalysisResult.MainBody</Text>
+                                    <div style="background: #fff7e6; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #fa8c16; white-space: pre-wrap; overflow-y:auto; height: 130px;">
+                                            <Text Style="font-size: 14px; line-height: 1.8;">@currentAnalysisResult.MainBody</Text>
                                     </div>
                                 </div>
                             }
@@ -237,7 +237,7 @@
                     else if (totalChatLogs == 0)
                     {
                         <div style="height: calc(100% - 80px); display: flex; align-items: center; justify-content: center;">
-                            <Empty Description="@("该书目暂无聊天记录")">
+                            <Empty Description="@("该书目暂无聊天记录分析结果。\n请先导入并分析聊天记录。")">
                                 <ChildContent>
                                     <Button Type="@ButtonType.Primary"
                                             OnClick="@(() => Navigation.NavigateTo($"/import/{BookId}"))">

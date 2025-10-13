@@ -137,6 +137,7 @@ class CodeMirrorSetup {
       crosshairCursor(),
       highlightActiveLine(),
       highlightActiveLineGutter(),
+      EditorView.lineWrapping, // 自动换行
 
       // Keymaps
       keymap.of([
