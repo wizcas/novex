@@ -355,7 +355,7 @@
         StateHasChanged();
     }
 
-    private void OnBookNameInput(ChangeEventArgs e)
+    private void OnBookNameInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)
     {
         newBookName = e.Value?.ToString() ?? string.Empty;
         StateHasChanged();

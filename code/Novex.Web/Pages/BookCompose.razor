@@ -2,6 +2,7 @@
 @using Novex.Data.Models
 @using Novex.Data.Services
 @using AntDesign
+@using Novex.Web.Components
 @inject IBookService BookService
 @inject IBookChapterService BookChapterService
 @inject IChatLogService ChatLogService
@@ -9,6 +10,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject IMessageService MessageService
+@implements IDisposable
 
 <PageTitle>编纂书目 - @(currentBook?.Name ?? "加载中...")</PageTitle>
 
@@ -129,16 +131,24 @@
                         <ChildContent>
                             @if (selectedChapter != null)
                             {
-                                <TextArea @bind-Value="selectedChapter.Content"
-                                          @bind-Value:after="SaveChapterContent"
-                                          Placeholder="在此编写章节内容（支持Markdown格式）..."
-                                          Style="height: calc(100% - 40px); font-family: 'Consolas', 'Monaco', monospace;"
-                                          ShowCount="true"/>
+                                <div style="margin-bottom: 10px; padding: 10px; background: #f0f0f0; border: 1px solid #ccc;">
+                                    <strong>调试信息:</strong> 选中章节: @selectedChapter.Title (ID: @selectedChapter.Id)<br/>
+                                    内容长度: @(currentEditorValue?.Length ?? 0) 字符<br/>
+                                    编辑器引用: @(editorObj != null ? "已创建" : "未创建")
+                                </div>
+
+                                <CodeMirrorEditor @ref="editorObj"
+                                                  @key="@($"editor-{selectedChapter.Id}")"
+                                                  @bind-Value="currentEditorValue"
+                                                  OnContentChanged="OnEditorContentChanged"
+                                                  Style="height: 400px; min-height: 400px;" />
                             }
                             else
                             {
                                 <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
                                     <Text Type="@TextElementType.Secondary">请选择一个章节开始编辑</Text>
+                                    <br/>
+                                    <Text Type="@TextElementType.Secondary">章节数量: @chapters.Count</Text>
                                 </div>
                             }
                         </ChildContent>
@@ -320,11 +330,21 @@
     private Book? currentBook;
     private List<BookChapter> chapters = new();
     private BookChapter? selectedChapter;
+    private CodeMirrorEditor? editorObj;
     private ChatLog? currentChatLog;
     private ChatLogAnalysisResult? currentAnalysisResult;
     private int currentChatLogIndex = 1;
     private int totalChatLogs = 0;
     private string exportFormat = "md";
+    private string _currentEditorValue = string.Empty;
+    private Timer? _debounceTimer;
+    private string currentEditorValue
+    {
+        get => _currentEditorValue;
+        set => _currentEditorValue = value;
+    }
+
+
 
     // 模态框相关
     private bool showAddChapterModal = false;
@@ -348,6 +368,22 @@
         await LoadBookData();
         await LoadChapters();
         await LoadChatLogData();
+
+        // 如果有章节，自动选择第一个
+        if (chapters.Any())
+        {
+            await SelectChapter(chapters.First());
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && selectedChapter != null && editorObj != null)
+        {
+            // 在首次渲染后尝试设置内容
+            await Task.Delay(500);
+            StateHasChanged();
+        }
     }
 
     private async Task LoadBookData()
@@ -392,8 +428,21 @@
 
     private async Task SelectChapter(BookChapter chapter)
     {
+        // 保存当前章节的更改
+        if (selectedChapter != null && selectedChapter != chapter)
+        {
+            selectedChapter.Content = currentEditorValue;
+            await SaveChapterContent();
+        }
+
         selectedChapter = chapter;
+        currentEditorValue = chapter.Content ?? string.Empty;
+
+        // 先触发重新渲染
         StateHasChanged();
+
+        // 等待一段时间让 Blazor 完成渲染
+        await Task.Delay(300);
     }
 
     private async Task SaveChapterContent()
@@ -403,6 +452,37 @@
             await BookChapterService.UpdateChapterAsync(selectedChapter);
         }
     }
+
+    private void OnEditorContentChanged(string newValue)
+    {
+        if (selectedChapter != null)
+        {
+            // 更新章节内容
+            selectedChapter.Content = newValue;
+
+            // 重置防抖计时器
+            _debounceTimer?.Dispose();
+            _debounceTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        await SaveChapterContent();
+                        StateHasChanged();
+                    });
+                }
+                catch
+                {
+                    // 静默处理保存错误
+                }
+            }, null, TimeSpan.FromSeconds(1), Timeout.InfiniteTimeSpan);
+        }
+    }
+
+
+
+
 
     private void ShowAddChapterModal()
     {
@@ -501,7 +581,7 @@
         if (selectedChapter == null || currentAnalysisResult?.MainBody == null) return;
 
         // 在章节内容末尾添加新行并插入正文内容
-        var newContent = selectedChapter.Content;
+        var newContent = currentEditorValue;
         if (!string.IsNullOrEmpty(newContent) && !newContent.EndsWith("\n"))
         {
             newContent += "\n\n";
@@ -512,6 +592,7 @@
         }
 
         newContent += currentAnalysisResult.MainBody;
+        currentEditorValue = newContent;
         selectedChapter.Content = newContent;
 
         await BookChapterService.UpdateChapterAsync(selectedChapter);
@@ -576,5 +657,10 @@
         var base64 = Convert.ToBase64String(bytes);
 
         await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64);
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
     }
 }

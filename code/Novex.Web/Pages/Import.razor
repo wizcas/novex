@@ -38,17 +38,17 @@
             <Text Strong="true">选择书目：</Text>
         </div>
         <Select DataSource="@filteredBooks" Value="@selectedBookId"
-                ValueChanged="@((int? value) => OnBookIdChanged(value))" ItemValue="b => b.Id" ItemLabel="b => b.Name"
-                Placeholder="搜索或选择书目..." EnableSearch="true" AutoClearSearchValue="false" AllowClear="true"
-                Disabled="@isImporting" Size="@InputSize.Large" OnSearch="OnBookSearch" Style="width: 100%;">
+            ValueChanged="@((int? value) => OnBookIdChanged(value))" ItemValue="b => b.Id" ItemLabel="b => b.Name"
+            Placeholder="搜索或选择书目..." EnableSearch="true" AutoClearSearchValue="false" AllowClear="true"
+            Disabled="@isImporting" Size="@InputSize.Large" OnSearch="OnBookSearch" Style="width: 100%;">
             <DropdownRender Context="originNode">
                 <div>
                     @if (!string.IsNullOrWhiteSpace(bookSearchTerm) && !filteredBooks.Any(b => string.Equals(b.Name,
-                                                                                                             bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
+                                        bookSearchTerm, StringComparison.OrdinalIgnoreCase)))
                     {
                         <div style="padding: 8px;">
                             <Button Type="@ButtonType.Link" Icon="@IconType.Outline.Plus"
-                                    OnClick="@(() => CreateNewBookFromSearch())" Style="width: 100%; text-align: left;">
+                                OnClick="@(() => CreateNewBookFromSearch())" Style="width: 100%; text-align: left;">
                                 创建书目：@bookSearchTerm
                             </Button>
                         </div>
@@ -63,7 +63,7 @@
         {
             <div style="margin-top: 8px;">
                 <Text Type="@TextElementType.Secondary">
-                    <Icon Type="check-circle" style="color: #52c41a; margin-right: 4px;"/>
+                    <Icon Type="check-circle" style="color: #52c41a; margin-right: 4px;" />
                     已选择书目：
                     <Text Strong="true">@selectedBook.Name</Text>
                 </Text>
@@ -77,9 +77,9 @@
         </div>
         <div
             style="border: 2px dashed #d9d9d9; border-radius: 6px; padding: 16px; text-align: center; background: #fafafa;">
-            <InputFile OnChange="@OnFileSelected" accept=".jsonl" style="display: none;" id="fileInput"/>
+            <InputFile OnChange="@OnFileSelected" accept=".jsonl" style="display: none;" id="fileInput" />
             <label for="fileInput" style="cursor: pointer; display: block;">
-                <Icon Type="inbox" style="font-size: 48px; color: #d9d9d9;"/>
+                <Icon Type="inbox" style="font-size: 48px; color: #d9d9d9;" />
                 <div style="margin-top: 8px; color: #666;">
                     点击或拖拽文件到此区域上传
                 </div>
@@ -93,7 +93,7 @@
         {
             <div style="margin-top: 8px;">
                 <Text Type="@TextElementType.Secondary">
-                    <Icon Type="file-text" style="color: #1890ff; margin-right: 4px;"/>
+                    <Icon Type="file-text" style="color: #1890ff; margin-right: 4px;" />
                     已选择文件：
                     <Text Strong="true">@selectedFile.Name</Text>
                     <Text Type="@TextElementType.Secondary">(@FormatFileSize(selectedFile.Size))</Text>
@@ -104,8 +104,8 @@
 
     <div style="margin-bottom: 24px;">
         <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Loading="@isImporting"
-                Disabled="@(selectedFile == null || selectedBook == null || isImporting)" OnClick="ImportFile">
-            <Icon Type="upload"/>
+            Disabled="@(selectedFile == null || selectedBook == null || isImporting)" OnClick="ImportFile">
+            <Icon Type="upload" />
             @if (isImporting)
             {
                 <text>导入中...</text>
@@ -122,14 +122,14 @@
                 @if (selectedBook == null)
                 {
                     <div style="color: #ff4d4f; font-size: 12px;">
-                        <Icon Type="exclamation-circle"/>
+                        <Icon Type="exclamation-circle" />
                         请先选择一个书目
                     </div>
                 }
                 @if (selectedFile == null)
                 {
                     <div style="color: #ff4d4f; font-size: 12px;">
-                        <Icon Type="exclamation-circle"/>
+                        <Icon Type="exclamation-circle" />
                         请先选择一个JSONL文件
                     </div>
                 }
@@ -140,8 +140,8 @@
     @if (!string.IsNullOrEmpty(message))
     {
         <div style="margin-bottom: 24px;">
-            <Alert Type="@(isSuccess ? AlertType.Success : AlertType.Error)" ShowIcon="true" Closable="true"
-                   OnClose="() => { message = string.Empty; statisticsMessage = string.Empty; }">
+            <Alert Type="@(isSuccess? AlertType.Success: AlertType.Error)" ShowIcon="true" Closable="true"
+                OnClose="() => { message = string.Empty; statisticsMessage = string.Empty; }">
                 <MessageTemplate>
                     <div>@message</div>
                     @if (!string.IsNullOrEmpty(statisticsMessage))
@@ -160,7 +160,7 @@
 @code {
     [Parameter]
     public int? BookId { get; set; }
-    
+
     private IBrowserFile? selectedFile;
     private bool isImporting;
     private string message = string.Empty;
@@ -178,7 +178,7 @@
     protected async override Task OnInitializedAsync()
     {
         await LoadBooks();
-        
+
         // 如果有BookId参数，自动选中对应的书目
         if (BookId.HasValue)
         {
@@ -314,7 +314,7 @@
         return string.Format("{0:n1} {1}", number, suffixes[counter]);
     }
 
-    private async Task OnBookSearchInput(ChangeEventArgs e)
+    private async Task OnBookSearchInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)
     {
         bookSearchTerm = e.Value?.ToString() ?? string.Empty;
         await FilterBooks();
@@ -406,18 +406,18 @@
             {
                 message = "聊天记录导入成功！";
                 statisticsMessage = $"📊 导入统计：\n" +
-                                    $"• 读取行数: {result.TotalLinesRead}\n" +
-                                    $"• 有效记录: {result.ValidRecordsFound}\n" +
-                                    $"• 成功导入: {result.ImportedRecords}";
+                $"• 读取行数: {result.TotalLinesRead}\n" +
+                $"• 有效记录: {result.ValidRecordsFound}\n" +
+                $"• 成功导入: {result.ImportedRecords}";
                 isSuccess = true;
             }
             else
             {
                 message = $"导入失败：{result.ErrorMessage ?? "未知错误"}";
                 statisticsMessage = $"📊 处理统计：\n" +
-                                    $"• 读取行数: {result.TotalLinesRead}\n" +
-                                    $"• 有效记录: {result.ValidRecordsFound}\n" +
-                                    $"• 成功导入: {result.ImportedRecords}";
+                $"• 读取行数: {result.TotalLinesRead}\n" +
+                $"• 有效记录: {result.ValidRecordsFound}\n" +
+                $"• 成功导入: {result.ImportedRecords}";
                 isSuccess = false;
             }
         }

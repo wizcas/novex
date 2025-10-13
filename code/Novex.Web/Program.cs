@@ -1,5 +1,6 @@
 using Novex.Data.Context;
 using Novex.Data.Services;
+using Syncfusion.Blazor;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,9 @@ builder.Services.AddDbContext<NovexDbContext>(options =>
 
 // 添加 AntDesign 服务
 builder.Services.AddAntDesign();
+
+// 添加 Syncfusion 服务
+builder.Services.AddSyncfusionBlazor();
 
 // 添加服务
 builder.Services.AddScoped<IChatLogService, ChatLogService>();

@@ -1,0 +1,193 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+
+<div id="@EditorId" class="codemirror-container" style="@Style"></div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public EventCallback<string> OnContentChanged { get; set; }
+    [Parameter] public string? Style { get; set; } = "height: 400px; border: 1px solid #d9d9d9; border-radius: 6px;";
+    [Parameter] public bool IsDarkTheme { get; set; } = false;
+    [Parameter] public string? Placeholder { get; set; }
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private string EditorId { get; set; } = Guid.NewGuid().ToString("N");
+    private bool _isInitialized = false;
+    private string? _currentValue;
+    private DotNetObjectReference<CodeMirrorEditor>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitializeEditor();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_isInitialized && Value != _currentValue)
+        {
+            await SetEditorValue(Value ?? "");
+        }
+    }
+
+    private async Task InitializeEditor()
+    {
+        try
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+
+            // Create a simple global function to store the .NET reference
+            await JSRuntime.InvokeVoidAsync("eval", $@"
+                window.storeDotNetRef_{EditorId} = function(dotNetRef) {{
+                    window.dotNetRef_{EditorId} = dotNetRef;
+                    console.log('*** .NET reference stored for {EditorId} ***');
+                }};
+            ");
+
+            // Store the .NET reference using our helper function
+            await JSRuntime.InvokeVoidAsync($"storeDotNetRef_{EditorId}", _dotNetRef);
+
+            // Register event listener for content changes
+            await JSRuntime.InvokeVoidAsync("eval", $@"
+                document.getElementById('{EditorId}').addEventListener('codemirror-change', function(event) {{
+                    window.dotNetRef_{EditorId}.invokeMethodAsync('HandleContentChanged', event.detail.value);
+                }});
+            ");
+
+            // Create the editor
+            await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.createEditor", EditorId, Value ?? "", IsDarkTheme);
+
+            _isInitialized = true;
+            _currentValue = Value;
+        }
+        catch (Exception ex)
+        {
+            // Log errors to console
+            await JSRuntime.InvokeVoidAsync("eval", $"console.error('*** Blazor InitializeEditor error:', {System.Text.Json.JsonSerializer.Serialize(ex.Message)}, '***');");
+        }
+    }
+
+    private async Task SetEditorValue(string value)
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.setValue", EditorId, value);
+                _currentValue = value;
+            }
+            catch
+            {
+                // Silently handle errors
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task HandleContentChanged(string value)
+    {
+        if (value != _currentValue)
+        {
+            _currentValue = value;
+
+            // Update the bound Value parameter
+            if (ValueChanged.HasDelegate)
+            {
+                await ValueChanged.InvokeAsync(value);
+            }
+
+            // Trigger the content changed callback
+            if (OnContentChanged.HasDelegate)
+            {
+                await OnContentChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    public async Task<string> GetValueAsync()
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                return await JSRuntime.InvokeAsync<string>("CodeMirrorSetup.getValue", EditorId);
+            }
+            catch
+            {
+                return "";
+            }
+        }
+        return "";
+    }
+
+    public async Task SetValueAsync(string value)
+    {
+        await SetEditorValue(value);
+    }
+
+    public async Task FocusAsync()
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.focus", EditorId);
+            }
+            catch
+            {
+                // Silently handle focus errors
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.destroy", EditorId);
+                // Clean up the JavaScript references
+                await JSRuntime.InvokeVoidAsync("eval", $"delete window.dotNetRef_{EditorId}; delete window.storeDotNetRef_{EditorId};");
+            }
+            catch
+            {
+                // Silently handle disposal errors
+            }
+        }
+
+        _dotNetRef?.Dispose();
+    }
+}
+
+<style>
+    .codemirror-container {
+        position: relative;
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .codemirror-container textarea {
+        border: none !important;
+        outline: none !important;
+        resize: none !important;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+        padding: 12px !important;
+        width: 100% !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .codemirror-container textarea:focus {
+        outline: 2px solid #1890ff !important;
+        outline-offset: -2px !important;
+    }
+</style>

@@ -14,6 +14,7 @@
     <link href="css/site.css" rel="stylesheet" />
     <link href="Novex.Web.styles.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png" />
+
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
 
@@ -30,6 +31,21 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
+
+    <!-- Simple CodeMirror Setup -->
+    <script src="js/codemirror-simple.js"></script>
+
+    <!-- Test JavaScript Loading -->
+    <script>
+        console.log('*** Inline script executed ***');
+        console.log('*** Testing JavaScript availability ***');
+
+        // Test after a delay
+        setTimeout(() => {
+            if (window.CodeMirrorSetup) {
+            }
+        }, 2000);
+    </script>
 
     <script src="_framework/blazor.server.js"></script>
     <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
