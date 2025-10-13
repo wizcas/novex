@@ -10,6 +10,7 @@ import {
   historyKeymap,
 } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
+import { yaml } from '@codemirror/lang-yaml';
 import {
   bracketMatching,
   defaultHighlightStyle,
@@ -51,7 +52,7 @@ import {
 // Define the editor options interface
 interface EditorOptions {
   theme?: "light" | "dark";
-  language?: "markdown" | "text";
+  language?: "markdown" | "yaml" | "text";
   lineNumbers?: boolean;
   foldGutter?: boolean;
   dropCursor?: boolean;
@@ -191,6 +192,14 @@ class CodeMirrorSetup {
         extensions.push(markdownLightTheme);
         extensions.push(syntaxHighlighting(markdownLightHighlighting));
       }
+    } else if (config.language === "yaml") {
+      extensions.push(yaml());
+      if (config.theme === "dark") {
+        extensions.push(oneDark);
+      }
+      extensions.push(
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true })
+      );
     } else {
       // For non-markdown, use default themes
       if (config.theme === "dark") {

@@ -4,6 +4,7 @@
 @using Novex.Data.Services
 @using Novex.Analyzer
 @using Microsoft.AspNetCore.Components
+@using Novex.Web.Components
 @inject AnalysisRuleBookService RuleBookService
 @inject NavigationManager Navigation
 @inject IMessageService MessageService
@@ -45,8 +46,8 @@ else
           </Button>
         </Text>
       </div>
-      <TextArea @bind-Value="@ruleBook.Content" Placeholder="请输入 YAML 格式的规则书内容" Rows="20"
-        style="font-family: 'Courier New', monospace; font-size: 13px;" />
+      <CodeMirrorEditor Value="@ruleBook.Content" ValueChanged="OnContentChanged" IsDarkTheme="true" Language="yaml"
+        Style="height: 400px; font-size: 13px;" @key="ruleBook.Id" />
 
       @if (!string.IsNullOrEmpty(validationError))
       {
@@ -273,5 +274,11 @@ Targets:
   private void ShowSampleContent()
   {
     showSampleModal = true;
+  }
+
+  private async Task OnContentChanged(string value)
+  {
+    ruleBook.Content = value;
+    await InvokeAsync(StateHasChanged);
   }
 }
