@@ -1,0 +1,39 @@
+{
+  "name": "novex-editor-build",
+  "version": "1.0.0",
+  "description": "CodeMirror TypeScript build for Novex.Web Blazor project",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=dist/codemirror-bundle.js --format=iife --sourcemap",
+    "build:prod": "esbuild src/index.ts --bundle --outfile=dist/codemirror-bundle.js --format=iife --minify",
+    "dev": "esbuild src/index.ts --bundle --outfile=dist/codemirror-bundle.js --format=iife --global-name=CodeMirrorSetup --sourcemap --watch",
+    "clean": "rimraf dist",
+    "copy": "pnpm run build:prod && copy dist\\codemirror-bundle.js ..\\Novex.Web\\wwwroot\\js\\codemirror-bundle.js"
+  },
+  "dependencies": {
+    "@codemirror/view": "^6.21.3",
+    "@codemirror/state": "^6.3.1",
+    "@codemirror/commands": "^6.3.0",
+    "@codemirror/search": "^6.5.4",
+    "@codemirror/autocomplete": "^6.10.2",
+    "@codemirror/lint": "^6.4.2",
+    "@codemirror/language": "^6.9.1",
+    "@codemirror/lang-markdown": "^6.2.2",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "codemirror": "^6.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.5",
+    "typescript": "^5.2.2",
+    "rimraf": "^5.0.5",
+    "@types/node": "^20.8.0"
+  },
+  "keywords": [
+    "codemirror",
+    "markdown",
+    "blazor",
+    "typescript"
+  ],
+  "author": "Novex",
+  "license": "MIT"
+}
