@@ -52,7 +52,44 @@
       const container = document.getElementById('editor-container');
       container.innerHTML = '<div id="' + editorId + '"></div>';
 
-      const result = window.CodeMirrorSetup.createEditor(editorId, '# Hello CodeMirror!\n\nThis is a **markdown** editor.\n\n- Item 1\n- Item 2\n- Item 3');
+      const markdownContent = `# Markdown 语法高亮测试
+
+这是一个**粗体文本**和*斜体文本*的示例。
+
+## 代码块
+
+\`\`\`javascript
+function test() {
+  console.log("Hello World!");
+}
+\`\`\`
+
+## 列表
+
+- 第一项
+- 第二项
+  - 嵌套项
+  - 另一个嵌套项
+
+## 链接和图片
+
+[这是一个链接](https://example.com)
+
+## 引用
+
+> 这是一个引用块
+> 
+> 支持多行引用
+
+## 表格
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| A   | B   | C   |
+| D   | E   | F   |
+`;
+
+      const result = window.CodeMirrorSetup.createEditor(editorId, markdownContent);
       console.log('Editor created:', result);
 
       // Add event listener

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown 语法高亮测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      height: 80vh;
+    }
+
+    .editor-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .editor-container h3 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #1890ff;
+      padding-bottom: 10px;
+    }
+
+    #light-editor,
+    #dark-editor {
+      height: 100%;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    .dark-theme {
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+
+    .dark-theme h3 {
+      color: #d4d4d4;
+      border-bottom-color: #007acc;
+    }
+
+    .dark-theme #dark-editor {
+      border-color: #3c3c3c;
+    }
+  </style>
+</head>
+
+<body>
+  <h1 style="text-align: center; color: #333; margin-bottom: 30px;">🎨 Markdown 语法高亮主题测试</h1>
+
+  <div class="container">
+    <div class="editor-container">
+      <h3>💡 浅色主题</h3>
+      <div id="light-editor"></div>
+    </div>
+
+    <div class="editor-container dark-theme">
+      <h3>🌙 深色主题</h3>
+      <div id="dark-editor"></div>
+    </div>
+  </div>
+
+  <script src="/js/codemirror-bundle.js"></script>
+  <script>
+    const sampleMarkdown = `# 第一章：开端
+
+这是一个**重要的开始**，我们来看看*语法高亮*的效果。
+
+## 二级标题测试
+
+### 三级标题测试
+
+这里有一些代码：
+
+\`\`\`javascript
+function hello() {
+    console.log('Hello World!');
+    return "Beautiful syntax highlighting!";
+}
+\`\`\`
+
+### 列表测试
+
+- 第一项内容
+- 第二项内容
+  - 嵌套项目 ✨
+  - 另一个嵌套项目
+
+1. 有序列表第一项
+2. 有序列表第二项
+3. 有序列表第三项
+
+### 引用测试
+
+> 这是一个引用块
+>
+> 它可以包含多行内容
+> > 还可以嵌套引用
+
+### 链接和代码
+
+这是一个[链接示例](https://example.com)，还有一些\`行内代码\`。
+
+---
+
+**粗体文本** 和 *斜体文本* 以及 ~~删除线文本~~。
+
+### 任务列表
+
+- [x] 已完成的任务 ✅
+- [ ] 未完成的任务
+- [x] 另一个已完成的任务
+
+### TypeScript 代码示例
+
+\`\`\`typescript
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+}
+
+const users: User[] = [
+  { id: 1, name: "张三", email: "zhang@example.com" },
+  { id: 2, name: "李四" }
+];
+
+function findUser(id: number): User | undefined {
+  return users.find(user => user.id === id);
+}
+\`\`\`
+
+### 表格测试
+
+| 功能 | 状态 | 描述 |
+|------|------|------|
+| 语法高亮 | ✅ | 支持多种语言 |
+| 主题切换 | ✅ | 浅色/深色主题 |
+| 自动保存 | ✅ | 1秒防抖 |
+
+### 数学公式
+
+行内公式：$E = mc^2$
+
+块级公式：
+$$
+\\sum_{i=1}^{n} x_i = \\frac{n(n+1)}{2}
+$$
+
+---
+
+**结论**：新的语法高亮主题提供了更好的视觉体验！🎉`;
+
+    // 创建浅色主题编辑器
+    const lightEditor = window.CodeMirrorSetup.createEditor('light-editor', sampleMarkdown, {
+      theme: 'light',
+      height: '100%'
+    });
+
+    // 创建深色主题编辑器
+    const darkEditor = window.CodeMirrorSetup.createEditor('dark-editor', sampleMarkdown, {
+      theme: 'dark',
+      height: '100%'
+    });
+
+    console.log('Markdown 语法高亮测试页面已加载');
+    console.log('浅色编辑器:', lightEditor);
+    console.log('深色编辑器:', darkEditor);
+  </script>
+</body>
+
+</html>

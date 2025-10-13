@@ -59,8 +59,9 @@
                 }});
             ");
 
-            // Create the editor
-            await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.createEditor", EditorId, Value ?? "", IsDarkTheme);
+            // Create the editor with options
+            var options = new { theme = IsDarkTheme ? "dark" : "light", height = "100%" };
+            await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.createEditor", EditorId, Value ?? "", options);
 
             _isInitialized = true;
             _currentValue = Value;

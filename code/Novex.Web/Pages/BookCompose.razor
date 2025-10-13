@@ -131,12 +131,6 @@
                         <ChildContent>
                             @if (selectedChapter != null)
                             {
-                                <div style="margin-bottom: 10px; padding: 10px; background: #f0f0f0; border: 1px solid #ccc;">
-                                    <strong>调试信息:</strong> 选中章节: @selectedChapter.Title (ID: @selectedChapter.Id)<br/>
-                                    内容长度: @(currentEditorValue?.Length ?? 0) 字符<br/>
-                                    编辑器引用: @(editorObj != null ? "已创建" : "未创建")
-                                </div>
-
                                 <CodeMirrorEditor @ref="editorObj"
                                                   @key="@($"editor-{selectedChapter.Id}")"
                                                   @bind-Value="currentEditorValue"

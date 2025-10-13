@@ -12,10 +12,12 @@ import {
 import { markdown } from '@codemirror/lang-markdown';
 import {
   bracketMatching,
+  defaultHighlightStyle,
   foldGutter,
   foldKeymap,
   indentOnInput,
   indentUnit,
+  syntaxHighlighting,
 } from '@codemirror/language';
 import {
   highlightSelectionMatches as searchHighlightSelectionMatches,
@@ -38,6 +40,13 @@ import {
   lineNumbers,
   rectangularSelection,
 } from '@codemirror/view';
+
+import {
+  markdownDarkHighlighting,
+  markdownDarkTheme,
+  markdownLightHighlighting,
+  markdownLightTheme,
+} from './themes';
 
 // Define the editor options interface
 interface EditorOptions {
@@ -149,28 +158,12 @@ class CodeMirrorSetup {
         }
       }),
 
-      // Editor styling
+      // Basic editor styling (will be overridden by theme)
       EditorView.theme({
         "&": {
-          height: config.height,
-          minHeight: config.minHeight,
-          maxHeight: config.maxHeight,
-        },
-        ".cm-content": {
-          padding: "12px",
-          fontSize: "14px",
-          fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
-          lineHeight: "1.5",
-        },
-        ".cm-focused": {
-          outline: "none",
-        },
-        ".cm-editor": {
-          borderRadius: "4px",
-          border: "1px solid #d9d9d9",
-        },
-        ".cm-scroller": {
-          overflow: "auto",
+          height: config.height || "400px",
+          minHeight: config.minHeight || "200px",
+          maxHeight: config.maxHeight || null,
         },
       }),
     ];
@@ -185,14 +178,26 @@ class CodeMirrorSetup {
       extensions.push(foldGutter());
     }
 
-    // Add language support
+    // Add language support and theme
     if (config.language === "markdown") {
       extensions.push(markdown());
-    }
 
-    // Add theme
-    if (config.theme === "dark") {
-      extensions.push(oneDark);
+      // Add theme-specific styling and syntax highlighting
+      if (config.theme === "dark") {
+        extensions.push(markdownDarkTheme);
+        extensions.push(syntaxHighlighting(markdownDarkHighlighting));
+      } else {
+        extensions.push(markdownLightTheme);
+        extensions.push(syntaxHighlighting(markdownLightHighlighting));
+      }
+    } else {
+      // For non-markdown, use default themes
+      if (config.theme === "dark") {
+        extensions.push(oneDark);
+      }
+      extensions.push(
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true })
+      );
     }
 
     // Add search highlighting
@@ -214,7 +219,9 @@ class CodeMirrorSetup {
     // Store reference
     this.editors.set(elementId, view);
 
-    console.log(`CodeMirror editor created for ${elementId}`);
+    console.log(
+      `CodeMirror editor created for ${elementId} with ${config.theme} theme`
+    );
     return { elementId: elementId };
   }
 
@@ -356,3 +363,12 @@ window.CodeMirrorSetup = new CodeMirrorSetup();
 
 // Export for potential module usage
 export default CodeMirrorSetup;
+
+// Also create a simpler global function for easier usage
+(window as any).createEditor = function (
+  elementId: string,
+  initialValue: string = "",
+  options: EditorOptions = {}
+) {
+  return window.CodeMirrorSetup.createEditor(elementId, initialValue, options);
+};
