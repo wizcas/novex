@@ -1,4 +1,8 @@
 import {
+  catppuccinLatte,
+  catppuccinMacchiato,
+} from '@catppuccin/codemirror';
+import {
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
@@ -28,7 +32,6 @@ import {
   EditorState,
   Extension,
 } from '@codemirror/state';
-import { oneDark } from '@codemirror/theme-one-dark';
 import {
   crosshairCursor,
   drawSelection,
@@ -41,13 +44,6 @@ import {
   lineNumbers,
   rectangularSelection,
 } from '@codemirror/view';
-
-import {
-  markdownDarkHighlighting,
-  markdownDarkTheme,
-  markdownLightHighlighting,
-  markdownLightTheme,
-} from './themes';
 
 // Define the editor options interface
 interface EditorOptions {
@@ -181,34 +177,24 @@ class CodeMirrorSetup {
     }
 
     // Add language support and theme
+    // 语言扩展
     if (config.language === "markdown") {
       extensions.push(markdown());
-
-      // Add theme-specific styling and syntax highlighting
-      if (config.theme === "dark") {
-        extensions.push(markdownDarkTheme);
-        extensions.push(syntaxHighlighting(markdownDarkHighlighting));
-      } else {
-        extensions.push(markdownLightTheme);
-        extensions.push(syntaxHighlighting(markdownLightHighlighting));
-      }
     } else if (config.language === "yaml") {
       extensions.push(yaml());
-      if (config.theme === "dark") {
-        extensions.push(oneDark);
-      }
-      extensions.push(
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true })
-      );
-    } else {
-      // For non-markdown, use default themes
-      if (config.theme === "dark") {
-        extensions.push(oneDark);
-      }
-      extensions.push(
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true })
-      );
     }
+
+    // 主题扩展（与语言无关）
+    if (config.theme === "dark") {
+      extensions.push(catppuccinMacchiato);
+    } else {
+      extensions.push(catppuccinLatte);
+    }
+
+    // 默认高亮
+    extensions.push(
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true })
+    );
 
     // Add search highlighting
     extensions.push(searchHighlightSelectionMatches());

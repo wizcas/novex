@@ -11,6 +11,7 @@
     "copy": "pnpm run build:prod && copy dist\\codemirror-bundle.js ..\\Novex.Web\\wwwroot\\js\\codemirror-bundle.js"
   },
   "dependencies": {
+    "@catppuccin/codemirror": "^1.0.1",
     "@codemirror/autocomplete": "^6.10.2",
     "@codemirror/commands": "^6.3.0",
     "@codemirror/lang-markdown": "^6.2.2",

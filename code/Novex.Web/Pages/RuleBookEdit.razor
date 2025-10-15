@@ -47,7 +47,7 @@ else
         </Text>
       </div>
       <CodeMirrorEditor Value="@ruleBook.Content" ValueChanged="OnContentChanged" IsDarkTheme="true" Language="yaml"
-        Style="height: 400px; font-size: 13px;" @key="ruleBook.Id" />
+        Style="height: 400px;" @key="ruleBook.Id" />
 
       @if (!string.IsNullOrEmpty(validationError))
       {

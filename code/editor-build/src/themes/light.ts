@@ -13,7 +13,7 @@ export const markdownLightTheme = EditorView.theme(
       padding: "16px",
       fontSize: "16px",
       fontFamily:
-        '"Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        '"Maple Mono NF CN","Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       lineHeight: "1.6",
       caretColor: "#517d93",
     },
@@ -127,7 +127,8 @@ export const markdownLightHighlighting = HighlightStyle.define([
   // 代码
   {
     tag: t.monospace,
-    fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace',
+    fontFamily:
+      '"Maple Mono NF CN", "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace',
     fontSize: "0.9em",
     color: "#2f4f4f", // 深石板灰
   },

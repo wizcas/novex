@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@catppuccin/codemirror':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@codemirror/autocomplete':
         specifier: ^6.10.2
         version: 6.19.0
@@ -62,6 +65,12 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@catppuccin/codemirror@1.0.1':
+    resolution: {integrity: sha512-qGHeTGu+sAvMclNl1YnkIxXkqrI3P9GXS0jWsgq68ITFDb5bz/5Xu4NIRYYwv1huNGaKLEBczhMHrLv7Vzb4Yg==}
+
+  '@catppuccin/palette@1.7.1':
+    resolution: {integrity: sha512-aRc1tbzrevOTV7nFTT9SRdF26w/MIwT4Jwt4fDMc9itRZUDXCuEDBLyz4TQMlqO9ZP8mf5Hu4Jr6D03NLFc6Gw==}
 
   '@codemirror/autocomplete@6.19.0':
     resolution: {integrity: sha512-61Hfv3cF07XvUxNeC3E7jhG8XNi1Yom1G0lRC936oLnlF+jrbrv8rc/J98XlYzcsAoTVupfsf5fLej1aI8kyIg==}
@@ -509,6 +518,16 @@ packages:
     engines: {node: '>=12'}
 
 snapshots:
+
+  '@catppuccin/codemirror@1.0.1':
+    dependencies:
+      '@catppuccin/palette': 1.7.1
+      '@codemirror/language': 6.11.3
+      '@codemirror/state': 6.5.2
+      '@codemirror/view': 6.38.6
+      '@lezer/highlight': 1.2.1
+
+  '@catppuccin/palette@1.7.1': {}
 
   '@codemirror/autocomplete@6.19.0':
     dependencies:
