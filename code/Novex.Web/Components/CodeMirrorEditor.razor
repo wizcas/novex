@@ -12,6 +12,18 @@
     [Parameter] public bool IsDarkTheme { get; set; } = false;
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public string? Language { get; set; } // 新增：支持语言参数
+    [Parameter] public bool? LineNumbers { get; set; }
+    [Parameter] public bool? FoldGutter { get; set; }
+    [Parameter] public bool? DropCursor { get; set; }
+    [Parameter] public bool? AllowMultipleSelections { get; set; }
+    [Parameter] public bool? IndentOnInput { get; set; }
+    [Parameter] public bool? BracketMatching { get; set; }
+    [Parameter] public bool? CloseBrackets { get; set; }
+    [Parameter] public bool? SearchKeymap { get; set; }
+    [Parameter] public int? TabSize { get; set; }
+    [Parameter] public string? Height { get; set; }
+    [Parameter] public string? MinHeight { get; set; }
+    [Parameter] public string? MaxHeight { get; set; }
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
@@ -60,12 +72,22 @@
                 }});
             ");
 
-            // Create the editor with options
-            var options = new {
-                theme = IsDarkTheme ? "dark" : "light",
-                height = "100%",
-                language = Language ?? "markdown" // 传递 Language 参数，默认 markdown
-            };
+            // 构造 options，只传递非空参数
+            var options = new System.Dynamic.ExpandoObject() as IDictionary<string, object?>;
+            options["theme"] = IsDarkTheme ? "dark" : "light";
+            if (!string.IsNullOrEmpty(Language)) options["language"] = Language;
+            if (!string.IsNullOrEmpty(Height)) options["height"] = Height;
+            if (!string.IsNullOrEmpty(MinHeight)) options["minHeight"] = MinHeight;
+            if (!string.IsNullOrEmpty(MaxHeight)) options["maxHeight"] = MaxHeight;
+            if (LineNumbers.HasValue) options["lineNumbers"] = LineNumbers.Value;
+            if (FoldGutter.HasValue) options["foldGutter"] = FoldGutter.Value;
+            if (DropCursor.HasValue) options["dropCursor"] = DropCursor.Value;
+            if (AllowMultipleSelections.HasValue) options["allowMultipleSelections"] = AllowMultipleSelections.Value;
+            if (IndentOnInput.HasValue) options["indentOnInput"] = IndentOnInput.Value;
+            if (BracketMatching.HasValue) options["bracketMatching"] = BracketMatching.Value;
+            if (CloseBrackets.HasValue) options["closeBrackets"] = CloseBrackets.Value;
+            if (SearchKeymap.HasValue) options["searchKeymap"] = SearchKeymap.Value;
+            if (TabSize.HasValue) options["tabSize"] = TabSize.Value;
             await JSRuntime.InvokeVoidAsync("CodeMirrorSetup.createEditor", EditorId, Value ?? "", options);
 
             _isInitialized = true;
