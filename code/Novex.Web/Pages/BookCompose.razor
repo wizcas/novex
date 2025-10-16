@@ -93,17 +93,26 @@
 
         <!-- 下半区域：聊天记录区域 -->
         <AntDesign.Col Span="24" Style="height: 40%; margin-top: 16px;">
-            <ChatLogComponent BookId="@BookId"
-                              SelectedChapter="@selectedChapter"
-                              CurrentChatLog="@currentChatLog"
-                              CurrentAnalysisResult="@currentAnalysisResult"
-                              @bind-CurrentChatLogIndex="currentChatLogIndex"
-                              TotalChatLogs="@totalChatLogs"
-                              OnPreviousChatLog="@PreviousChatLog"
-                              OnNextChatLog="@NextChatLog"
-                              OnJumpToChatLog="@JumpToChatLog"
-                              OnInsertToChapter="@InsertToChapter"
-                              OnNavigateTo="@(url => Navigation.NavigateTo(url))" />
+            <Row Gutter="16" Style="height: 100%;">
+                <AntDesign.Col Span="6" Style="height: 100%;">
+                    <ChatLogListComponent ChatLogs="@chatLogSummaries"
+                                          SelectedChatLogId="@(currentChatLog?.Id ?? 0)"
+                                          OnSelectChatLog="@SelectChatLog" />
+                </AntDesign.Col>
+                <AntDesign.Col Span="18" Style="height: 100%;">
+                    <ChatLogComponent BookId="@BookId"
+                                      SelectedChapter="@selectedChapter"
+                                      CurrentChatLog="@currentChatLog"
+                                      CurrentAnalysisResult="@currentAnalysisResult"
+                                      @bind-CurrentChatLogIndex="currentChatLogIndex"
+                                      TotalChatLogs="@totalChatLogs"
+                                      OnPreviousChatLog="@PreviousChatLog"
+                                      OnNextChatLog="@NextChatLog"
+                                      OnJumpToChatLog="@JumpToChatLog"
+                                      OnInsertToChapter="@InsertToChapter"
+                                      OnNavigateTo="@(url => Navigation.NavigateTo(url))" />
+                </AntDesign.Col>
+            </Row>
         </AntDesign.Col>
     </Row>
 </div>
@@ -147,6 +156,7 @@
     private string exportFormat = "md";
     private string _currentEditorValue = string.Empty;
     private Timer? _debounceTimer;
+    private List<(int ChatLogId, int Index, string Title, string Summary)> chatLogSummaries = new();
 
     private string CurrentEditorValue
     {
@@ -214,7 +224,15 @@
 
     private async Task LoadChatLogData()
     {
-        totalChatLogs = await ChatLogService.GetTotalCountWithFiltersAsync(BookId);
+        var allLogs = await ChatLogService.GetChatLogsWithFiltersAsync(BookId, pageSize: int.MaxValue);
+        totalChatLogs = allLogs.Count;
+
+        foreach (var log in allLogs)
+        {
+            var analysis = await AnalysisService.GetAnalysisResultAsync(log.Id);
+            chatLogSummaries.Add((log.Id, log.Index, analysis?.Title ?? "未分析", analysis?.Summary ?? ""));
+        }
+
         if (totalChatLogs > 0)
         {
             await LoadCurrentChatLog();
@@ -249,6 +267,11 @@
         selectedChapter = chapter;
         CurrentEditorValue = chapter.Content ?? string.Empty;
         StateHasChanged();
+    }
+
+    private async Task SelectChatLog((int ChatLogId, int Index, string Title, string Summary) item)
+    {
+        await JumpToChatLog(item.Index);
     }
 
     private async Task SaveChapterContent()

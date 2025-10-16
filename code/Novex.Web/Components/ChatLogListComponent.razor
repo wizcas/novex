@@ -1,0 +1,80 @@
+﻿@using AntDesign
+
+<Card Title="聊天记录列表" Size="@CardSize.Small" Style="height: 100%;" class="chatlog-card">
+    <ChildContent>
+        <div style="height: 100%; overflow-y: auto;">
+            @if (ChatLogs != null && ChatLogs.Any())
+            {
+                <div id="chatlog-list">
+                    @foreach (var item in ChatLogs)
+                    {
+                        <div class="chatlog-item @(SelectedChatLogId == item.ChatLogId ? "selected" : "")"
+                             @onclick="() => OnSelectChatLog.InvokeAsync(item)">
+                            <div class="chatlog-content">
+                                <div>
+                                    <span class="index-badge">#@item.Index</span>
+                                    <Text Strong="true"> @item.Title</Text>
+                                </div>
+                                <div>
+                                    <Text Type="@TextElementType.Secondary">@item.Summary</Text>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <Empty Description="@("正在加载或暂无记录")"/>
+            }
+        </div>
+    </ChildContent>
+</Card>
+
+<style>
+    .chatlog-card .ant-card-body {
+        height: 100%;
+    }
+    
+    .index-badge{
+        font-size: .75em;
+    }
+
+    .chatlog-item {
+        padding: 8px 12px;
+        margin-bottom: 4px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 1px solid transparent;
+        border-left: 4px solid transparent;
+    }
+
+    .chatlog-item:hover {
+        background-color: #f5f5f5;
+    }
+
+    .chatlog-item.selected {
+        background-color: #e6f7ff;
+        border-left-color: #1890ff;
+    }
+
+    .chatlog-content > div {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
+@code {
+
+    [Parameter]
+    public List<(int ChatLogId, int Index, string Title, string Summary)> ChatLogs { get; set; }
+
+    [Parameter]
+    public int SelectedChatLogId { get; set; }
+
+    [Parameter]
+    public EventCallback<(int ChatLogId, int Index, string Title, string Summary)> OnSelectChatLog { get; set; }
+
+}
