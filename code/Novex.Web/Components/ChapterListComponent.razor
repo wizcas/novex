@@ -1,0 +1,99 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using Novex.Data.Models
+@using AntDesign
+
+<Card Title="章节列表" Size="@CardSize.Small" Style="height: 100%;">
+    <Extra>
+        <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
+                Icon="@IconType.Outline.Plus" OnClick="@OnAddChapter">
+            新增章节
+        </Button>
+    </Extra>
+    <ChildContent>
+        <div style="height: calc(100% - 80px); overflow-y: auto;">
+            @if (Chapters.Any())
+            {
+                <div id="chapter-list">
+                    @foreach (var chapter in Chapters)
+                    {
+                        <div class="chapter-item @(SelectedChapter?.Id == chapter.Id ? "selected" : "")"
+                             @onclick="@(() => OnSelectChapter.InvokeAsync(chapter))"
+                             data-chapter-id="@chapter.Id">
+                            <div class="chapter-content">
+                                <Text Strong="@(SelectedChapter?.Id == chapter.Id)">
+                                    第@(chapter.Order)章 @chapter.Title
+                                </Text>
+                                <div class="chapter-actions">
+                                    <span @onclick:stopPropagation="true">
+                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
+                                                Icon="@IconType.Outline.Edit"
+                                                OnClick="@(() => OnEditChapter.InvokeAsync(chapter))" />
+                                    </span>
+                                    <span @onclick:stopPropagation="true">
+                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
+                                                Icon="@IconType.Outline.Delete" Danger="true"
+                                                OnClick="@(() => OnDeleteChapter.InvokeAsync(chapter))" />
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <Empty Description="@("暂无章节")">
+                    <ChildContent>
+                        <Button Type="@ButtonType.Primary" OnClick="@OnAddChapter">
+                            创建第一个章节
+                        </Button>
+                    </ChildContent>
+                </Empty>
+            }
+        </div>
+    </ChildContent>
+</Card>
+
+<style>
+.chapter-item {
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.chapter-item:hover {
+    background-color: #f5f5f5;
+}
+
+.chapter-item.selected {
+    background-color: #e6f7ff;
+    border-color: #1890ff;
+}
+
+.chapter-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chapter-actions {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.chapter-item:hover .chapter-actions {
+    opacity: 1;
+}
+</style>
+
+@code {
+    [Parameter] public List<BookChapter> Chapters { get; set; } = new();
+    [Parameter] public BookChapter? SelectedChapter { get; set; }
+    [Parameter] public EventCallback<BookChapter> OnSelectChapter { get; set; }
+    [Parameter] public EventCallback OnAddChapter { get; set; }
+    [Parameter] public EventCallback<BookChapter> OnEditChapter { get; set; }
+    [Parameter] public EventCallback<BookChapter> OnDeleteChapter { get; set; }
+}

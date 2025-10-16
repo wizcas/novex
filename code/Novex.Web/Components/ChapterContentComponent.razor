@@ -1,0 +1,31 @@
+﻿@using Novex.Data.Models
+@using AntDesign
+
+<Card Title="@(SelectedChapter != null ? $"第{SelectedChapter.Order}章 {SelectedChapter.Title}" : "章节内容")"
+      Size="@CardSize.Small" Style="height: 100%;">
+    <ChildContent>
+        @if (SelectedChapter != null)
+        {
+            <CodeMirrorEditor @ref="editorRef"
+                              @key="@($"editor-{SelectedChapter.Id}")"
+                              Value="@Value"
+                              OnContentChanged="@((newValue) => ValueChanged.InvokeAsync(newValue))"
+                              Style="height: 425px;"
+                              LineNumbers="false" />
+        }
+        else
+        {
+            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <Text Type="@TextElementType.Secondary">请选择一个章节开始编辑</Text>
+            </div>
+        }
+    </ChildContent>
+</Card>
+
+@code {
+    [Parameter] public BookChapter? SelectedChapter { get; set; }
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private CodeMirrorEditor? editorRef;
+}
