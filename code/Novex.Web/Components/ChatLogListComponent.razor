@@ -9,7 +9,7 @@
                     @foreach (var item in ChatLogs)
                     {
                         <div class="chatlog-item @(SelectedChatLogId == item.ChatLogId ? "selected" : "")"
-                             @onclick="() => OnSelectChatLog.InvokeAsync(item)">
+                            @onclick="() => OnSelectChatLog.InvokeAsync(item)">
                             <div class="chatlog-content">
                                 <div>
                                     <span class="index-badge">#@item.Index</span>
@@ -25,7 +25,7 @@
             }
             else
             {
-                <Empty Description="@("正在加载或暂无记录")"/>
+                <Empty Description="@("正在加载或暂无记录")" />
             }
         </div>
     </ChildContent>
@@ -35,8 +35,8 @@
     .chatlog-card .ant-card-body {
         height: 100%;
     }
-    
-    .index-badge{
+
+    .index-badge {
         font-size: .75em;
     }
 
@@ -59,7 +59,7 @@
         border-left-color: #1890ff;
     }
 
-    .chatlog-content > div {
+    .chatlog-content>div {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -69,7 +69,7 @@
 @code {
 
     [Parameter]
-    public List<(int ChatLogId, int Index, string Title, string Summary)> ChatLogs { get; set; }
+    public List<(int ChatLogId, int Index, string Title, string Summary)> ChatLogs { get; set; } = new();
 
     [Parameter]
     public int SelectedChatLogId { get; set; }
