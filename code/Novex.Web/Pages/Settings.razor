@@ -75,6 +75,12 @@
   protected override async Task OnInitializedAsync()
   {
     _setting = await LLMSettingService.GetFirstSettingAsync() ?? new LLMSetting();
+
+    // 如果已保存的模型名称存在，但模型列表为空，则将该模型名称添加到列表中以便显示
+    if (!string.IsNullOrEmpty(_setting.ModelName) && !_models.Contains(_setting.ModelName))
+    {
+      _models.Add(_setting.ModelName);
+    }
   }
 
   private async Task HandleAutoSave()
@@ -142,6 +148,11 @@
         else
         {
           var modelsResponse = System.Text.Json.JsonSerializer.Deserialize<OpenAIModelsList>(jsonString);
+          // 在合并新列表前，如果旧的选中模型不在新列表中，则保留它
+          if (!string.IsNullOrEmpty(_setting.ModelName) && !(modelsResponse?.Data?.Any(m => m.Id == _setting.ModelName) ?? false))
+          {
+            modelsResponse?.Data?.Insert(0, new OpenAIModel { Id = _setting.ModelName });
+          }
           _models = modelsResponse?.Data?.Select(m => m.Id).OrderBy(id => id).ToList() ?? new List<string>();
         }
 
@@ -155,6 +166,11 @@
           {
             _setting.ModelName = _models.First();
             await HandleAutoSave();
+          }
+          // 检查当前选中的模型是否在新的列表中，如果不在，给出提示
+          else if (!string.IsNullOrEmpty(_setting.ModelName) && !_models.Contains(_setting.ModelName))
+          {
+            MessageService.Warning($"当前保存的模型 '{_setting.ModelName}' 不在获取到的新列表中。");
           }
         }
         else
