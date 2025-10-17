@@ -1,5 +1,8 @@
 @page "/settings"
 @using System.ComponentModel.DataAnnotations
+@using Novex.Data.Models
+@using Novex.Data.Services
+@inject ILLMSettingService LLMSettingService
 
 <PageTitle>设置</PageTitle>
 
@@ -11,19 +14,19 @@
   <Divider Orientation="DividerOrientation.Left">LLM API 设置</Divider>
 
   <div style="max-width: 600px; margin-top: 24px;">
-    <Form Model="@model" LabelCol="new ColLayoutParam { Span = 6 }" WrapperCol="new ColLayoutParam { Span = 18 }">
+    <Form Model="@_setting" LabelCol="@(new ColLayoutParam { Span = 6 })" WrapperCol="@(new ColLayoutParam { Span = 18 })">
       <FormItem Label="API 地址">
-        <Input @bind-Value="@context.ApiUrl" Placeholder="请输入 OpenAI 兼容的 API 地址" />
+        <Input @bind-Value="@_setting.ApiUrl" @bind-Value:after="() => OnInputChanged()" Placeholder="请输入 OpenAI 兼容的 API 地址" />
       </FormItem>
 
       <FormItem Label="API 密钥">
-        <InputPassword @bind-Value="@context.ApiKey" Placeholder="请输入您的 API 密钥" />
+        <InputPassword @bind-Value="@_setting.ApiKey" @bind-Value:after="() => OnInputChanged()" Placeholder="请输入您的 API 密钥" />
       </FormItem>
 
       <FormItem Label="模型">
         <Row>
           <Col Span="16">
-          <Select TItem="string" TItemValue="string" @bind-Value="@context.ModelName" Placeholder="获取模型列表以选择模型"
+          <Select TItem="string" TItemValue="string" @bind-Value="@_setting.ModelName" @bind-Value:after="HandleAutoSave" Placeholder="获取模型列表以选择模型"
             Style="width: 100%;">
             @if (_models.Any())
             {
@@ -35,10 +38,17 @@
           </Select>
           </Col>
           <Col Span="8">
-          <Button OnClick="FetchModels"
-            Disabled="string.IsNullOrWhiteSpace(context.ApiUrl) || string.IsNullOrWhiteSpace(context.ApiKey)" Block
+          <Button OnClick="HandleFetchModelsClick" Loading="_isFetchingModels"
+            Disabled="string.IsNullOrWhiteSpace(_setting.ApiUrl) || string.IsNullOrWhiteSpace(_setting.ApiKey)" Block
             Style="margin-left: 8px;">
-            获取模型
+            @if (_isFetchingModels)
+            {
+              <span>取消</span>
+            }
+            else
+            {
+              <span>获取模型</span>
+            }
           </Button>
           </Col>
         </Row>
@@ -49,30 +59,66 @@
 </div>
 
 @code {
-  public class Model
-  {
-    [Required]
-    public string? ApiUrl { get; set; }
+  private LLMSetting _setting = new();
+  private List<string> _models = new();
+  private bool _isFetchingModels = false;
+  private CancellationTokenSource? _cts;
+  private Timer? _debounceTimer;
 
-    [Required]
-    public string? ApiKey { get; set; }
-    [Required]
-    public string? ModelName { get; set; }
+  protected override async Task OnInitializedAsync()
+  {
+    _setting = await LLMSettingService.GetFirstSettingAsync() ?? new LLMSetting();
   }
 
-  private Model model = new Model();
-
-  private List<string> _models = new();
-
-  private async Task FetchModels()
+  private async Task HandleAutoSave()
   {
-    // This is a placeholder for the actual logic to fetch models from the API.
-    // In a real implementation, you would make an HTTP request here.
-    _models = new List<string> { "gpt-4", "gpt-3.5-turbo", "text-davinci-003" };
-    if (string.IsNullOrEmpty(model.ModelName) && _models.Any())
+    await LLMSettingService.SaveSettingAsync(_setting);
+  }
+
+  private void OnInputChanged()
+  {
+    _debounceTimer?.Dispose();
+    _debounceTimer = new Timer(async _ => await InvokeAsync(HandleAutoSave), null, 500, Timeout.Infinite);
+  }
+
+  private async Task HandleFetchModelsClick()
+  {
+    if (_isFetchingModels)
     {
-      model.ModelName = _models.First();
+      _cts?.Cancel();
+      _isFetchingModels = false;
     }
+    else
+    {
+      await FetchModelsAsync();
+    }
+  }
+
+  private async Task FetchModelsAsync()
+  {
+    _isFetchingModels = true;
+    _cts = new CancellationTokenSource();
     await InvokeAsync(StateHasChanged);
+
+    try
+    {
+      // 这是一个模拟实现。在实际应用中，您会在这里发起 HTTP 请求。
+      await Task.Delay(2000, _cts.Token); // 模拟网络延迟
+      _models = new List<string> { "gpt-4", "gpt-3.5-turbo", "gpt-4o-mini" };
+
+      if (string.IsNullOrEmpty(_setting.ModelName) && _models.Any())
+      {
+        _setting.ModelName = _models.First();
+        await HandleAutoSave();
+      }
+    }
+    catch (TaskCanceledException) { /* 用户取消，忽略异常 */ }
+    finally
+    {
+      _isFetchingModels = false;
+      _cts?.Dispose();
+      _cts = null;
+      await InvokeAsync(StateHasChanged);
+    }
   }
 }
