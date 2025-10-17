@@ -5,20 +5,19 @@ namespace Novex.Data.Context;
 
 public class NovexDbContext : DbContext
 {
-  public NovexDbContext(DbContextOptions<NovexDbContext> options) : base(options)
-  {
-  }
+  public NovexDbContext(DbContextOptions<NovexDbContext> options) : base(options) { }
 
   public DbSet<ChatLog> ChatLogs { get; set; }
   public DbSet<Book> Books { get; set; }
+  public DbSet<BookChapter> BookChapters { get; set; }
   public DbSet<ChatLogAnalysisResult> ChatLogAnalysisResults { get; set; }
   public DbSet<ChatLogAnalysisRuleBook> ChatLogAnalysisRuleBooks { get; set; }
-  public DbSet<BookChapter> BookChapters { get; set; }
+
+  // 新增 LLMSetting DbSet
+  public DbSet<LLMSetting> LLMSettings { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
-    base.OnModelCreating(modelBuilder);
-
     modelBuilder.Entity<Book>(entity => {
       entity.HasKey(e => e.Id);
       entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
@@ -98,6 +97,13 @@ public class NovexDbContext : DbContext
       // 创建索引以优化查询性能
       entity.HasIndex(e => e.BookId);
       entity.HasIndex(e => new { e.BookId, e.Order }).IsUnique();
+    });
+
+    modelBuilder.Entity<LLMSetting>(entity => {
+      entity.HasKey(e => e.Id);
+      entity.Property(e => e.ApiUrl);
+      entity.Property(e => e.ApiKey);
+      entity.Property(e => e.ModelName);
     });
   }
 }
