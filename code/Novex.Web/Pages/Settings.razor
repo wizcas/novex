@@ -3,6 +3,9 @@
 @using Novex.Data.Models
 @using Novex.Data.Services
 @inject ILLMSettingService LLMSettingService
+@inject IHttpClientFactory HttpClientFactory
+@inject IMessageService MessageService
+@using System.Text.Json.Serialization
 
 <PageTitle>设置</PageTitle>
 
@@ -14,20 +17,23 @@
   <Divider Orientation="DividerOrientation.Left">LLM API 设置</Divider>
 
   <div style="max-width: 600px; margin-top: 24px;">
-    <Form Model="@_setting" LabelCol="@(new ColLayoutParam { Span = 6 })" WrapperCol="@(new ColLayoutParam { Span = 18 })">
+    <Form Model="@_setting" LabelCol="@(new ColLayoutParam { Span = 6 })"
+      WrapperCol="@(new ColLayoutParam { Span = 18 })">
       <FormItem Label="API 地址">
-        <Input @bind-Value="@_setting.ApiUrl" @bind-Value:after="() => OnInputChanged()" Placeholder="请输入 OpenAI 兼容的 API 地址" />
+        <Input @bind-Value="@_setting.ApiUrl" @bind-Value:after="() => OnInputChanged()"
+          Placeholder="请输入 OpenAI 兼容的 API 地址" />
       </FormItem>
 
       <FormItem Label="API 密钥">
-        <InputPassword @bind-Value="@_setting.ApiKey" @bind-Value:after="() => OnInputChanged()" Placeholder="请输入您的 API 密钥" />
+        <InputPassword @bind-Value="@_setting.ApiKey" @bind-Value:after="() => OnInputChanged()"
+          Placeholder="请输入您的 API 密钥" />
       </FormItem>
 
       <FormItem Label="模型">
         <Row>
           <Col Span="16">
-          <Select TItem="string" TItemValue="string" @bind-Value="@_setting.ModelName" @bind-Value:after="HandleAutoSave" Placeholder="获取模型列表以选择模型"
-            Style="width: 100%;">
+          <Select TItem="string" TItemValue="string" @bind-Value="@_setting.ModelName"
+            @bind-Value:after="HandleAutoSave" Placeholder="获取模型列表以选择模型" Style="width: 100%;">
             @if (_models.Any())
             {
               @foreach (var model in _models)
@@ -64,6 +70,7 @@
   private bool _isFetchingModels = false;
   private CancellationTokenSource? _cts;
   private Timer? _debounceTimer;
+  private HttpClient? _httpClient;
 
   protected override async Task OnInitializedAsync()
   {
@@ -102,17 +109,75 @@
 
     try
     {
-      // 这是一个模拟实现。在实际应用中，您会在这里发起 HTTP 请求。
-      await Task.Delay(2000, _cts.Token); // 模拟网络延迟
-      _models = new List<string> { "gpt-4", "gpt-3.5-turbo", "gpt-4o-mini" };
+      _httpClient = HttpClientFactory.CreateClient();
+      var isGoogleApi = _setting.ApiUrl?.Contains("googleapis.com") ?? false;
+      string apiUrl;
+      HttpRequestMessage request;
 
-      if (string.IsNullOrEmpty(_setting.ModelName) && _models.Any())
+      if (isGoogleApi)
       {
-        _setting.ModelName = _models.First();
-        await HandleAutoSave();
+        // 适配 Google Gemini API
+        apiUrl = $"{_setting.ApiUrl?.TrimEnd('/')}/v1beta/models?key={_setting.ApiKey}";
+        request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+      }
+      else
+      {
+        // 兼容 OpenAI API
+        apiUrl = _setting.ApiUrl?.TrimEnd('/') + "/v1/models";
+        request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _setting.ApiKey);
+      }
+
+      var response = await _httpClient.SendAsync(request, _cts.Token);
+
+      if (response.IsSuccessStatusCode)
+      {
+        var jsonString = await response.Content.ReadAsStringAsync(_cts.Token);
+
+        if (isGoogleApi)
+        {
+          var modelsResponse = System.Text.Json.JsonSerializer.Deserialize<GoogleModelsList>(jsonString);
+          _models = modelsResponse?.Models?.Select(m => m.Name).OrderBy(id => id).ToList() ?? new List<string>();
+        }
+        else
+        {
+          var modelsResponse = System.Text.Json.JsonSerializer.Deserialize<OpenAIModelsList>(jsonString);
+          _models = modelsResponse?.Data?.Select(m => m.Id).OrderBy(id => id).ToList() ?? new List<string>();
+        }
+
+        // 统一处理模型列表获取后的逻辑
+        if (_models.Any())
+        {
+          MessageService.Success("模型列表获取成功！");
+
+          // 如果当前没有选中的模型，则自动选择第一个并保存
+          if (string.IsNullOrEmpty(_setting.ModelName))
+          {
+            _setting.ModelName = _models.First();
+            await HandleAutoSave();
+          }
+        }
+        else
+        {
+          _models.Clear();
+          MessageService.Warning("获取成功，但未返回任何可用模型。");
+        }
+      }
+      else
+      {
+        var errorContent = await response.Content.ReadAsStringAsync();
+        var errorMessage = $"获取模型列表失败: {response.ReasonPhrase} ({(int)response.StatusCode}) - {errorContent}";
+        MessageService.Error(errorMessage);
       }
     }
-    catch (TaskCanceledException) { /* 用户取消，忽略异常 */ }
+    catch (TaskCanceledException)
+    {
+      MessageService.Warning("操作已取消。");
+    }
+    catch (Exception ex)
+    {
+      MessageService.Error($"请求模型列表时发生错误: {ex.Message}");
+    }
     finally
     {
       _isFetchingModels = false;
@@ -120,5 +185,31 @@
       _cts = null;
       await InvokeAsync(StateHasChanged);
     }
+  }
+
+  // 用于反序列化 OpenAI /v1/models 响应的辅助类
+  private class OpenAIModelsList
+  {
+    [JsonPropertyName("data")]
+    public List<OpenAIModel> Data { get; set; } = new();
+  }
+
+  private class OpenAIModel
+  {
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+  }
+
+  // 用于反序列化 Google /v1beta/models 响应的辅助类
+  private class GoogleModelsList
+  {
+    [JsonPropertyName("models")]
+    public List<GoogleModel> Models { get; set; } = new();
+  }
+
+  private class GoogleModel
+  {
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
   }
 }

@@ -8,6 +8,9 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
+// 注册 HttpClientFactory
+builder.Services.AddHttpClient();
+
 // 添加数据库上下文 (使用工厂方法)
 builder.Services.AddDbContext<NovexDbContext>(options =>
                                                   NovexDbContextFactory.ConfigureDbContext(options, builder.Configuration));
