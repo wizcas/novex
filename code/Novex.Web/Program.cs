@@ -28,6 +28,7 @@ builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 builder.Services.AddScoped<AnalysisRuleBookService>();
 builder.Services.AddScoped<IBookChapterService, BookChapterService>();
 builder.Services.AddScoped<ILLMSettingService, LLMSettingService>();
+builder.Services.AddScoped<IAiTitleGenerationService, AiTitleGenerationService>();
 
 WebApplication app = builder.Build();
 
