@@ -1,11 +1,14 @@
 ﻿@using Microsoft.AspNetCore.Components.Web
 @using Novex.Data.Models
 @using AntDesign
+@using Novex.Data.Services
+@inject IBookChapterService BookChapterService
+@inject IMessageService MessageService
 
 <Card Title="章节列表" Size="@CardSize.Small" Style="height: 100%;">
     <Extra>
-        <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
-                Icon="@IconType.Outline.Plus" OnClick="@OnAddChapter">
+        <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Plus"
+            OnClick="ShowAddChapterModal">
             新增章节
         </Button>
     </Extra>
@@ -17,22 +20,24 @@
                     @foreach (var chapter in Chapters)
                     {
                         <div class="chapter-item @(SelectedChapter?.Id == chapter.Id ? "selected" : "")"
-                             @onclick="@(() => OnSelectChapter.InvokeAsync(chapter))"
-                             data-chapter-id="@chapter.Id">
+                            @onclick="@(() => OnSelectChapter.InvokeAsync(chapter))" data-chapter-id="@chapter.Id">
                             <div class="chapter-content">
                                 <Text Strong="@(SelectedChapter?.Id == chapter.Id)">
                                     第@(chapter.Order)章 @chapter.Title
                                 </Text>
                                 <div class="chapter-actions">
                                     <span @onclick:stopPropagation="true">
-                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
-                                                Icon="@IconType.Outline.Edit"
-                                                OnClick="@(() => OnEditChapter.InvokeAsync(chapter))" />
+                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small" Icon="@IconType.Outline.Edit"
+                                            OnClick="@(() => ShowEditChapterModal(chapter))" />
                                     </span>
                                     <span @onclick:stopPropagation="true">
-                                        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
-                                                Icon="@IconType.Outline.Delete" Danger="true"
-                                                OnClick="@(() => OnDeleteChapter.InvokeAsync(chapter))" />
+                                        <Popconfirm Title="确定要删除这个章节吗？"
+                                            OnConfirm="@(() => OnDeleteChapter.InvokeAsync(chapter))" Icon="delete">
+                                            <span>
+                                                <Button Type="@ButtonType.Text" Size="@ButtonSize.Small"
+                                                    Icon="@IconType.Outline.Delete" Danger="true" />
+                                            </span>
+                                        </Popconfirm>
                                     </span>
                                 </div>
                             </div>
@@ -44,7 +49,7 @@
             {
                 <Empty Description="@("暂无章节")">
                     <ChildContent>
-                        <Button Type="@ButtonType.Primary" OnClick="@OnAddChapter">
+                        <Button Type="@ButtonType.Primary" OnClick="ShowAddChapterModal">
                             创建第一个章节
                         </Button>
                     </ChildContent>
@@ -54,46 +59,125 @@
     </ChildContent>
 </Card>
 
+<!-- 新增章节模态框 -->
+<Modal Title="新增章节" @bind-Visible="showAddChapterModal" OnOk="AddChapter"
+    OnCancel="@(() => showAddChapterModal = false)">
+    <Form Model="@newChapterForm">
+        <FormItem Label="章节标题">
+            <Input @bind-Value="newChapterForm.Title" Placeholder="请输入章节标题" />
+        </FormItem>
+    </Form>
+</Modal>
+
+<!-- 编辑章节标题模态框 -->
+<Modal Title="编辑章节标题" @bind-Visible="showEditChapterModal" OnOk="UpdateChapterTitle"
+    OnCancel="@(() => showEditChapterModal = false)">
+    <Form Model="@editChapterForm">
+        <FormItem Label="章节标题">
+            <Input @bind-Value="editChapterForm.Title" Placeholder="请输入章节标题" />
+        </FormItem>
+    </Form>
+</Modal>
+
 <style>
-.chapter-item {
-    padding: 8px 12px;
-    margin-bottom: 4px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 1px solid transparent;
-}
+    .chapter-item {
+        padding: 8px 12px;
+        margin-bottom: 4px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 1px solid transparent;
+    }
 
-.chapter-item:hover {
-    background-color: #f5f5f5;
-}
+    .chapter-item:hover {
+        background-color: #f5f5f5;
+    }
 
-.chapter-item.selected {
-    background-color: #e6f7ff;
-    border-color: #1890ff;
-}
+    .chapter-item.selected {
+        background-color: #e6f7ff;
+        border-color: #1890ff;
+    }
 
-.chapter-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+    .chapter-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-.chapter-actions {
-    opacity: 0;
-    transition: opacity 0.3s;
-}
+    .chapter-actions {
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
 
-.chapter-item:hover .chapter-actions {
-    opacity: 1;
-}
+    .chapter-item:hover .chapter-actions {
+        opacity: 1;
+    }
 </style>
 
 @code {
     [Parameter] public List<BookChapter> Chapters { get; set; } = new();
+    [Parameter] public int BookId { get; set; }
     [Parameter] public BookChapter? SelectedChapter { get; set; }
     [Parameter] public EventCallback<BookChapter> OnSelectChapter { get; set; }
-    [Parameter] public EventCallback OnAddChapter { get; set; }
-    [Parameter] public EventCallback<BookChapter> OnEditChapter { get; set; }
     [Parameter] public EventCallback<BookChapter> OnDeleteChapter { get; set; }
+    [Parameter] public EventCallback<BookChapter> OnChapterAdded { get; set; }
+    [Parameter] public EventCallback<BookChapter> OnChapterUpdated { get; set; }
+
+    // 模态框相关
+    private bool showAddChapterModal = false;
+    private bool showEditChapterModal = false;
+    private NewChapterForm newChapterForm = new();
+    private EditChapterForm editChapterForm = new();
+    private BookChapter? editingChapter;
+
+    public class NewChapterForm
+    {
+        public string Title { get; set; } = string.Empty;
+    }
+
+    public class EditChapterForm
+    {
+        public string Title { get; set; } = string.Empty;
+    }
+
+    private void ShowAddChapterModal()
+    {
+        newChapterForm = new NewChapterForm();
+        showAddChapterModal = true;
+    }
+
+    private async Task AddChapter()
+    {
+        if (string.IsNullOrWhiteSpace(newChapterForm.Title))
+        {
+            MessageService.Error("请输入章节标题");
+            return;
+        }
+
+        var nextOrder = await BookChapterService.GetNextOrderAsync(BookId);
+        var newChapter = await BookChapterService.CreateChapterAsync(BookId, newChapterForm.Title, nextOrder);
+
+        showAddChapterModal = false;
+        await OnChapterAdded.InvokeAsync(newChapter);
+        MessageService.Success("章节创建成功");
+    }
+
+    private void ShowEditChapterModal(BookChapter chapter)
+    {
+        editingChapter = chapter;
+        editChapterForm = new EditChapterForm { Title = chapter.Title };
+        showEditChapterModal = true;
+    }
+
+    private async Task UpdateChapterTitle()
+    {
+        if (editingChapter == null || string.IsNullOrWhiteSpace(editChapterForm.Title)) return;
+
+        editingChapter.Title = editChapterForm.Title;
+        await BookChapterService.UpdateChapterAsync(editingChapter);
+
+        showEditChapterModal = false;
+        await OnChapterUpdated.InvokeAsync(editingChapter);
+        MessageService.Success("章节标题更新成功");
+    }
 }

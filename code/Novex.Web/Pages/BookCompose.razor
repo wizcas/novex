@@ -26,7 +26,7 @@
             </AntDesign.Col>
             <AntDesign.Col>
                 <Button Type="@ButtonType.Default" Icon="@IconType.Outline.ArrowLeft"
-                        OnClick="@(() => Navigation.NavigateTo("/books"))">
+                    OnClick="@(() => Navigation.NavigateTo("/books"))">
                     返回书目管理
                 </Button>
             </AntDesign.Col>
@@ -42,25 +42,25 @@
                 </SpaceItem>
                 <SpaceItem>
                     <Select TItemValue="string" TItem="string" @bind-Value="exportFormat" Style="width: 120px;">
-                        <SelectOption TItemValue="string" TItem="string" Value="@("md")" Label="Markdown"/>
-                        <SelectOption TItemValue="string" TItem="string" Value="@("txt")" Label="文本"/>
+                        <SelectOption TItemValue="string" TItem="string" Value="@("md")" Label="Markdown" />
+                        <SelectOption TItemValue="string" TItem="string" Value="@("txt")" Label="文本" />
                     </Select>
                 </SpaceItem>
                 <SpaceItem>
-                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Download"
-                            OnClick="ExportSelectedChapter" Disabled="@(selectedChapter == null)">
+                    <Button Type="@ButtonType.Primary" Icon="@IconType.Outline.Download" OnClick="ExportSelectedChapter"
+                        Disabled="@(selectedChapter == null)">
                         导出选中章节
                     </Button>
                 </SpaceItem>
                 <SpaceItem>
-                    <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Download"
-                            OnClick="ExportAllChapters" Disabled="@(chapters.Count == 0)">
+                    <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Download" OnClick="ExportAllChapters"
+                        Disabled="@(chapters.Count == 0)">
                         导出全部章节
                     </Button>
                 </SpaceItem>
                 <SpaceItem>
-                    <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Download"
-                            OnClick="ExportFullBook" Disabled="@(chapters.Count == 0)">
+                    <Button Type="@ButtonType.Default" Icon="@IconType.Outline.Download" OnClick="ExportFullBook"
+                        Disabled="@(chapters.Count == 0)">
                         导出全书
                     </Button>
                 </SpaceItem>
@@ -75,18 +75,14 @@
             <Row Gutter="16" Style="height: 100%;">
                 <!-- 章节列表区域 -->
                 <AntDesign.Col Span="6" Style="height: 100%;">
-                    <ChapterListComponent Chapters="@chapters"
-                                          SelectedChapter="@selectedChapter"
-                                          OnSelectChapter="@SelectChapter"
-                                          OnAddChapter="@ShowAddChapterModal"
-                                          OnEditChapter="@EditChapterTitle"
-                                          OnDeleteChapter="@DeleteChapter" />
+                    <ChapterListComponent BookId="@BookId" Chapters="@chapters" SelectedChapter="@selectedChapter"
+                        OnSelectChapter="@SelectChapter" OnChapterAdded="HandleChapterAdded"
+                        OnChapterUpdated="HandleChapterUpdated" OnDeleteChapter="@DeleteChapter" />
                 </AntDesign.Col>
 
                 <!-- 章节内容区域 -->
                 <AntDesign.Col Span="18" Style="height: 100%;">
-                    <ChapterContentComponent SelectedChapter="@selectedChapter"
-                                             @bind-Value="CurrentEditorValue" />
+                    <ChapterContentComponent SelectedChapter="@selectedChapter" @bind-Value="CurrentEditorValue" />
                 </AntDesign.Col>
             </Row>
         </AntDesign.Col>
@@ -95,52 +91,28 @@
         <AntDesign.Col Span="24" Style="height: 40%; margin-top: 16px;">
             <Row Gutter="16" Style="height: 100%;">
                 <AntDesign.Col Span="6" Style="height: 100%;">
-                    <ChatLogListComponent ChatLogs="@chatLogSummaries"
-                                          SelectedChatLogId="@(currentChatLog?.Id ?? 0)"
-                                          OnSelectChatLog="@SelectChatLog" />
+                    <ChatLogListComponent ChatLogs="@chatLogSummaries" SelectedChatLogId="@(currentChatLog?.Id ?? 0)"
+                        OnSelectChatLog="@SelectChatLog" />
                 </AntDesign.Col>
                 <AntDesign.Col Span="18" Style="height: 100%;">
-                    <ChatLogComponent BookId="@BookId"
-                                      SelectedChapter="@selectedChapter"
-                                      CurrentChatLog="@currentChatLog"
-                                      CurrentAnalysisResult="@currentAnalysisResult"
-                                      @bind-CurrentChatLogIndex="currentChatLogIndex"
-                                      TotalChatLogs="@totalChatLogs"
-                                      OnPreviousChatLog="@PreviousChatLog"
-                                      OnNextChatLog="@NextChatLog"
-                                      OnJumpToChatLog="@JumpToChatLog"
-                                      OnInsertToChapter="@InsertToChapter"
-                                      OnNavigateTo="@(url => Navigation.NavigateTo(url))" />
+                    <ChatLogComponent BookId="@BookId" SelectedChapter="@selectedChapter"
+                        CurrentChatLog="@currentChatLog" CurrentAnalysisResult="@currentAnalysisResult"
+                        @bind-CurrentChatLogIndex="currentChatLogIndex" TotalChatLogs="@totalChatLogs"
+                        OnPreviousChatLog="@PreviousChatLog" OnNextChatLog="@NextChatLog"
+                        OnJumpToChatLog="@JumpToChatLog" OnInsertToChapter="@InsertToChapter"
+                        OnNavigateTo="@(url => Navigation.NavigateTo(url))" />
                 </AntDesign.Col>
             </Row>
         </AntDesign.Col>
     </Row>
 </div>
 
-<!-- 新增章节模态框 -->
-<Modal Title="新增章节" @bind-Visible="showAddChapterModal" OnOk="AddChapter" OnCancel="@(() => showAddChapterModal = false)">
-    <Form Model="@newChapterForm">
-        <FormItem Label="章节标题">
-            <Input @bind-Value="newChapterForm.Title" Placeholder="请输入章节标题"/>
-        </FormItem>
-    </Form>
-</Modal>
-
-<!-- 编辑章节标题模态框 -->
-<Modal Title="编辑章节标题" @bind-Visible="showEditChapterModal" OnOk="UpdateChapterTitle" OnCancel="@(() => showEditChapterModal = false)">
-    <Form Model="@editChapterForm">
-        <FormItem Label="章节标题">
-            <Input @bind-Value="editChapterForm.Title" Placeholder="请输入章节标题"/>
-        </FormItem>
-    </Form>
-</Modal>
-
 <style>
-.compose-page {
-    padding: 24px;
-    height: 100vh;
-    overflow: hidden;
-}
+    .compose-page {
+        padding: 24px;
+        height: 100vh;
+        overflow: hidden;
+    }
 </style>
 
 @code {
@@ -177,23 +149,6 @@
                 }
             }
         }
-    }
-
-    // 模态框相关
-    private bool showAddChapterModal = false;
-    private bool showEditChapterModal = false;
-    private NewChapterForm newChapterForm = new();
-    private EditChapterForm editChapterForm = new();
-    private BookChapter? editingChapter;
-
-    public class NewChapterForm
-    {
-        public string Title { get; set; } = string.Empty;
-    }
-
-    public class EditChapterForm
-    {
-        public string Title { get; set; } = string.Empty;
     }
 
     protected override async Task OnInitializedAsync()
@@ -243,8 +198,8 @@
     {
         var chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(BookId, page: currentChatLogIndex, pageSize: 1);
         currentChatLog = chatLogs.FirstOrDefault() != null
-            ? await ChatLogService.GetChatLogByIdAsync(chatLogs.First().Id)
-            : null;
+        ? await ChatLogService.GetChatLogByIdAsync(chatLogs.First().Id)
+        : null;
 
         if (currentChatLog != null)
         {
@@ -282,58 +237,20 @@
         }
     }
 
-    private void ShowAddChapterModal()
+    private async Task HandleChapterAdded(BookChapter newChapter)
     {
-        newChapterForm = new NewChapterForm();
-        showAddChapterModal = true;
-    }
-
-    private async Task AddChapter()
-    {
-        if (string.IsNullOrWhiteSpace(newChapterForm.Title))
-        {
-            MessageService.Error("请输入章节标题");
-            return;
-        }
-
-        var nextOrder = await BookChapterService.GetNextOrderAsync(BookId);
-        var newChapter = await BookChapterService.CreateChapterAsync(BookId, newChapterForm.Title, nextOrder);
-
         chapters.Add(newChapter);
         await SelectChapter(newChapter);
-        showAddChapterModal = false;
-
-        MessageService.Success("章节创建成功");
     }
 
-    private void EditChapterTitle(BookChapter chapter)
+    private Task HandleChapterUpdated(BookChapter updatedChapter)
     {
-        editingChapter = chapter;
-        editChapterForm = new EditChapterForm { Title = chapter.Title };
-        showEditChapterModal = true;
-    }
-
-    private async Task UpdateChapterTitle()
-    {
-        if (editingChapter == null || string.IsNullOrWhiteSpace(editChapterForm.Title))
-        {
-            MessageService.Error("请输入章节标题");
-            return;
-        }
-
-        editingChapter.Title = editChapterForm.Title;
-        await BookChapterService.UpdateChapterAsync(editingChapter);
-
-        showEditChapterModal = false;
-        MessageService.Success("章节标题更新成功");
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task DeleteChapter(BookChapter chapter)
     {
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"确定要删除章节\"{chapter.Title}\"吗？");
-        if (!confirmed) return;
-
         await BookChapterService.DeleteChapterAsync(chapter.Id);
         chapters.Remove(chapter);
 
@@ -424,7 +341,7 @@
 
         var fileName = $"{currentBook.Name}.{exportFormat}";
         var content = string.Join("\n\n---\n\n", chapters.Select(c =>
-            $"# 第{c.Order}章 {c.Title}\n\n{c.Content}"));
+        $"# 第{c.Order}章 {c.Title}\n\n{c.Content}"));
 
         if (exportFormat == "txt")
         {
@@ -437,12 +354,12 @@
     private string ConvertMarkdownToText(string markdown)
     {
         return markdown
-            .Replace("# ", "")
-            .Replace("## ", "")
-            .Replace("### ", "")
-            .Replace("**", "")
-            .Replace("*", "")
-            .Replace("---", "");
+        .Replace("# ", "")
+        .Replace("## ", "")
+        .Replace("### ", "")
+        .Replace("**", "")
+        .Replace("*", "")
+        .Replace("---", "");
     }
 
     private async Task DownloadFile(string fileName, string content)
