@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -13,6 +14,9 @@ namespace Novex.Data.Services
 {
   public class AiTitleGenerationService : IAiTitleGenerationService
   {
+    const string DefaultPrompt = "请根据以下文本内容生成至少5个适合作为章节标题的选项，要求简洁、有吸引力、提供悬念、抓住内容亮点、且与内容高度相关。标题使用中国网络文学风格，口语化表达，严禁生成：四字短语、主标题+副标题格式、超过七个字、标点符号、完整的句子。";
+    const string OutputPrompt = "标题之间用换行分隔，每行一个标题。";
+    const string ContextPrompt = "文本内容如下：";
     private readonly ILLMSettingService _llmSettingService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AiTitleGenerationService> _logger;
@@ -24,7 +28,7 @@ namespace Novex.Data.Services
       _logger = logger;
     }
 
-    public async Task<List<string>> GenerateTitlesAsync(string textContent, string promptTemplate)
+    public async Task<List<string>> GenerateTitlesAsync(string textContent, string promptTemplate = "")
     {
       var llmSetting = await _llmSettingService.GetFirstSettingAsync();
       if (llmSetting == null || string.IsNullOrWhiteSpace(llmSetting.ApiUrl) || string.IsNullOrWhiteSpace(llmSetting.ApiKey) || string.IsNullOrWhiteSpace(llmSetting.ModelName))
@@ -33,7 +37,12 @@ namespace Novex.Data.Services
       }
 
       var httpClient = _httpClientFactory.CreateClient();
-      var prompt = promptTemplate.Replace("{textContent}", textContent);
+      var promptSb = new StringBuilder();
+      promptSb.AppendLine(string.IsNullOrWhiteSpace(promptTemplate) ? DefaultPrompt : promptTemplate);
+      promptSb.AppendLine(OutputPrompt);
+      promptSb.AppendLine(ContextPrompt);
+      promptSb.AppendLine(textContent);
+      var prompt = promptSb.ToString();
 
       object requestPayload;
       var isGoogleApi = llmSetting.ApiUrl.Contains("googleapis.com");

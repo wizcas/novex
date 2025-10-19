@@ -5,6 +5,6 @@ namespace Novex.Data.Services
 {
   public interface IAiTitleGenerationService
   {
-    Task<List<string>> GenerateTitlesAsync(string textContent, string promptTemplate);
+    Task<List<string>> GenerateTitlesAsync(string textContent, string promptTemplate = "");
   }
 }

@@ -234,8 +234,7 @@
 
         try
         {
-            var promptTemplate = "根据以下文本，为其生成3个合适的、简洁的章节标题。请只返回标题，每个标题占一行，不要包含任何其他说明或编号。\n\n文本：\n{textContent}";
-            suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content, promptTemplate);
+            suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content);
         }
         catch (Exception ex)
         {
