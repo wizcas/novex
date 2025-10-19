@@ -14,7 +14,7 @@ namespace Novex.Data.Services
 {
   public class AiTitleGenerationService : IAiTitleGenerationService
   {
-    const string DefaultPrompt = "请根据以下文本内容生成至少5个适合作为章节标题的选项，要求简洁、有吸引力、提供悬念、抓住内容亮点、且与内容高度相关。标题使用中国网络文学风格，口语化表达，严禁生成：四字短语、主标题+副标题格式、超过七个字、标点符号、完整的句子。";
+    const string DefaultStylePrompt = "请根据以下文本内容生成至少5个适合作为章节标题的选项，要求简洁、有吸引力、提供悬念、抓住内容亮点、且与内容高度相关。标题使用中国网络文学风格，口语化表达，严禁生成：四字短语、主标题+副标题格式、超过七个字、标点符号、完整的句子。";
     const string OutputPrompt = "标题之间用换行分隔，每行一个标题。";
     const string ContextPrompt = "文本内容如下：";
     private readonly ILLMSettingService _llmSettingService;
@@ -38,7 +38,7 @@ namespace Novex.Data.Services
 
       var httpClient = _httpClientFactory.CreateClient();
       var promptSb = new StringBuilder();
-      promptSb.AppendLine(string.IsNullOrWhiteSpace(promptTemplate) ? DefaultPrompt : promptTemplate);
+      promptSb.AppendLine(string.IsNullOrWhiteSpace(promptTemplate) ? DefaultStylePrompt : promptTemplate);
       promptSb.AppendLine(OutputPrompt);
       promptSb.AppendLine(ContextPrompt);
       promptSb.AppendLine(textContent);
