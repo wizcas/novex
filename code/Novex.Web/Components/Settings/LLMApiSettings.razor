@@ -1,0 +1,188 @@
+@using System.ComponentModel.DataAnnotations
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using System.Text.Json.Serialization
+@inject ILLMSettingService LLMSettingService
+@inject IHttpClientFactory HttpClientFactory
+@inject IMessageService MessageService
+
+@namespace Novex.Web.Components.Settings
+
+<Divider Orientation="DividerOrientation.Left">LLM API 设置</Divider>
+
+<div style="max-width: 600px; margin-top: 24px;">
+  <Form Model="@_setting" LabelCol="@(new ColLayoutParam { Span = 6 })"
+    WrapperCol="@(new ColLayoutParam { Span = 18 })">
+    <FormItem Label="API 地址">
+      <Input @bind-Value="@_setting.ApiUrl" @bind-Value:after="() => OnInputChanged()"
+        Placeholder="请输入 OpenAI 兼容的 API 地址" />
+    </FormItem>
+
+    <FormItem Label="API 密钥">
+      <InputPassword @bind-Value="@_setting.ApiKey" @bind-Value:after="() => OnInputChanged()"
+        Placeholder="请输入您的 API 密钥" />
+    </FormItem>
+
+    <FormItem Label="模型">
+      <Row>
+        <Col Span="16">
+        <Select TItem="string" TItemValue="string" @bind-Value="@_setting.ModelName" @bind-Value:after="HandleAutoSave"
+          Placeholder="获取模型列表以选择模型" Style="width: 100%;">
+          @if (_models.Any())
+          {
+            @foreach (var model in _models)
+            {
+              <SelectOption TItem="string" TItemValue="string" Value="@model" Label="@model" />
+            }
+          }
+        </Select>
+        </Col>
+        <Col Span="8">
+        <Button OnClick="HandleFetchModelsClick" Loading="_isFetchingModels"
+          Disabled="string.IsNullOrWhiteSpace(_setting.ApiUrl) || string.IsNullOrWhiteSpace(_setting.ApiKey)" Block
+          Style="margin-left: 8px;">
+          @if (_isFetchingModels)
+          {
+            <span>取消</span>
+          }
+          else
+          {
+            <span>获取模型</span>
+          }
+        </Button>
+        </Col>
+      </Row>
+    </FormItem>
+  </Form>
+</div>
+
+@code {
+  private LLMSetting _setting = new();
+  private List<string> _models = new();
+  private bool _isFetchingModels = false;
+  private CancellationTokenSource? _cts;
+  private Timer? _debounceTimer;
+  private HttpClient? _httpClient;
+
+  protected override async Task OnInitializedAsync()
+  {
+    _setting = await LLMSettingService.GetFirstSettingAsync() ?? new LLMSetting();
+
+    // 如果已保存的模型名称存在，但模型列表为空，则将该模型名称添加到列表中以便显示
+    if (!string.IsNullOrEmpty(_setting.ModelName) && !_models.Contains(_setting.ModelName))
+    {
+      _models.Add(_setting.ModelName);
+    }
+  }
+
+  private async Task HandleAutoSave()
+  {
+    await LLMSettingService.SaveSettingAsync(_setting);
+  }
+
+  private void OnInputChanged()
+  {
+    _debounceTimer?.Dispose();
+    _debounceTimer = new Timer(async _ => await InvokeAsync(HandleAutoSave), null, 500, Timeout.Infinite);
+  }
+
+  private async Task HandleFetchModelsClick()
+  {
+    if (_isFetchingModels)
+    {
+      _cts?.Cancel();
+      _isFetchingModels = false;
+    }
+    else
+    {
+      await FetchModelsAsync();
+    }
+  }
+
+  private async Task FetchModelsAsync()
+  {
+    _isFetchingModels = true;
+    _cts = new CancellationTokenSource();
+    await InvokeAsync(StateHasChanged);
+
+    try
+    {
+      _httpClient = HttpClientFactory.CreateClient();
+      var isGoogleApi = _setting.ApiUrl?.Contains("googleapis.com") ?? false;
+      string apiUrl;
+      HttpRequestMessage request;
+
+      if (isGoogleApi)
+      {
+        apiUrl = $"{_setting.ApiUrl?.TrimEnd('/')}/v1beta/models?key={_setting.ApiKey}";
+        request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+      }
+      else
+      {
+        apiUrl = _setting.ApiUrl?.TrimEnd('/') + "/v1/models";
+        request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _setting.ApiKey);
+      }
+
+      var response = await _httpClient.SendAsync(request, _cts.Token);
+
+      if (response.IsSuccessStatusCode)
+      {
+        var jsonString = await response.Content.ReadAsStringAsync(_cts.Token);
+
+        if (isGoogleApi)
+        {
+          var modelsResponse = System.Text.Json.JsonSerializer.Deserialize<GoogleModelsList>(jsonString);
+          _models = modelsResponse?.Models?.Select(m => m.Name).OrderBy(id => id).ToList() ?? new List<string>();
+        }
+        else
+        {
+          var modelsResponse = System.Text.Json.JsonSerializer.Deserialize<OpenAIModelsList>(jsonString);
+          if (!string.IsNullOrEmpty(_setting.ModelName) && !(modelsResponse?.Data?.Any(m => m.Id == _setting.ModelName) ?? false))
+          {
+            modelsResponse?.Data?.Insert(0, new OpenAIModel { Id = _setting.ModelName });
+          }
+          _models = modelsResponse?.Data?.Select(m => m.Id).OrderBy(id => id).ToList() ?? new List<string>();
+        }
+
+        if (_models.Any())
+        {
+          MessageService.Success("模型列表获取成功！");
+          if (string.IsNullOrEmpty(_setting.ModelName))
+          {
+            _setting.ModelName = _models.First();
+            await HandleAutoSave();
+          }
+          else if (!string.IsNullOrEmpty(_setting.ModelName) && !_models.Contains(_setting.ModelName))
+          {
+            MessageService.Warning($"当前保存的模型 '{_setting.ModelName}' 不在获取到的新列表中。");
+          }
+        }
+        else
+        {
+          _models.Clear();
+          MessageService.Warning("获取成功，但未返回任何可用模型。");
+        }
+      }
+      else
+      {
+        var errorContent = await response.Content.ReadAsStringAsync();
+        MessageService.Error($"获取模型列表失败: {response.ReasonPhrase} ({(int)response.StatusCode}) - {errorContent}");
+      }
+    }
+    catch (TaskCanceledException) { MessageService.Warning("操作已取消。"); }
+    catch (Exception ex) { MessageService.Error($"请求模型列表时发生错误: {ex.Message}"); }
+    finally
+    {
+      _isFetchingModels = false;
+      _cts?.Dispose();
+      _cts = null;
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  private class OpenAIModelsList { [JsonPropertyName("data")] public List<OpenAIModel> Data { get; set; } = new(); }
+  private class OpenAIModel { [JsonPropertyName("id")] public string Id { get; set; } = string.Empty; }
+  private class GoogleModelsList { [JsonPropertyName("models")] public List<GoogleModel> Models { get; set; } = new(); }
+  private class GoogleModel { [JsonPropertyName("name")] public string Name { get; set; } = string.Empty; }
+}
