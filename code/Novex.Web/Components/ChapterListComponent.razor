@@ -85,7 +85,7 @@
         </FormItem>
         <!-- AI 辅助功能区 -->
         <div style="border: 1px solid #f0f0f0; border-radius: 4px; padding: 16px; margin-top: 24px;">
-            <Row Gutter="8" Align="RowAlign.Middle">
+            <Row Gutter="8" Align="RowAlign.Middle" Wrap="false">
                 <AntDesign.Col Flex="@("auto")">
                     <Select TItem="PromptChoice" TItemValue="string" DataSource="@_promptChoices"
                         @bind-Value="@_selectedPromptId" ItemValue="@(c => c.Id)"
@@ -109,9 +109,18 @@
             </Row>
             <Space Direction="SpaceDirection.Horizontal" Align="SpaceAlign.Center" Style="margin-top: 16px;">
                 <SpaceItem>
-                    <Button OnClick="GenerateTitlesWithAI" Loading="isGeneratingTitles">
-                        <Icon Type="experiment" /> AI 生成
-                    </Button>
+                    @if (isGeneratingTitles)
+                    {
+                        <Button OnClick="CancelAiGeneration" Danger>
+                            <Icon Type="stop" /> 取消生成
+                        </Button>
+                    }
+                    else
+                    {
+                        <Button OnClick="GenerateTitlesWithAI">
+                            <Icon Type="experiment" /> AI 生成
+                        </Button>
+                    }
                 </SpaceItem>
                 <SpaceItem>
                     <a href="/settings#prompt-settings" target="_blank">
@@ -196,6 +205,7 @@
     private List<PromptChoice> _promptChoices = new();
     private string _selectedPromptId = "default";
     private const string LocalStorageKey = "selectedAiTitlePromptId";
+    private CancellationTokenSource? _generationCts;
 
     public class PromptChoice
     {
@@ -311,6 +321,12 @@
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, _selectedPromptId);
     }
 
+    private void CancelAiGeneration()
+    {
+        _generationCts?.Cancel();
+        MessageService.Info("AI 标题生成已取消。");
+    }
+
     private async Task GenerateTitlesWithAI()
     {
         if (editingChapter == null || string.IsNullOrWhiteSpace(editingChapter.Content))
@@ -321,6 +337,7 @@
 
         isGeneratingTitles = true;
         suggestedTitles.Clear();
+        _generationCts = new CancellationTokenSource();
         StateHasChanged();
 
         try
@@ -334,15 +351,22 @@
                     promptTemplate = selectedChoice.OriginalStylePrompt;
                 }
             }
-            suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content, promptTemplate);
+            // The service interface will be updated to accept a CancellationToken
+            suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content, promptTemplate,
+            _generationCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // This is expected on cancellation, the CancelAiGeneration method already shows an info message.
         }
         catch (Exception ex)
         {
-            MessageService.Error(ex.Message);
+            MessageService.Error($"AI 标题生成时发生错误: {ex.Message}");
         }
         finally
         {
             isGeneratingTitles = false;
+            _generationCts?.Dispose();
             StateHasChanged();
         }
     }

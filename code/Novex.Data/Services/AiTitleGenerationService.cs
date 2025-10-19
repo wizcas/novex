@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Novex.Data.Services
@@ -28,7 +29,7 @@ namespace Novex.Data.Services
       _logger = logger;
     }
 
-    public async Task<List<string>> GenerateTitlesAsync(string textContent, string promptTemplate = "")
+    public async Task<List<string>> GenerateTitlesAsync(string textContent, string promptTemplate = "", CancellationToken cancellationToken = default)
     {
       var llmSetting = await _llmSettingService.GetFirstSettingAsync();
       if (llmSetting == null || string.IsNullOrWhiteSpace(llmSetting.ApiUrl) || string.IsNullOrWhiteSpace(llmSetting.ApiKey) || string.IsNullOrWhiteSpace(llmSetting.ModelName))
@@ -78,7 +79,7 @@ namespace Novex.Data.Services
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", llmSetting.ApiKey);
       }
 
-      var response = await httpClient.PostAsync(requestUrl, content);
+      var response = await httpClient.PostAsync(requestUrl, content, cancellationToken);
 
       if (!response.IsSuccessStatusCode)
       {
