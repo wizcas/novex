@@ -1,0 +1,105 @@
+@using Novex.Data.Models
+@using Novex.Data.Services
+@inject IAITitlePromptService PromptService
+@inject IMessageService MessageService
+@inject IConfirmService ConfirmService
+
+<Divider Orientation="DividerOrientation.Left">提示词设置</Divider>
+
+<div style="margin-top: 24px;">
+  <Card Title="标题生成" Size="CardSize.Small">
+    <Extra>
+      <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Plus"
+        OnClick="() => ShowPromptModal(null)">
+        添加提示词
+      </Button>
+    </Extra>
+    <ChildContent>
+      <AntList TItem="AITitlePrompt" DataSource="@_prompts" Loading="@_isLoading">
+        <ListItem>
+          <ListItemMeta>
+            <TitleTemplate>
+              <Text>@context.StylePrompt.Substring(0, Math.Min(context.StylePrompt.Length, 50))... </Text>
+            </TitleTemplate>
+            <DescriptionTemplate>
+              更新于 @context.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            </DescriptionTemplate>
+          </ListItemMeta>
+          <Button Type="@ButtonType.Link" OnClick="() => ShowPromptModal(context)">编辑</Button>
+          <Button Type="@ButtonType.Link" OnClick="() => DeletePrompt(context)" Danger>删除</Button>
+        </ListItem>
+      </AntList>
+    </ChildContent>
+  </Card>
+</div>
+
+<Modal Title="@_modalTitle" @bind-Visible="_isModalVisible" OnOk="HandleSavePrompt"
+  OnCancel="() => _isModalVisible = false" Width="800">
+  @if (_editingPrompt != null)
+  {
+    <CodeMirrorEditor @bind-Value="_editingPrompt.StylePrompt" Language="markdown" Height="300px" />
+  }
+</Modal>
+
+@code {
+  private List<AITitlePrompt> _prompts = new();
+  private bool _isLoading = true;
+
+  // Modal state
+  private bool _isModalVisible = false;
+  private string _modalTitle = string.Empty;
+  private AITitlePrompt? _editingPrompt;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadPrompts();
+  }
+
+  private async Task LoadPrompts()
+  {
+    _isLoading = true;
+    _prompts = await PromptService.GetAllPromptsAsync();
+    _isLoading = false;
+    StateHasChanged();
+  }
+
+  private void ShowPromptModal(AITitlePrompt? prompt)
+  {
+    if (prompt == null)
+    {
+      _modalTitle = "添加新提示词";
+      _editingPrompt = new AITitlePrompt();
+    }
+    else
+    {
+      _modalTitle = "编辑提示词";
+      // Create a copy for editing to avoid modifying the list item directly
+      _editingPrompt = new AITitlePrompt { Id = prompt.Id, StylePrompt = prompt.StylePrompt, UpdatedAt = prompt.UpdatedAt };
+    }
+    _isModalVisible = true;
+  }
+
+  private async Task HandleSavePrompt()
+  {
+    if (_editingPrompt == null || string.IsNullOrWhiteSpace(_editingPrompt.StylePrompt))
+    {
+      MessageService.Error("提示词内容不能为空。");
+      return;
+    }
+
+    await PromptService.SavePromptAsync(_editingPrompt);
+    _isModalVisible = false;
+    MessageService.Success("保存成功！");
+    await LoadPrompts();
+  }
+
+  private async Task DeletePrompt(AITitlePrompt prompt)
+  {
+    if (await ConfirmService.Show($"确定要删除这个提示词吗？", "确认删除", ConfirmButtons.OKCancel) == ConfirmResult.OK)
+    {
+      await PromptService.DeletePromptAsync(prompt.Id);
+      MessageService.Success("删除成功！");
+      await LoadPrompts();
+    }
+  }
+}
