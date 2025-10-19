@@ -6,6 +6,8 @@
 @inject IAiTitleGenerationService AiTitleGenerationService
 @inject IBookChapterService BookChapterService
 @inject IMessageService MessageService
+@inject IAITitlePromptService PromptService
+@inject IJSRuntime JSRuntime
 
 <!-- 章节列表卡片 -->
 
@@ -77,33 +79,51 @@
 <Modal Title="编辑章节标题" @bind-Visible="showEditChapterModal" OnOk="UpdateChapterTitle"
     OnCancel="@(() => showEditChapterModal = false)">
     <Form Model="@editChapterForm">
-        <Row Gutter="8">
-            <AntDesign.Col Span="16">
-                <FormItem>
-                    <Input @bind-Value="editChapterForm.Title" Placeholder="请输入章节标题" />
-                </FormItem>
-            </AntDesign.Col>
-            <AntDesign.Col Span="8">
-                <Button OnClick="GenerateTitlesWithAI" Loading="isGeneratingTitles" Block>
-                    <Icon Type="experiment" /> AI 生成
-                </Button>
-            </AntDesign.Col>
-        </Row>
-        @if (suggestedTitles.Any())
-        {
-            <div style="margin-top: 16px;">
-                <Text Type="@TextElementType.Secondary">建议标题：</Text>
-                <div style="margin-top: 8px;">
-                    @foreach (var title in suggestedTitles)
-                    {
-                        <Tag Color="TagColor.Blue" OnClick="@(() => SelectSuggestedTitle(title))"
-                            Style="cursor: pointer; margin-bottom: 8px;">
-                            @title
-                        </Tag>
-                    }
+        <!-- 章节标题输入框 -->
+        <FormItem Label="章节标题">
+            <Input @bind-Value="editChapterForm.Title" Placeholder="请输入章节标题" />
+        </FormItem>
+        <!-- AI 辅助功能区 -->
+        <div style="border: 1px solid #f0f0f0; border-radius: 4px; padding: 16px; margin-top: 24px;">
+            <Select TItem="string" TItemValue="string" @bind-Value="_selectedPromptId"
+                OnSelectedItemChanged="async (val) => await OnPromptSelectionChanged(val)" Placeholder="选择一个提示词风格"
+                Style="width: 100%;">
+                <SelectOption TItem="string" TItemValue="string" Value="@("default")" Label="默认提示词" />
+                @foreach (var prompt in _availablePrompts)
+                {
+                    <SelectOption TItem="string" TItemValue="string" Value="@prompt.Id.ToString()"
+                        Label="@($"{(prompt.StylePrompt.Length > 20 ? prompt.StylePrompt.Substring(0, 20) + "..." : prompt.StylePrompt)} (更新于: {prompt.UpdatedAt.ToLocalTime():yy-MM-dd})")" />
+                }
+            </Select>
+            <Space Direction="SpaceDirection.Horizontal" Align="SpaceAlign.Center" Style="margin-top: 16px;">
+                <SpaceItem>
+                    <Button OnClick="GenerateTitlesWithAI" Loading="isGeneratingTitles">
+                        <Icon Type="experiment" /> AI 生成
+                    </Button>
+                </SpaceItem>
+                <SpaceItem>
+                    <a href="/settings#prompt-settings" target="_blank">
+                        管理提示词
+                        <Icon Type="link" />
+                    </a>
+                </SpaceItem>
+            </Space>
+            @if (suggestedTitles.Any())
+            {
+                <div style="margin-top: 16px;">
+                    <Text Type="@TextElementType.Secondary">建议标题：</Text>
+                    <div style="margin-top: 8px;">
+                        @foreach (var title in suggestedTitles)
+                        {
+                            <Tag Color="TagColor.Blue" OnClick="@(() => SelectSuggestedTitle(title))"
+                                Style="cursor: pointer; margin-bottom: 8px;">
+                                @title
+                            </Tag>
+                        }
+                    </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     </Form>
 </Modal>
 
@@ -161,6 +181,11 @@
     // AI 生成标题相关
     private bool isGeneratingTitles = false;
     private List<string> suggestedTitles = new();
+    private List<AITitlePrompt> _availablePrompts = new();
+    private string _selectedPromptId = "default";
+    private const string LocalStorageKey = "selectedAiTitlePromptId";
+
+
 
     public class NewChapterForm
     {
@@ -195,11 +220,26 @@
         MessageService.Success("章节创建成功");
     }
 
-    private void ShowEditChapterModal(BookChapter chapter)
+    private async Task ShowEditChapterModal(BookChapter chapter)
     {
         editingChapter = chapter;
         editChapterForm = new EditChapterForm { Title = chapter.Title };
         suggestedTitles.Clear();
+
+        // 加载提示词并设置默认选项
+        _availablePrompts = await PromptService.GetAllPromptsAsync();
+        var savedPromptId = await JSRuntime.InvokeAsync<string>("localStorage.getItem", LocalStorageKey);
+
+        if (!string.IsNullOrEmpty(savedPromptId) && (_availablePrompts.Any(p => p.Id.ToString() == savedPromptId) ||
+        savedPromptId == "default"))
+        {
+            _selectedPromptId = savedPromptId;
+        }
+        else
+        {
+            _selectedPromptId = "default";
+        }
+
         showEditChapterModal = true;
     }
 
@@ -220,6 +260,11 @@
         editChapterForm.Title = title;
     }
 
+    private async Task OnPromptSelectionChanged(string selectedId)
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, _selectedPromptId);
+    }
+
     private async Task GenerateTitlesWithAI()
     {
         if (editingChapter == null || string.IsNullOrWhiteSpace(editingChapter.Content))
@@ -234,7 +279,16 @@
 
         try
         {
-            suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content);
+            string promptTemplate = string.Empty;
+            if (_selectedPromptId != "default")
+            {
+                var selectedPrompt = _availablePrompts.FirstOrDefault(p => p.Id.ToString() == _selectedPromptId);
+                if (selectedPrompt != null)
+                {
+                    promptTemplate = selectedPrompt.StylePrompt;
+                }
+            }
+            suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content, promptTemplate);
         }
         catch (Exception ex)
         {
