@@ -15,6 +15,7 @@ public class NovexDbContext : DbContext
 
   // 新增 LLMSetting DbSet
   public DbSet<LLMSetting> LLMSettings { get; set; }
+  public DbSet<AITitlePrompt> AITitlePrompts { get; set; }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -104,6 +105,15 @@ public class NovexDbContext : DbContext
       entity.Property(e => e.ApiUrl);
       entity.Property(e => e.ApiKey);
       entity.Property(e => e.ModelName);
+    });
+
+    modelBuilder.Entity<AITitlePrompt>(entity => {
+      entity.HasKey(e => e.Id);
+      entity.Property(e => e.StylePrompt).IsRequired();
+      entity.Property(e => e.UpdatedAt).IsRequired();
+      entity.Property(e => e.DeletedAt);
+      // 添加全局查询筛选器以实现软删除
+      entity.HasQueryFilter(p => p.DeletedAt == null);
     });
   }
 }
