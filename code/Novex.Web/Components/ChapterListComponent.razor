@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web
 @using Novex.Data.Models
 @using AntDesign
 @using Novex.Data.Services
@@ -85,16 +85,28 @@
         </FormItem>
         <!-- AI 辅助功能区 -->
         <div style="border: 1px solid #f0f0f0; border-radius: 4px; padding: 16px; margin-top: 24px;">
-            <Select TItem="string" TItemValue="string" @bind-Value="_selectedPromptId"
-                OnSelectedItemChanged="async (val) => await OnPromptSelectionChanged(val)" Placeholder="选择一个提示词风格"
-                Style="width: 100%;">
-                <SelectOption TItem="string" TItemValue="string" Value="@("default")" Label="默认提示词" />
-                @foreach (var prompt in _availablePrompts)
-                {
-                    <SelectOption TItem="string" TItemValue="string" Value="@prompt.Id.ToString()"
-                        Label="@($"{(prompt.StylePrompt.Length > 20 ? prompt.StylePrompt.Substring(0, 20) + "..." : prompt.StylePrompt)} (更新于: {prompt.UpdatedAt.ToLocalTime():yy-MM-dd})")" />
-                }
-            </Select>
+            <Row Gutter="8" Align="RowAlign.Middle">
+                <AntDesign.Col Flex="@("auto")">
+                    <Select TItem="PromptChoice" TItemValue="string" DataSource="@_promptChoices"
+                        @bind-Value="@_selectedPromptId" ItemValue="@(c => c.Id)"
+                        ItemLabel="@(c => c.DisplayText.Length > 25 ? c.DisplayText.Substring(0, 25) + "..." : c.DisplayText)"
+                        OnSelectedItemChanged="async (_) => await OnPromptSelectionChanged()" Placeholder="选择一个提示词风格"
+                        Style="width: 100%;">
+                        <ItemTemplate Context="choice">
+                            <div style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
+                                @choice.DisplayText</div>
+                            @if (!choice.IsDefault)
+                            {
+                                <AntDesign.Text Type="TextElementType.Secondary">更新于:
+                                    @choice.UpdatedAt.ToLocalTime().ToString("yy-MM-dd HH:mm")</AntDesign.Text>
+                            }
+                        </ItemTemplate>
+                    </Select>
+                </AntDesign.Col>
+                <AntDesign.Col Flex="@("32px")">
+                    <Button Icon="@IconType.Outline.Sync" OnClick="@(() => LoadAvailablePromptsAsync(false))" />
+                </AntDesign.Col>
+            </Row>
             <Space Direction="SpaceDirection.Horizontal" Align="SpaceAlign.Center" Style="margin-top: 16px;">
                 <SpaceItem>
                     <Button OnClick="GenerateTitlesWithAI" Loading="isGeneratingTitles">
@@ -181,11 +193,18 @@
     // AI 生成标题相关
     private bool isGeneratingTitles = false;
     private List<string> suggestedTitles = new();
-    private List<AITitlePrompt> _availablePrompts = new();
+    private List<PromptChoice> _promptChoices = new();
     private string _selectedPromptId = "default";
     private const string LocalStorageKey = "selectedAiTitlePromptId";
 
-
+    public class PromptChoice
+    {
+        public string Id { get; set; } = string.Empty;
+        public string DisplayText { get; set; } = string.Empty;
+        public DateTime UpdatedAt { get; set; }
+        public bool IsDefault { get; set; }
+        public string OriginalStylePrompt { get; set; } = string.Empty;
+    }
 
     public class NewChapterForm
     {
@@ -227,11 +246,10 @@
         suggestedTitles.Clear();
 
         // 加载提示词并设置默认选项
-        _availablePrompts = await PromptService.GetAllPromptsAsync();
+        await LoadAvailablePromptsAsync(true);
         var savedPromptId = await JSRuntime.InvokeAsync<string>("localStorage.getItem", LocalStorageKey);
 
-        if (!string.IsNullOrEmpty(savedPromptId) && (_availablePrompts.Any(p => p.Id.ToString() == savedPromptId) ||
-        savedPromptId == "default"))
+        if (!string.IsNullOrEmpty(savedPromptId) && _promptChoices.Any(p => p.Id == savedPromptId))
         {
             _selectedPromptId = savedPromptId;
         }
@@ -241,6 +259,34 @@
         }
 
         showEditChapterModal = true;
+    }
+
+    private async Task LoadAvailablePromptsAsync(bool isInitial)
+    {
+        var promptsFromDb = await PromptService.GetAllPromptsAsync();
+        var choices = promptsFromDb.Select(p => new PromptChoice
+        {
+            Id = p.Id.ToString(),
+            DisplayText = p.StylePrompt,
+            UpdatedAt = p.UpdatedAt,
+            OriginalStylePrompt = p.StylePrompt
+        }).ToList();
+
+        choices.Insert(0, new PromptChoice
+        {
+            Id = "default",
+            DisplayText = "默认提示词",
+            IsDefault = true,
+            OriginalStylePrompt =
+        string.Empty
+        });
+        _promptChoices = choices;
+
+        if (!isInitial)
+        {
+            MessageService.Success("提示词列表已刷新");
+        }
+        StateHasChanged();
     }
 
     private async Task UpdateChapterTitle()
@@ -260,7 +306,7 @@
         editChapterForm.Title = title;
     }
 
-    private async Task OnPromptSelectionChanged(string selectedId)
+    private async Task OnPromptSelectionChanged()
     {
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, _selectedPromptId);
     }
@@ -282,10 +328,10 @@
             string promptTemplate = string.Empty;
             if (_selectedPromptId != "default")
             {
-                var selectedPrompt = _availablePrompts.FirstOrDefault(p => p.Id.ToString() == _selectedPromptId);
-                if (selectedPrompt != null)
+                var selectedChoice = _promptChoices.FirstOrDefault(p => p.Id == _selectedPromptId);
+                if (selectedChoice != null)
                 {
-                    promptTemplate = selectedPrompt.StylePrompt;
+                    promptTemplate = selectedChoice.OriginalStylePrompt;
                 }
             }
             suggestedTitles = await AiTitleGenerationService.GenerateTitlesAsync(editingChapter.Content, promptTemplate);

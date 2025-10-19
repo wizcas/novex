@@ -13,5 +13,10 @@ namespace Novex.Data.Models
     public string StylePrompt { get; set; } = string.Empty;
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
+
+    override public string ToString()
+    {
+      return $"[{Id}] {StylePrompt} (UpdatedAt: {UpdatedAt}, DeletedAt: {DeletedAt})";
+    }
   }
 }
