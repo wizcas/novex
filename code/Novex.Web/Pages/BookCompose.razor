@@ -396,7 +396,7 @@
 
         await SaveChapterContent();
         MessageService.Success($"已将楼层{currentChatLog?.Index}的内容插入到章节中");
-        StateHasChanged();
+        await NextChatLog();
     }
 
     private async Task ExportSelectedChapter()
