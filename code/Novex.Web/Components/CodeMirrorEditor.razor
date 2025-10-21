@@ -10,6 +10,7 @@
     [Parameter] public EventCallback<string> OnContentChanged { get; set; }
     [Parameter] public string? Style { get; set; } = "height: 400px; border: 1px solid #d9d9d9; border-radius: 6px;";
     [Parameter] public bool IsDarkTheme { get; set; } = false;
+    [Parameter] public bool IsReadOnly { get; set; } = false;
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public string? Language { get; set; } // 新增：支持语言参数
     [Parameter] public bool? LineNumbers { get; set; }
@@ -75,6 +76,7 @@
             // 构造 options，只传递非空参数
             var options = new System.Dynamic.ExpandoObject() as IDictionary<string, object?>;
             options["theme"] = IsDarkTheme ? "dark" : "light";
+            options["readOnly"] = IsReadOnly;
             if (!string.IsNullOrEmpty(Language)) options["language"] = Language;
             if (!string.IsNullOrEmpty(Height)) options["height"] = Height;
             if (!string.IsNullOrEmpty(MinHeight)) options["minHeight"] = MinHeight;

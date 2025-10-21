@@ -4,6 +4,7 @@
 @using Novex.Analyzer
 @using Novex.Analyzer.Models
 @using Novex.Web.Shared.Components
+@using Novex.Web.Components
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
@@ -56,17 +57,35 @@
     <Row Gutter="16">
       <AntDesign.Col Span="12">
         <Card Title="原文内容" Bordered="true">
-          <div class="original-content">
-            <div class="chat-info">
-              <strong>角色：</strong>@chatLog.Name<br />
-              <strong>时间：</strong>@chatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")<br />
-              <strong>楼层：</strong>@chatLog.Index
+          <Extra>
+            <RadioGroup @bind-Value="_viewMode" ButtonStyle="RadioButtonStyle.Solid" Size="InputSize.Small">
+              <AntDesign.Radio RadioButton Value="@("source")">原文</AntDesign.Radio>
+              <AntDesign.Radio RadioButton Value="@("rendered")">渲染</AntDesign.Radio>
+            </RadioGroup>
+          </Extra>
+
+          <Body>
+            <div class="original-content">
+              <div class="chat-info">
+                <strong>角色：</strong>@chatLog.Name<br />
+                <strong>时间：</strong>@chatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")<br />
+                <strong>楼层：</strong>@chatLog.Index
+              </div>
+              <Divider />
+              @if (_viewMode == "rendered")
+              {
+                <div class="chat-message">
+                  @((MarkupString)chatLog.Mes.Replace("\n", "<br />"))
+                </div>
+              }
+              else
+              {
+                <CodeMirrorEditor Value="@chatLog.Mes" IsReadOnly="true" Language="markdown" Height="600px"
+                LineNumbers="false"
+                  Style="flex:1" />
+              }
             </div>
-            <Divider />
-            <div class="chat-message">
-              @((MarkupString)chatLog.Mes.Replace("\n", "<br />"))
-            </div>
-          </div>
+          </Body>
         </Card>
       </AntDesign.Col>
 
@@ -111,13 +130,8 @@
 
         <Card Title="规则书" Bordered="true" style="margin-top: 16px;">
           <RuleBookSelector SelectedRuleBookId="selectedRuleBookId"
-                            SelectedRuleBookIdChanged="OnSelectedRuleBookIdChanged"
-                            OnRuleBookSelected="OnRuleBookSelectionChanged"
-                            Label="选择规则书"
-                            Placeholder="请选择分析规则书"
-                            ShowDescription="true"
-                            ShowManageLink="true"
-                            UseFormItem="false" />
+            SelectedRuleBookIdChanged="OnSelectedRuleBookIdChanged" OnRuleBookSelected="OnRuleBookSelectionChanged"
+            Label="选择规则书" Placeholder="请选择分析规则书" ShowDescription="true" ShowManageLink="true" UseFormItem="false" />
 
           @if (selectedRuleBook == null)
           {
@@ -160,8 +174,12 @@
   }
 
   .original-content {
-    max-height: 600px;
+    @* height: 600px;
+    max-height: 800px; *@
+    height:fit-content;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   .chat-info {
@@ -183,6 +201,7 @@
   [Parameter] public int BookId { get; set; }
   [Parameter] public int ChatLogId { get; set; }
 
+  private string _viewMode = "source";
   private ChatLog? chatLog;
   private ChatLogAnalysisResult analysisResult = new();
   private bool isLoading = true;
