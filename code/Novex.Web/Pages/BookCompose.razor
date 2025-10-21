@@ -91,7 +91,15 @@
         <AntDesign.Col Span="24" Style="height: 40%; margin-top: 16px;">
             <Row Gutter="16" Style="height: 100%;">
                 <AntDesign.Col Span="6" Style="height: 100%;">
-                    <ChatLogListComponent ChatLogs="@chatLogSummaries" SelectedChatLogId="@(currentChatLog?.Id ?? 0)"
+                    <Card Size="@CardSize.Small" Style="margin-bottom: 16px;">
+                        <Select TItem="string" TItemValue="string" DataSource="@_characterNames"
+                            @bind-Value="@_selectedCharacter"
+                            OnSelectedItemChanged="OnCharacterFilterChanged"
+                            Placeholder="筛选角色"
+                            Style="width: 100%;">
+                        </Select>
+                    </Card>
+                    <ChatLogListComponent ChatLogs="@_filteredChatLogSummaries" SelectedChatLogId="@(currentChatLog?.Id ?? 0)"
                         OnSelectChatLog="@SelectChatLog" />
                 </AntDesign.Col>
                 <AntDesign.Col Span="18" Style="height: 100%;">
@@ -128,7 +136,13 @@
     private string exportFormat = "md";
     private string _currentEditorValue = string.Empty;
     private Timer? _debounceTimer;
-    private List<(int ChatLogId, int Index, string Title, string Summary)> chatLogSummaries = new();
+
+    // Chat Log Filtering
+    private List<(int ChatLogId, int Index, string Title, string Summary, string CharacterName)> _masterChatLogSummaries = new();
+    private List<(int ChatLogId, int Index, string Title, string Summary)> _filteredChatLogSummaries = new();
+    private List<string> _characterNames = new();
+    private string _selectedCharacter = "全部角色";
+
 
     private string CurrentEditorValue
     {
@@ -182,24 +196,88 @@
         var allLogs = await ChatLogService.GetChatLogsWithFiltersAsync(BookId, pageSize: int.MaxValue);
         totalChatLogs = allLogs.Count;
 
+        _masterChatLogSummaries.Clear();
         foreach (var log in allLogs)
         {
             var analysis = await AnalysisService.GetAnalysisResultAsync(log.Id);
-            chatLogSummaries.Add((log.Id, log.Index, analysis?.Title ?? "未分析", analysis?.Summary ?? ""));
+            _masterChatLogSummaries.Add((log.Id, log.Index, analysis?.Title ?? "未分析", analysis?.Summary ?? "", log.Name));
         }
 
-        if (totalChatLogs > 0)
+        _characterNames = _masterChatLogSummaries.Select(s => s.CharacterName).Distinct().ToList();
+        _characterNames.Insert(0, "全部角色");
+
+        ApplyCharacterFilter();
+
+        if (totalChatLogs > 0 && currentChatLog == null)
         {
             await LoadCurrentChatLog();
         }
     }
 
+    private void ApplyCharacterFilter()
+    {
+        var previouslySelectedLogId = currentChatLog?.Id ?? 0;
+
+        var filtered = _masterChatLogSummaries;
+        if (_selectedCharacter != "全部角色")
+        {
+            filtered = _masterChatLogSummaries.Where(s => s.CharacterName == _selectedCharacter).ToList();
+        }
+
+        _filteredChatLogSummaries = filtered.Select(s => (s.ChatLogId, s.Index, s.Title, s.Summary)).ToList();
+
+        if (previouslySelectedLogId != 0 && !_filteredChatLogSummaries.Any(s => s.ChatLogId == previouslySelectedLogId))
+        {
+            if (_filteredChatLogSummaries.Any())
+            {
+                var originalMasterIndex = _masterChatLogSummaries.FindIndex(s => s.ChatLogId == previouslySelectedLogId);
+
+                var visibleIds = _filteredChatLogSummaries.Select(s => s.ChatLogId).ToHashSet();
+
+                var previous = _masterChatLogSummaries
+                    .Take(originalMasterIndex)
+                    .LastOrDefault(s => visibleIds.Contains(s.ChatLogId));
+
+                if (previous != default)
+                {
+                    JumpToChatLog(previous.Index);
+                }
+                else
+                {
+                    var next = _masterChatLogSummaries
+                        .Skip(originalMasterIndex + 1)
+                        .FirstOrDefault(s => visibleIds.Contains(s.ChatLogId));
+
+                    if (next != default)
+                    {
+                        JumpToChatLog(next.Index);
+                    }
+                }
+            }
+            else
+            {
+                currentChatLog = null;
+                currentAnalysisResult = null;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnCharacterFilterChanged(string value)
+    {
+        _selectedCharacter = value;
+        ApplyCharacterFilter();
+        await Task.CompletedTask;
+    }
+
+
     private async Task LoadCurrentChatLog()
     {
         var chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(BookId, page: currentChatLogIndex, pageSize: 1);
         currentChatLog = chatLogs.FirstOrDefault() != null
-        ? await ChatLogService.GetChatLogByIdAsync(chatLogs.First().Id)
-        : null;
+            ? await ChatLogService.GetChatLogByIdAsync(chatLogs.First().Id)
+            : null;
 
         if (currentChatLog != null)
         {
@@ -266,19 +344,27 @@
 
     private async Task PreviousChatLog()
     {
-        if (currentChatLogIndex > 1)
+        if (currentChatLog == null || !_filteredChatLogSummaries.Any()) return;
+
+        var currentFilteredIndex = _filteredChatLogSummaries.FindIndex(s => s.ChatLogId == currentChatLog.Id);
+
+        if (currentFilteredIndex > 0)
         {
-            currentChatLogIndex--;
-            await LoadCurrentChatLog();
+            var previousLogSummary = _filteredChatLogSummaries[currentFilteredIndex - 1];
+            await JumpToChatLog(previousLogSummary.Index);
         }
     }
 
     private async Task NextChatLog()
     {
-        if (currentChatLogIndex < totalChatLogs)
+        if (currentChatLog == null || !_filteredChatLogSummaries.Any()) return;
+
+        var currentFilteredIndex = _filteredChatLogSummaries.FindIndex(s => s.ChatLogId == currentChatLog.Id);
+
+        if (currentFilteredIndex != -1 && currentFilteredIndex < _filteredChatLogSummaries.Count - 1)
         {
-            currentChatLogIndex++;
-            await LoadCurrentChatLog();
+            var nextLogSummary = _filteredChatLogSummaries[currentFilteredIndex + 1];
+            await JumpToChatLog(nextLogSummary.Index);
         }
     }
 
@@ -341,7 +427,7 @@
 
         var fileName = $"{currentBook.Name}.{exportFormat}";
         var content = string.Join("\n\n---\n\n", chapters.Select(c =>
-        $"# 第{c.Order}章 {c.Title}\n\n{c.Content}"));
+            $"# 第{c.Order}章 {c.Title}\n\n{c.Content}"));
 
         if (exportFormat == "txt")
         {
@@ -354,12 +440,12 @@
     private string ConvertMarkdownToText(string markdown)
     {
         return markdown
-        .Replace("# ", "")
-        .Replace("## ", "")
-        .Replace("### ", "")
-        .Replace("**", "")
-        .Replace("*", "")
-        .Replace("---", "");
+            .Replace("# ", "")
+            .Replace("## ", "")
+            .Replace("### ", "")
+            .Replace("**", "")
+            .Replace("*", "")
+            .Replace("---", "");
     }
 
     private async Task DownloadFile(string fileName, string content)
