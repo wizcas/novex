@@ -18,6 +18,11 @@ public class AnalysisRuleBook
   public string Description { get; set; } = string.Empty;
 
   /// <summary>
+  /// 预处理规则列表 - 在所有规则执行前，用于准备原始文本
+  /// </summary>
+  public List<TransformationRule> PreparationRules { get; set; } = new();
+
+  /// <summary>
   /// 提取规则列表
   /// </summary>
   public List<ExtractionRule> ExtractionRules { get; set; } = new();
@@ -443,7 +448,12 @@ public enum TransformationType
   /// <summary>
   /// 清理URL
   /// </summary>
-  CleanUrl
+  CleanUrl,
+
+  /// <summary>
+  /// 修复未闭合的标签
+  /// </summary>
+  FixUnclosedTags
 }
 
 /// <summary>

@@ -44,7 +44,8 @@ public class RuleEngine
             { TransformationType.CleanWhitespace, new CleanWhitespaceProcessor() },
             { TransformationType.PreserveFormatting, new PreserveFormattingProcessor() },
             { TransformationType.GenerateTitle, new GenerateTitleProcessor() },
-            { TransformationType.CleanUrl, new CleanUrlProcessor() }
+            { TransformationType.CleanUrl, new CleanUrlProcessor() },
+            { TransformationType.FixUnclosedTags, new FixUnclosedTagsProcessor() }
         };
 
     _postProcessingRuleProcessors = new Dictionary<ProcessorType, IPostProcessingRuleProcessor>
@@ -123,6 +124,9 @@ public class RuleEngine
 
     // 验证提取规则
     ValidateExtractionRules(ruleBook.ExtractionRules);
+
+    // 验证预处理规则
+    ValidateTransformationRules(ruleBook.PreparationRules);
 
     // 验证转换规则
     ValidateTransformationRules(ruleBook.TransformationRules);
@@ -333,6 +337,10 @@ public class RuleEngine
     var workingContent = sourceContent;
     var extractedData = new Dictionary<string, string>();
 
+    // 0. 执行预处理规则
+    workingContent = await ExecutePreparationRulesAsync(workingContent, ruleBook.PreparationRules);
+    Console.WriteLine(workingContent);
+
     // 1. 执行提取规则
     await ExecuteExtractionRulesAsync(workingContent, ruleBook.ExtractionRules, extractedData);
 
@@ -354,6 +362,29 @@ public class RuleEngine
     result.MainBody = extractedData.GetValueOrDefault("MainBody", "").Trim();
 
     return result;
+  }
+
+  private async Task<string> ExecutePreparationRulesAsync(string sourceContent, List<TransformationRule> rules)
+  {
+    var workingContent = sourceContent;
+    var sortedRules = rules.Where(r => r.Enabled).OrderBy(r => r.Priority).ToList();
+
+    foreach (var rule in sortedRules)
+    {
+        try
+        {
+            if (_transformationProcessors.TryGetValue(rule.TransformationType, out var processor))
+            {
+                workingContent = await processor.ProcessAsync(workingContent, rule.Parameters);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error executing preparation rule {rule.Id}: {ex.Message}");
+        }
+    }
+
+    return workingContent;
   }
 
   private async Task ExecuteExtractionRulesAsync(string sourceContent, List<ExtractionRule> rules, Dictionary<string, string> extractedData)

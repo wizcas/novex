@@ -1,6 +1,17 @@
 Version: "1.0"
 Description: "Dream Phone 规则 - 使用混合方式处理"
 
+PreparationRules:
+  - Id: "FixUnclosedTags"
+    Name: "修复未闭合的标签"
+    SourceField: "source"
+    TargetField: "source"
+    TransformationType: "FixUnclosedTags"
+    Parameters:
+      OnlyForEndingTags: true
+    Priority: 5
+    Enabled: true
+
 ExtractionRules:
   # 1. 使用 markup 方式提取 plot 标签内容
   - Id: "ExtractPlotContent"
@@ -86,6 +97,18 @@ TransformationRules:
         - Start: "【论坛热议】"
           End: "[由论坛管理器自动生成]"
     Priority: 115
+    Enabled: true
+
+  # 提取思考块之后的内容
+  - Id: "ExtractAfterThinkBlock"
+    Name: "提取思考块之后的内容"
+    SourceField: "MainBody"
+    TargetField: "MainBody"
+    TransformationType: "RegexExtraction"
+    Parameters:
+      Pattern: "</think>(.*)"
+      Format: "{1}"
+    Priority: 117
     Enabled: true
 
   # 4. 清理正文内容 - 移除HTML注释
