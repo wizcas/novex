@@ -1,0 +1,33 @@
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Node.js dependencies
+node_modules/
+**/node_modules/
+
+# .NET build artifacts
+bin/
+obj/
+**/bin/
+**/obj/
+
+# Large test data files
+code/TestData/phoneDiscussions.jsonl
+code/TestData/*.jsonl
+
+# Package manager lock files
+pnpm-lock.yaml
+package-lock.json
+
+# IDE and editor files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Temporary files
+*.tmp
+*.temp
+*.log
