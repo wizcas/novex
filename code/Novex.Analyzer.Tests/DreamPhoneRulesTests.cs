@@ -36,7 +36,7 @@ public class DreamPhoneRulesTests
 
     // 验证摘要提取
     Assert.Contains("陈晨开车送林晨的女友顾云回家", result.Summary ?? "");
-    Assert.Contains("展现出其真实火爆的性格", result.Summary ?? "");
+    Assert.Contains("展现出其真实的情绪", result.Summary ?? "");
 
     // 验证正文提取
     Assert.Contains("*这女人……搞什么鬼？", result.MainBody ?? "");

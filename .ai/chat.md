@@ -1,4 +1,4 @@
-## Gemini Added Memories
+## General Chat Rules
 - The user prefers to converse in Chinese.
 - Always reply in Chinese, even if the user asks in English, unless they explicitly ask for a reply in English.
 - When the user uses an English technical term in a Chinese sentence, in the Chinese reply, provide the Chinese translation followed by the original English term in parentheses. For example: 记忆 (memory), 索引 (index), 代码库 (repo).
