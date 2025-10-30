@@ -25,6 +25,13 @@ public class RuleEngine
     /// </summary>
     public async Task<ProcessResult> ExecuteRuleAsync(ProcessRule rule, ProcessContext context)
     {
+        // 检查规则是否启用
+        if (!rule.Enabled)
+        {
+            _logger?.LogInformation($"规则 {rule.Id} 已禁用，跳过执行");
+            return ProcessResult.Ok(context.SourceContent);
+        }
+
         // 验证规则
         var validationErrors = _validator.ValidateRule(rule);
         if (validationErrors.Any())
@@ -32,7 +39,7 @@ public class RuleEngine
             var errorMessage = string.Join("; ", validationErrors);
             return ProcessResult.Fail(errorMessage);
         }
-        
+
         // 检查条件
         if (!_conditionEvaluator.Evaluate(rule.Condition, context))
         {
@@ -42,20 +49,27 @@ public class RuleEngine
         
         // 解析处理器
         if (!_registry.TryResolve(rule.Processor, out var processor))
-            return ProcessResult.Fail($"处理器未找到: {rule.Processor}");
+        {
+            var errorResult = ProcessResult.Fail($"处理器未找到: {rule.Processor}");
+            return HandleError(rule, errorResult);
+        }
         
         try
         {
             // 准备处理上下文
+            var sourceContent = rule.Scope == ProcessorScope.Field && !string.IsNullOrWhiteSpace(rule.SourceField)
+                ? context.GetField(rule.SourceField)
+                : context.SourceContent;
+
             var processorContext = new ProcessContext
             {
-                SourceContent = context.SourceContent,
+                SourceContent = sourceContent,
                 Fields = new Dictionary<string, string>(context.Fields),
                 Variables = new Dictionary<string, object>(context.Variables),
                 Logger = context.Logger,
                 CancellationToken = context.CancellationToken
             };
-            
+
             // 执行处理器
             var processorParams = new ProcessorParameters(rule.Parameters ?? new Dictionary<string, object>());
             var result = await processor.ProcessAsync(processorContext, processorParams);
@@ -66,12 +80,16 @@ public class RuleEngine
                 return HandleError(rule, result);
             }
 
-            // 更新字段
+            // 更新字段或源内容
             if (!string.IsNullOrWhiteSpace(rule.TargetField))
             {
                 context.SetField(rule.TargetField, result.Output ?? string.Empty);
             }
-            
+            else if (rule.Scope == ProcessorScope.Source)
+            {
+                context.SourceContent = result.Output ?? string.Empty;
+            }
+
             return result;
         }
         catch (Exception ex)
@@ -93,22 +111,24 @@ public class RuleEngine
             var errorMessage = string.Join("; ", validationErrors);
             return ProcessResult.Fail(errorMessage);
         }
-        
+
         // 按优先级排序规则
         var sortedRules = (ruleBook.Rules ?? new List<ProcessRule>())
             .Where(r => r.Enabled)
             .OrderBy(r => r.Priority)
             .ToList();
-        
+
+        ProcessResult lastResult = ProcessResult.Ok(context.SourceContent);
         foreach (var rule in sortedRules)
         {
             var result = await ExecuteRuleAsync(rule, context);
+            lastResult = result;
             if (!result.Success)
             {
                 _logger?.LogError($"规则 {rule.Id} 执行失败: {result.Errors.FirstOrDefault()?.Message}");
             }
         }
-        
+
         return ProcessResult.Ok(context.SourceContent);
     }
     
@@ -116,7 +136,9 @@ public class RuleEngine
     {
         return rule.OnError switch
         {
-            ErrorHandlingStrategy.Throw => result,
+            ErrorHandlingStrategy.Throw => throw new InvalidOperationException(
+                result.Errors.FirstOrDefault()?.Message ?? "处理器执行失败",
+                result.Errors.FirstOrDefault()?.Exception),
             ErrorHandlingStrategy.Skip => ProcessResult.Ok(result.Output ?? string.Empty),
             ErrorHandlingStrategy.UseDefault => ProcessResult.Ok(string.Empty),
             _ => result

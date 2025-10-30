@@ -9,3 +9,9 @@
 ### Docs
 - For formal documentations, such as requirement analysis, technical specifications, architecture design, etc., they should be generated in folder `docs` instead of `reports`.
 - Keep the docs easy to read while professional.
+
+### Language Rules
+- All reports and docs should be written in **Chinese** (中文) with necessary English terms.
+- Follow the style guide in `@/.ai/chat.md`: provide Chinese translation followed by the original English term in parentheses.
+- Examples: 处理器 (processor), 规则引擎 (rule engine), 字段 (field), 错误处理策略 (error handling strategy)
+- Use Chinese for all explanations, descriptions, and technical content, but keep English terms for proper nouns, framework names, and technical identifiers.

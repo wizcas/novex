@@ -28,22 +28,22 @@ public class ConditionEvaluator
         if (condition.StartsWith("field:"))
         {
             var fieldCondition = condition.Substring(6);
-            
-            if (fieldCondition.Contains("="))
-            {
-                var parts = fieldCondition.Split('=', 2);
-                var fieldName = parts[0].Trim();
-                var expectedValue = parts[1].Trim();
-                var actualValue = context.GetField(fieldName);
-                return actualValue == expectedValue;
-            }
-            else if (fieldCondition.Contains("!="))
+
+            if (fieldCondition.Contains("!="))
             {
                 var parts = fieldCondition.Split(new[] { "!=" }, StringSplitOptions.None);
                 var fieldName = parts[0].Trim();
                 var expectedValue = parts[1].Trim();
                 var actualValue = context.GetField(fieldName);
                 return actualValue != expectedValue;
+            }
+            else if (fieldCondition.Contains("="))
+            {
+                var parts = fieldCondition.Split('=', 2);
+                var fieldName = parts[0].Trim();
+                var expectedValue = parts[1].Trim();
+                var actualValue = context.GetField(fieldName);
+                return actualValue == expectedValue;
             }
             else if (fieldCondition.Contains("~"))
             {

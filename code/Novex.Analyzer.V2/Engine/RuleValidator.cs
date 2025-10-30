@@ -18,21 +18,20 @@ public class RuleValidator
     public IEnumerable<string> ValidateRule(ProcessRule rule)
     {
         var errors = new List<string>();
-        
+
         if (string.IsNullOrWhiteSpace(rule.Id))
             errors.Add("规则 ID 不能为空");
-        
+
         if (string.IsNullOrWhiteSpace(rule.Name))
             errors.Add("规则名称不能为空");
-        
+
         if (string.IsNullOrWhiteSpace(rule.Processor))
             errors.Add("处理器名称不能为空");
-        else if (!_registry.GetRegisteredNames().Contains(rule.Processor))
-            errors.Add($"处理器未找到: {rule.Processor}");
-        
+        // 注意：不在这里检查处理器是否存在，而是在执行时处理
+
         if (rule.Scope == ProcessorScope.Field && string.IsNullOrWhiteSpace(rule.SourceField))
             errors.Add("字段作用域需要指定 SourceField");
-        
+
         return errors;
     }
     
