@@ -80,15 +80,15 @@ public class BasicExample
     public static async Task Example3_YamlRules()
     {
         var yaml = @"
-version: 2.0
-description: 示例规则书
-rules:
-  - id: rule1
-    name: 修剪空白
-    processor: Text.Trim
-    scope: Source
-    priority: 1
-    enabled: true
+Version: 2.0
+Description: 示例规则书
+Rules:
+  - Id: rule1
+    Name: 修剪空白
+    Processor: Text.Trim
+    Scope: Source
+    Priority: 1
+    Enabled: true
 ";
         
         // 加载规则

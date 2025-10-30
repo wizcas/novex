@@ -10,15 +10,15 @@ public class YamlRuleLoaderTests
     {
         // Arrange
         var yaml = @"
-version: 2.0
-description: Test Rule Book
-rules:
-  - id: rule1
-    name: Test Rule
-    processor: Text.Trim
-    scope: Source
-    priority: 1
-    enabled: true
+Version: 2.0
+Description: Test Rule Book
+Rules:
+  - Id: rule1
+    Name: Test Rule
+    Processor: Text.Trim
+    Scope: Source
+    Priority: 1
+    Enabled: true
 ";
         var loader = new YamlRuleLoader();
 
@@ -37,14 +37,14 @@ rules:
     {
         // Arrange
         var yaml = @"
-version: 2.0
-rules:
-  - id: rule1
-    processor: Text.Replace
-    scope: Source
-    priority: 1
-    enabled: true
-    parameters:
+Version: 2.0
+Rules:
+  - Id: rule1
+    Processor: Text.Replace
+    Scope: Source
+    Priority: 1
+    Enabled: true
+    Parameters:
       OldValue: hello
       NewValue: world
 ";
@@ -148,18 +148,18 @@ rules:
     {
         // Arrange
         var yaml = @"
-version: 2.0
-rules:
-  - id: rule1
-    processor: Text.Trim
-    scope: Source
-    priority: 1
-    enabled: true
-  - id: rule2
-    processor: Transform.ToUpper
-    scope: Source
-    priority: 2
-    enabled: true
+Version: 2.0
+Rules:
+  - Id: rule1
+    Processor: Text.Trim
+    Scope: Source
+    Priority: 1
+    Enabled: true
+  - Id: rule2
+    Processor: Transform.ToUpper
+    Scope: Source
+    Priority: 2
+    Enabled: true
 ";
         var loader = new YamlRuleLoader();
 

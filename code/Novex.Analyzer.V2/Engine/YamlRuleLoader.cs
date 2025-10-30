@@ -18,7 +18,7 @@ public class YamlRuleLoader
         try
         {
             var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.CamelCaseNamingConvention.Instance)
+                .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance)
                 .Build();
 
             var ruleBook = deserializer.Deserialize<RuleBook>(yaml);
@@ -48,7 +48,7 @@ public class YamlRuleLoader
     public string SaveToYaml(RuleBook ruleBook)
     {
         var serializer = new SerializerBuilder()
-            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.CamelCaseNamingConvention.Instance)
+            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance)
             .Build();
         return serializer.Serialize(ruleBook);
     }
