@@ -172,5 +172,42 @@ Rules:
         Assert.Equal("rule1", ruleBook.Rules[0].Id);
         Assert.Equal("rule2", ruleBook.Rules[1].Id);
     }
+
+    [Fact]
+    public void LoadFromYaml_ParsesBlocksParameter()
+    {
+        // Arrange
+        var yaml = @"
+Version: 2.0
+Rules:
+  - Id: rule1
+    Processor: Text.RemoveContentBlocks
+    Scope: Source
+    Priority: 1
+    Enabled: true
+    Parameters:
+      Blocks:
+        - Start: '<!-- START -->'
+          End: '<!-- END -->'
+        - Start: '[START]'
+          End: '[END]'
+";
+        var loader = new YamlRuleLoader();
+
+        // Act
+        var ruleBook = loader.LoadFromYaml(yaml);
+
+        // Assert
+        Assert.NotNull(ruleBook);
+        Assert.Single(ruleBook.Rules);
+        var rule = ruleBook.Rules[0];
+        Assert.NotEmpty(rule.Parameters);
+        Assert.True(rule.Parameters.ContainsKey("Blocks"));
+        var blocks = rule.Parameters["Blocks"];
+        Assert.NotNull(blocks);
+        Assert.IsAssignableFrom<System.Collections.IList>(blocks);
+        var blocksList = (System.Collections.IList)blocks;
+        Assert.Equal(2, blocksList.Count);
+    }
 }
 

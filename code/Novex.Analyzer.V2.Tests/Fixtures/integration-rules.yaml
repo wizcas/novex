@@ -1,0 +1,94 @@
+﻿Version: "2.0"
+Description: "集成测试规则 - 处理 Fixture 文件（通用规则，支持多种格式）"
+
+# 规则链：
+# 1. 移除 <think>...</think> 块
+# 2. 移除内容块标记和内容（<!-- *_CONTENT_START --> 到 <!-- *_CONTENT_END -->）
+# 3. 移除 HTML 注释
+# 4. 提取 <content>...</content> 内容（如果存在，否则保留全部内容）
+# 5. 合并多余空行（2行或以上变为1行）
+# 6. 修剪首尾空白
+
+Rules:
+  # 第1步：移除思考块 <think>...</think>
+  - Id: "RemoveThinkBlocks"
+    Name: "移除思考块"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 10
+    Enabled: true
+    Parameters:
+      Pattern: '<think>.*?</think>'
+      Replacement: ''
+      RegexOptions: "Singleline,IgnoreCase"
+
+  # 第2步：移除 FORUM 内容块（<!-- FORUM_CONTENT_START --> 到 <!-- FORUM_CONTENT_END -->）
+  # 移除整个块（包括标记和内容）
+  - Id: "RemoveForumContentBlock"
+    Name: "移除论坛内容块"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 15
+    Enabled: true
+    Parameters:
+      Pattern: '<!--\s*FORUM_CONTENT_START\s*-->[\s\S]*?<!--\s*FORUM_CONTENT_END\s*-->'
+      Replacement: ''
+      RegexOptions: "Multiline"
+
+  # 第2.5步：移除微博内容（<!-- WEIBO_CONTENT_START --> 到 <!-- WEIBO_CONTENT_END -->）块
+  - Id: "RemoveWeiboContentBlock"
+    Name: "移除微博内容块"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 17
+    Enabled: true
+    Parameters:
+      Pattern: '<!--\s*WEIBO_CONTENT_START\s*-->[\s\S]*?<!--\s*WEIBO_CONTENT_END\s*-->'
+      Replacement: ''
+      RegexOptions: "None"
+
+  # 第3步：移除 HTML 注释
+  - Id: "RemoveHtmlComments"
+    Name: "移除 HTML 注释"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 20
+    Enabled: true
+    Parameters:
+      Pattern: '<!--.*?-->'
+      Replacement: ''
+      RegexOptions: "Singleline"
+
+  # 第4步：提取 <content>...</content> 内容（如果存在）
+  # 如果不存在 <content> 标签，则保留全部内容（通过 OnError: Skip）
+  - Id: "ExtractContentBlock"
+    Name: "提取内容块（如果存在）"
+    Processor: "Markup.SelectNode"
+    Scope: "Source"
+    Priority: 40
+    Enabled: true
+    OnError: "Skip"
+    Parameters:
+      XPath: "//content"
+      InnerHtml: true
+
+  # 第5步：合并多余空行（2行或以上变为1行）
+  - Id: "MergeExcessiveBlankLines"
+    Name: "合并多余空行"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 50
+    Enabled: true
+    Parameters:
+      Pattern: "\\n\\n+"
+      Replacement: "\\n\\n"
+      RegexOptions: "Singleline"
+
+  # 第6步：修剪首尾空白
+  - Id: "TrimContent"
+    Name: "修剪首尾空白"
+    Processor: "Text.Trim"
+    Scope: "Source"
+    Priority: 100
+    Enabled: true
+
