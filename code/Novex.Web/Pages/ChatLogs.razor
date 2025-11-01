@@ -37,6 +37,26 @@
 </style>
 
 <div class="chatlogs-page">
+  <div style="margin-bottom: 16px;">
+    <Breadcrumb>
+      <BreadcrumbItem Href="/">
+        <Icon Type="home" /> 首页
+      </BreadcrumbItem>
+      <BreadcrumbItem Href="/books">
+        <Icon Type="book" /> 书目管理
+      </BreadcrumbItem>
+      @if (currentBook != null)
+      {
+        <BreadcrumbItem>
+          @currentBook.Name
+        </BreadcrumbItem>
+      }
+      <BreadcrumbItem>
+        <Icon Type="message" /> 聊天记录
+      </BreadcrumbItem>
+    </Breadcrumb>
+  </div>
+
   <div style="margin-bottom: 24px;">
     <Row Justify="@RowJustify.SpaceBetween" Align="@RowAlign.Middle">
       <AntDesign.Col>

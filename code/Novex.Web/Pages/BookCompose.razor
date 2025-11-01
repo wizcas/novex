@@ -15,6 +15,27 @@
 <PageTitle>编纂书目 - @(currentBook?.Name ?? "加载中...")</PageTitle>
 
 <div class="compose-page">
+    <!-- 面包屑导航 -->
+    <div style="margin-bottom: 16px;">
+        <Breadcrumb>
+            <BreadcrumbItem Href="/">
+                <Icon Type="home" /> 首页
+            </BreadcrumbItem>
+            <BreadcrumbItem Href="/books">
+                <Icon Type="book" /> 书目管理
+            </BreadcrumbItem>
+            @if (currentBook != null)
+            {
+                <BreadcrumbItem>
+                    @currentBook.Name
+                </BreadcrumbItem>
+            }
+            <BreadcrumbItem>
+                <Icon Type="edit" /> 章节编辑
+            </BreadcrumbItem>
+        </Breadcrumb>
+    </div>
+
     <!-- 标题栏 -->
     <div style="margin-bottom: 16px;">
         <Row Justify="@RowJustify.SpaceBetween" Align="@RowAlign.Middle">

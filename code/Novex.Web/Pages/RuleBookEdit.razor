@@ -12,6 +12,20 @@
 <PageTitle>@(IsEdit ? "编辑规则书" : "新建规则书")</PageTitle>
 
 <div style="margin-bottom: 16px;">
+  <Breadcrumb>
+    <BreadcrumbItem Href="/">
+      <Icon Type="home" /> 首页
+    </BreadcrumbItem>
+    <BreadcrumbItem Href="/rulebooks">
+      <Icon Type="setting" /> 规则书管理
+    </BreadcrumbItem>
+    <BreadcrumbItem>
+      <Icon Type="@(IsEdit ? "edit" : "plus")" /> @(IsEdit ? "编辑规则书" : "新建规则书")
+    </BreadcrumbItem>
+  </Breadcrumb>
+</div>
+
+<div style="margin-bottom: 16px;">
   <div style="display: flex; align-items: center;">
     <Button Type="@ButtonType.Link" OnClick="@GoBack">
       <Icon Type="arrow-left" /> 返回规则书列表

@@ -10,6 +10,26 @@
 <PageTitle>导入聊天记录</PageTitle>
 
 <div class="import-page">
+    <div style="margin-bottom: 16px;">
+        <Breadcrumb>
+            <BreadcrumbItem Href="/">
+                <Icon Type="home" /> 首页
+            </BreadcrumbItem>
+            <BreadcrumbItem Href="/books">
+                <Icon Type="book" /> 书目管理
+            </BreadcrumbItem>
+            @if (selectedBook != null)
+            {
+                <BreadcrumbItem>
+                    @selectedBook.Name
+                </BreadcrumbItem>
+            }
+            <BreadcrumbItem>
+                <Icon Type="upload" /> 导入记录
+            </BreadcrumbItem>
+        </Breadcrumb>
+    </div>
+
     <div style="margin-bottom: 24px;">
         <Title Level="2">
             <Icon Type="upload" style="margin-right: 8px; color: #1890ff;" />

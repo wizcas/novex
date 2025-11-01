@@ -15,6 +15,35 @@
 @inject V2RuleEngineService V2RuleEngine
 
 <div style="margin-bottom: 16px;">
+  <Breadcrumb>
+    <BreadcrumbItem Href="/">
+      <Icon Type="home" /> 首页
+    </BreadcrumbItem>
+    <BreadcrumbItem Href="/books">
+      <Icon Type="book" /> 书目管理
+    </BreadcrumbItem>
+    @if (!string.IsNullOrEmpty(bookName))
+    {
+      <BreadcrumbItem>
+        @bookName
+      </BreadcrumbItem>
+    }
+    <BreadcrumbItem Href="@($"/chatlogs/{BookId}")">
+      <Icon Type="message" /> 聊天记录
+    </BreadcrumbItem>
+    @if (chatLog != null)
+    {
+      <BreadcrumbItem Href="@($"/chatlogs/{BookId}/{ChatLogId}")">
+        第 @chatLog.Index 楼
+      </BreadcrumbItem>
+    }
+    <BreadcrumbItem>
+      <Icon Type="bar-chart" /> 分析
+    </BreadcrumbItem>
+  </Breadcrumb>
+</div>
+
+<div style="margin-bottom: 16px;">
   <h3 style="margin: 0;">
     分析对话记录
     @if (!string.IsNullOrEmpty(bookName))
