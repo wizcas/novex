@@ -1,8 +1,6 @@
 @page "/chatlogs/{bookId:int}/{chatLogId:int}/analyze"
 @using Novex.Data.Models
 @using Novex.Data.Services
-@using Novex.Analyzer
-@using Novex.Analyzer.Models
 @using Novex.Web.Shared.Components
 @using Novex.Web.Components
 @using Novex.Web.Services
@@ -236,7 +234,6 @@
   private bool hasPrevious = false;
   private bool hasNext = false;
   private string bookName = "";
-  private readonly ChatLogAnalyzer _analyzer = new();
 
   // 规则书相关变量
   private int? selectedRuleBookId;
@@ -333,34 +330,15 @@
       if (selectedRuleBook != null)
       {
         // 使用选中的规则书进行分析
-        try
-        {
-          // 尝试使用 V2 规则引擎
-          try
-          {
-            result = await V2RuleEngine.AnalyzeAsync(chatLog.Mes, selectedRuleBook.Content);
-          }
-          catch (Exception v2Ex)
-          {
-            Console.WriteLine($"V2 规则引擎分析失败: {v2Ex.Message}");
-            // 如果 V2 失败，回退到 V1
-            var ruleEngine = new RuleEngine();
-            var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(selectedRuleBook.Content));
-            result = await ruleEngine.ExecuteRulesAsync(chatLog.Mes, parsedRuleBook);
-          }
-        }
-        catch (Exception ruleEx)
-        {
-          Console.WriteLine($"使用规则书分析失败: {ruleEx.Message}");
-          await MessageService.WarningAsync($"规则书分析失败，将使用默认分析：{ruleEx.Message}");
-          // 如果规则书分析失败，回退到默认分析
-          result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
-        }
+        result = await V2RuleEngine.AnalyzeAsync(chatLog.Mes, selectedRuleBook.Content);
       }
       else
       {
-        // 使用默认的 ChatLogAnalyzer 进行分析
-        result = await _analyzer.AnalyzeAsync(chatLog.Mes, "(未知)");
+        // 如果没有选择规则书，返回错误
+        await MessageService.ErrorAsync("请先选择一个规则书进行分析");
+        isAnalyzing = false;
+        StateHasChanged();
+        return;
       }
 
       // 设置 ChatLogId 以保持与现有结构的兼容性
@@ -375,14 +353,7 @@
       StateHasChanged();
 
       // 显示成功消息
-      if (selectedRuleBook != null)
-      {
-        await MessageService.SuccessAsync($"使用规则书「{selectedRuleBook.Name}」分析完成！");
-      }
-      else
-      {
-        await MessageService.SuccessAsync("使用默认引擎分析完成！");
-      }
+      await MessageService.SuccessAsync($"使用规则书「{selectedRuleBook.Name}」分析完成！");
     }
     catch (Exception ex)
     {

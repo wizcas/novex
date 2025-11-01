@@ -1,12 +1,12 @@
 @using Novex.Data.Models
 @using Novex.Data.Services
-@using Novex.Analyzer
-@using Novex.Analyzer.Models
 @using Novex.Web.Shared.Components
+@using Novex.Web.Services
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject AnalysisRuleBookService RuleBookService
 @inject IMessageService MessageService
+@inject V2RuleEngineService V2RuleEngine
 
 <Modal Title="批量分析" Visible="@IsVisible" OnCancel="@OnCancel" Footer="@modalFooter" Width="800" Keyboard="false"
   MaskClosable="false">
@@ -157,8 +157,6 @@
   private double progressPercent = 0;
   private string currentProcessingInfo = string.Empty;
   private List<string> errors = new();
-
-  private ChatLogAnalyzer analyzer = new();
 
   protected override async Task OnParametersSetAsync()
   {
@@ -329,8 +327,19 @@
           }
 
           // 执行分析
-          var analysisResult = await analyzer.AnalyzeAsync(fullChatLog.Mes, selectedRuleBook?.Content ?? "");
-          analysisResult.ChatLogId = chatLogSummary.Id;
+          ChatLogAnalysisResult analysisResult;
+          if (selectedRuleBook != null)
+          {
+            analysisResult = await V2RuleEngine.AnalyzeAsync(fullChatLog.Mes, selectedRuleBook.Content);
+            analysisResult.ChatLogId = chatLogSummary.Id;
+          }
+          else
+          {
+            errors.Add($"楼层 {chatLogSummary.Index}: 未选择规则书");
+            processedCount++;
+            UpdateProgress();
+            continue;
+          }
 
           // 保存结果
           await AnalysisService.SaveAnalysisResultAsync(analysisResult);

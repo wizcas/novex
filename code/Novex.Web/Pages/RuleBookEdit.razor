@@ -2,7 +2,6 @@
 @page "/rulebooks/edit/{ruleBookId:int}"
 @using Novex.Data.Models
 @using Novex.Data.Services
-@using Novex.Analyzer
 @using Microsoft.AspNetCore.Components
 @using Novex.Web.Components
 @inject AnalysisRuleBookService RuleBookService
@@ -212,8 +211,9 @@ Targets:
         return;
       }
 
-      var ruleEngine = new RuleEngine();
-      var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(ruleBook.Content));
+      // 使用 V2 引擎验证 YAML 格式
+      var yamlLoader = new Novex.Analyzer.V2.Engine.YamlRuleLoader();
+      var parsedRuleBook = yamlLoader.LoadFromYaml(ruleBook.Content);
 
       MessageService.Success("规则验证通过！");
     }
