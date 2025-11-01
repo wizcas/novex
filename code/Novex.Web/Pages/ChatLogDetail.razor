@@ -11,110 +11,98 @@
 
 <PageTitle>聊天记录详情</PageTitle>
 
-<div class="chatlog-detail-page">
-  @if (isLoading)
-  {
-    <div style="text-align: center; padding: 100px 0;">
-      <Spin Size="@SpinSize.Large" />
-    </div>
-  }
-  else if (chatLog == null)
-  {
-    <Result Status="@ResultStatus.Error" Title="404" SubTitle="聊天记录不存在">
-      <Extra>
-        <Button Type="@ButtonType.Primary" OnClick="@GoBack">返回</Button>
-      </Extra>
-    </Result>
-  }
-  else
-  {
-    <div style="margin-bottom: 16px;">
-      <Breadcrumb>
-        <BreadcrumbItem Href="/">
-          <Icon Type="home" /> 首页
+@if (isLoading)
+{
+  <div style="text-align: center; padding: 100px 0;">
+    <Spin Size="@SpinSize.Large" />
+  </div>
+}
+else if (chatLog == null)
+{
+  <Result Status="@ResultStatus.Error" Title="404" SubTitle="聊天记录不存在">
+    <Extra>
+      <Button Type="@ButtonType.Primary" OnClick="@GoBack">返回</Button>
+    </Extra>
+  </Result>
+}
+else
+{
+  <div style="margin-bottom: 16px;">
+    <Breadcrumb>
+      <BreadcrumbItem Href="/">
+        <Icon Type="home" /> 首页
+      </BreadcrumbItem>
+      <BreadcrumbItem Href="/books">
+        <Icon Type="book" /> 书目管理
+      </BreadcrumbItem>
+      @if (book != null)
+      {
+        <BreadcrumbItem>
+          @book.Name
         </BreadcrumbItem>
-        <BreadcrumbItem Href="/books">
-          <Icon Type="book" /> 书目管理
+      }
+      <BreadcrumbItem Href="@($"/chatlogs/{BookId}")">
+        <Icon Type="message" /> 聊天记录
+      </BreadcrumbItem>
+      @if (chatLog != null)
+      {
+        <BreadcrumbItem>
+          第 @chatLog.Index 楼
         </BreadcrumbItem>
-        @if (book != null)
-        {
-          <BreadcrumbItem>
-            @book.Name
-          </BreadcrumbItem>
-        }
-        <BreadcrumbItem Href="@($"/chatlogs/{BookId}")">
-          <Icon Type="message" /> 聊天记录
-        </BreadcrumbItem>
-        @if (chatLog != null)
-        {
-          <BreadcrumbItem>
-            第 @chatLog.Index 楼
-          </BreadcrumbItem>
-        }
-      </Breadcrumb>
-    </div>
+      }
+    </Breadcrumb>
+  </div>
 
-    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-      <Button Type="@ButtonType.Link" OnClick="@GoBack">
-        <Icon Type="arrow-left" /> 返回聊天记录列表
-      </Button>
+  <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+    <Button Type="@ButtonType.Link" OnClick="@GoBack">
+      <Icon Type="arrow-left" /> 返回聊天记录列表
+    </Button>
 
-      <Space Size="@SpaceSize.Large">
-        <SpaceItem>
-          <Space>
-            <SpaceItem>
-              <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoPrevious"
-                Disabled="@(!hasPrevious || isNavigating)" Loading="@isNavigating">
-                <Icon Type="left" /> 上一条
-              </Button>
-            </SpaceItem>
-            <SpaceItem>
-              <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoNext"
-                Disabled="@(!hasNext || isNavigating)" Loading="@isNavigating">
-                下一条
-                <Icon Type="right" />
-              </Button>
-            </SpaceItem>
-          </Space>
-        </SpaceItem>
-        <SpaceItem>
-          <FloorJumpSelector BookId="@BookId"
-                            CurrentFloor="@(chatLog?.Index ?? 0)"
-                            MinFloor="@minFloor"
-                            MaxFloor="@maxFloor"
-                            ShowCurrentFloor="true"
-                            Mode="@FloorJumpSelector.JumpMode.ChatLogId"
-                            OnJump="@JumpToFloor" />
-        </SpaceItem>
-        <SpaceItem>
-          <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" OnClick="@GoToAnalyze">
-            <Icon Type="bar-chart" /> 分析此记录
-          </Button>
-        </SpaceItem>
-      </Space>
-    </div>
+    <Space Size="@SpaceSize.Large">
+      <SpaceItem>
+        <Space>
+          <SpaceItem>
+            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoPrevious"
+              Disabled="@(!hasPrevious || isNavigating)" Loading="@isNavigating">
+              <Icon Type="left" /> 上一条
+            </Button>
+          </SpaceItem>
+          <SpaceItem>
+            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoNext"
+              Disabled="@(!hasNext || isNavigating)" Loading="@isNavigating">
+              下一条
+              <Icon Type="right" />
+            </Button>
+          </SpaceItem>
+        </Space>
+      </SpaceItem>
+      <SpaceItem>
+        <FloorJumpSelector BookId="@BookId"
+                          CurrentFloor="@(chatLog?.Index ?? 0)"
+                          MinFloor="@minFloor"
+                          MaxFloor="@maxFloor"
+                          ShowCurrentFloor="true"
+                          Mode="@FloorJumpSelector.JumpMode.ChatLogId"
+                          OnJump="@JumpToFloor" />
+      </SpaceItem>
+      <SpaceItem>
+        <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" OnClick="@GoToAnalyze">
+          <Icon Type="bar-chart" /> 分析此记录
+        </Button>
+      </SpaceItem>
+    </Space>
+  </div>
 
-    <div style="max-width: 1200px; margin: 0 auto;">
-      <Alert Type="@AlertType.Info" Message="键盘操作提示"
-             Description="使用左右方向键切换上一条/下一条记录。" ShowIcon="true"
-             Style="margin-bottom: 16px;" />
+  <Alert Type="@AlertType.Info" Message="键盘操作提示"
+         Description="使用左右方向键切换上一条/下一条记录。" ShowIcon="true"
+         Style="margin-bottom: 16px;" />
 
-      <ChatLogViewer @ref="_chatLogViewer"
-                     ChatLog="@chatLog"
-                     Title="@($"聊天记录详情 - {book?.Name ?? "加载中..."}")"
-                     ShowExtra="true"
-                     ContentMaxHeight="600px" />
-    </div>
-  }
-</div>
-
-<style>
-  .chatlog-detail-page {
-    padding: 24px;
-    min-height: 100vh;
-    background: #f0f2f5;
-  }
-</style>
+  <ChatLogViewer @ref="_chatLogViewer"
+                 ChatLog="@chatLog"
+                 Title="@($"聊天记录详情 - {book?.Name ?? "加载中..."}")"
+                 ShowExtra="true"
+                 ContentMaxHeight="600px" />
+}
 
 @code {
   [Parameter] public int BookId { get; set; }
