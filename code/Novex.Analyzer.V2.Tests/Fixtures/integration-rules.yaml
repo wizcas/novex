@@ -2,23 +2,48 @@
 Description: "集成测试规则 - 处理 Fixture 文件（通用规则，支持多种格式）"
 
 # 规则链：
-# 1. 从 plot 标签提取标题和摘要（优先执行，避免内容被修剪）
-# 2. 移除 <think>...</think> 块
-# 3. 移除内容块标记和内容（<!-- *_CONTENT_START --> 到 <!-- *_CONTENT_END -->）
-# 4. 移除 HTML 注释
-# 5. 提取 <content>...</content> 内容（如果存在，否则保留全部内容）
-# 6. 合并多余空行（2行或以上变为1行）
-# 7. 修剪首尾空白
+# 1. 移除 <think>...</think> 块
+# 2. 移除从文件开始到未配对的 </think> 标签的内容（处理没有开始标签的情况）
+# 3. 从 plot 标签提取标题和摘要（在移除 think 后执行）
+# 4. 移除内容块标记和内容（<!-- *_CONTENT_START --> 到 <!-- *_CONTENT_END -->）
+# 5. 移除 HTML 注释
+# 6. 提取 <content>...</content> 内容（如果存在，否则保留全部内容）
+# 7. 合并多余空行（2行或以上变为1行）
+# 8. 修剪首尾空白
 
 Rules:
-  # 第1步：从 plot 标签中提取章节和事件名作为标题
-  # 优先执行，确保在内容被修剪前提取
+  # 第1步：移除思考块 <think>...</think>
+  - Id: "RemoveThinkBlocks"
+    Name: "移除思考块"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 5
+    Enabled: true
+    Parameters:
+      Pattern: '<think>.*?</think>'
+      Replacement: ''
+      RegexOptions: "Singleline,IgnoreCase"
+
+  # 第2步：移除从文件开始到 </think> 的内容（处理没有开始标签的情况）
+  # 只在没有 <think> 标签时才匹配
+  - Id: "RemoveUnpairedThinkClosingTag"
+    Name: "移除未配对的 </think> 标签及之前的内容"
+    Processor: "Regex.Replace"
+    Scope: "Source"
+    Priority: 6
+    Enabled: true
+    Parameters:
+      Pattern: '^.*?</think>\s*'
+      Replacement: ''
+      RegexOptions: "Singleline"
+
+  # 第3步：从 plot 标签中提取章节和事件名作为标题
   - Id: "ExtractPlotTitle"
     Name: "从 plot 标签提取标题"
     Processor: "Extraction.ExtractStructuredData"
     Scope: "Source"
     TargetField: "Title"
-    Priority: 5
+    Priority: 10
     Enabled: true
     OnError: "Skip"
     Parameters:
@@ -26,34 +51,22 @@ Rules:
       Fields: "Chapter:当前章节,Event:事件名"
       Separator: "/"
 
-  # 第2步：从 plot 标签中提取摘要
-  # 优先执行，确保在内容被修剪前提取
+  # 第4步：从 plot 标签中提取摘要
   - Id: "ExtractPlotSummary"
     Name: "从 plot 标签提取摘要"
     Processor: "Extraction.ExtractStructuredData"
     Scope: "Source"
     TargetField: "Summary"
-    Priority: 6
+    Priority: 11
     Enabled: true
     OnError: "Skip"
     Parameters:
       TagName: "plot"
       Fields: "Summary:摘要"
 
-  # 第3步：移除思考块 <think>...</think>
-  - Id: "RemoveThinkBlocks"
-    Name: "移除思考块"
-    Processor: "Regex.Replace"
-    Scope: "Source"
-    Priority: 10
-    Enabled: true
-    Parameters:
-      Pattern: '<think>.*?</think>'
-      Replacement: ''
-      RegexOptions: "Singleline,IgnoreCase"
-
-  # 第4步：移除 FORUM 内容块（<!-- FORUM_CONTENT_START --> 到 <!-- FORUM_CONTENT_END -->）
+  # 第5步：移除 FORUM 内容块（<!-- FORUM_CONTENT_START --> 到 <!-- FORUM_CONTENT_END -->）
   # 移除整个块（包括标记和内容）
+  # 注意：[\s\S] 已经可以匹配包括换行符在内的所有字符，不需要 RegexOptions
   - Id: "RemoveForumContentBlock"
     Name: "移除论坛内容块"
     Processor: "Regex.Replace"
@@ -63,9 +76,9 @@ Rules:
     Parameters:
       Pattern: '<!--\s*FORUM_CONTENT_START\s*-->[\s\S]*?<!--\s*FORUM_CONTENT_END\s*-->'
       Replacement: ''
-      RegexOptions: "Multiline"
 
-  # 第5步：移除微博内容（<!-- WEIBO_CONTENT_START --> 到 <!-- WEIBO_CONTENT_END -->）块
+  # 第6步：移除微博内容（<!-- WEIBO_CONTENT_START --> 到 <!-- WEIBO_CONTENT_END -->）块
+  # 注意：[\s\S] 已经可以匹配包括换行符在内的所有字符，不需要 RegexOptions
   - Id: "RemoveWeiboContentBlock"
     Name: "移除微博内容块"
     Processor: "Regex.Replace"
@@ -75,9 +88,8 @@ Rules:
     Parameters:
       Pattern: '<!--\s*WEIBO_CONTENT_START\s*-->[\s\S]*?<!--\s*WEIBO_CONTENT_END\s*-->'
       Replacement: ''
-      RegexOptions: "Multiline"
 
-  # 第6步：移除 HTML 注释
+  # 第7步：移除 HTML 注释
   - Id: "RemoveHtmlComments"
     Name: "移除 HTML 注释"
     Processor: "Regex.Replace"
@@ -89,7 +101,7 @@ Rules:
       Replacement: ''
       RegexOptions: "Singleline"
 
-  # 第7步：提取 <content>...</content> 内容（如果存在）
+  # 第8步：提取 <content>...</content> 内容（如果存在）
   # 如果不存在 <content> 标签，则保留全部内容（通过 OnError: Skip）
   - Id: "ExtractContentBlock"
     Name: "提取内容块（如果存在）"
@@ -102,7 +114,8 @@ Rules:
       XPath: "//content"
       InnerHtml: true
 
-  # 第8步：合并多余空行（2行或以上变为1行）
+  # 第9步：合并多余空行（2行或以上变为1行）
+  # 注意：此模式不使用 ^ 或 $，不需要 Multiline 选项
   - Id: "MergeExcessiveBlankLines"
     Name: "合并多余空行"
     Processor: "Regex.Replace"
@@ -110,15 +123,13 @@ Rules:
     Priority: 50
     Enabled: true
     Parameters:
-      Pattern: "\\n\\n+"
-      Replacement: "\\n\\n"
-      RegexOptions: "Singleline"
+      Pattern: "(\\r?\\n){3,}"
+      Replacement: "$1$1"
 
-  # 第9步：修剪首尾空白
+  # 第10步：修剪首尾空白
   - Id: "TrimContent"
     Name: "修剪首尾空白"
     Processor: "Text.Trim"
     Scope: "Source"
     Priority: 100
     Enabled: true
-

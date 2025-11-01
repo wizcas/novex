@@ -283,5 +283,41 @@ public class FixtureBasedIntegrationTests
         var normalizedActual = NormalizeLineEndings(result.Output.Trim());
         Assert.Equal(normalizedExpected, normalizedActual);
     }
+
+    /// <summary>
+    /// 单独测试 Case 4: 处理输入文件，验证输出与预期一致
+    /// 测试移除未配对的 </think> 标签及之前的内容，并提取 <content> 标签内容
+    /// </summary>
+    [Fact]
+    public async Task Case4_ShouldProduceExpectedOutput()
+    {
+        // Arrange
+        var inputFile = Path.Combine(_fixturesDir, "case4.input.md");
+        var outputFile = Path.Combine(_fixturesDir, "case4.output.md");
+        var rulesFile = Path.Combine(_fixturesDir, "integration-rules.yaml");
+
+        if (!File.Exists(inputFile) || !File.Exists(outputFile) || !File.Exists(rulesFile))
+        {
+            return;
+        }
+
+        var sourceContent = File.ReadAllText(inputFile);
+        var expectedOutput = File.ReadAllText(outputFile);
+
+        // Act
+        var result = await ExecuteRulesFromFile(sourceContent, rulesFile);
+
+        // 保存处理后的输出用于调试
+        var processedFile = Path.Combine(_fixturesDir, "case4.processed.md");
+        File.WriteAllText(processedFile, result.Output);
+        Console.WriteLine($"Output length: {result.Output.Length}");
+
+        // Assert
+        Assert.True(result.Success, $"Case 4: 规则执行应该成功。错误: {string.Join("; ", result.Errors.Select(e => e.Message))}");
+        // 忽略换行符差异进行比较
+        var normalizedExpected = NormalizeLineEndings(expectedOutput.Trim());
+        var normalizedActual = NormalizeLineEndings(result.Output.Trim());
+        Assert.Equal(normalizedExpected, normalizedActual);
+    }
 }
 

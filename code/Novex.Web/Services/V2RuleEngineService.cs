@@ -59,14 +59,14 @@ public class V2RuleEngineService
 
             // 转换为 ChatLogAnalysisResult
             // 优先使用规则提取的字段，如果没有则使用默认提取方法
-            var title = context.GetField("Title", null);
-            var summary = context.GetField("Summary", null);
+            var title = context.GetField("Title");
+            var summary = context.GetField("Summary");
 
             return new ChatLogAnalysisResult
             {
-                Title = !string.IsNullOrEmpty(title) ? title : ExtractTitle(sourceContent),
-                Summary = !string.IsNullOrEmpty(summary) ? summary : ExtractSummary(sourceContent),
-                MainBody = result.Output ?? sourceContent,
+                Title = !string.IsNullOrEmpty(title) ? title : ExtractTitle(context.SourceContent),
+                Summary = !string.IsNullOrEmpty(summary) ? summary : ExtractSummary(context.SourceContent),
+                MainBody = result.Output ?? context.SourceContent,
                 CreatedAt = DateTime.Now
             };
         }
