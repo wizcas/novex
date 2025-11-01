@@ -5,12 +5,14 @@
 @using Novex.Analyzer.Models
 @using Novex.Web.Shared.Components
 @using Novex.Web.Components
+@using Novex.Web.Services
 @inject IChatLogService ChatLogService
 @inject IAnalysisService AnalysisService
 @inject IBookService BookService
 @inject AnalysisRuleBookService RuleBookService
 @inject NavigationManager Navigation
 @inject IMessageService MessageService
+@inject V2RuleEngineService V2RuleEngine
 
 <div style="margin-bottom: 16px;">
   <h3 style="margin: 0;">
@@ -300,9 +302,19 @@
         // 使用选中的规则书进行分析
         try
         {
-          var ruleEngine = new RuleEngine();
-          var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(selectedRuleBook.Content));
-          result = await ruleEngine.ExecuteRulesAsync(chatLog.Mes, parsedRuleBook);
+          // 尝试使用 V2 规则引擎
+          try
+          {
+            result = await V2RuleEngine.AnalyzeAsync(chatLog.Mes, selectedRuleBook.Content);
+          }
+          catch (Exception v2Ex)
+          {
+            Console.WriteLine($"V2 规则引擎分析失败: {v2Ex.Message}");
+            // 如果 V2 失败，回退到 V1
+            var ruleEngine = new RuleEngine();
+            var parsedRuleBook = await Task.Run(() => ruleEngine.ParseRuleBook(selectedRuleBook.Content));
+            result = await ruleEngine.ExecuteRulesAsync(chatLog.Mes, parsedRuleBook);
+          }
         }
         catch (Exception ruleEx)
         {

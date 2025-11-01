@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Novex.Data\Novex.Data.csproj" />
     <ProjectReference Include="..\Novex.Analyzer\Novex.Analyzer.csproj" />
+    <ProjectReference Include="..\Novex.Analyzer.V2\Novex.Analyzer.V2.csproj" />
   </ItemGroup>
 
 </Project>

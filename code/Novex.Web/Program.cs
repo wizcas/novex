@@ -1,5 +1,8 @@
 using Novex.Data.Context;
 using Novex.Data.Services;
+using Novex.Analyzer.V2.DependencyInjection;
+using Novex.Analyzer.V2.Registry;
+using Novex.Web.Services;
 using Syncfusion.Blazor;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -21,6 +24,12 @@ builder.Services.AddAntDesign();
 // 添加 Syncfusion 服务
 builder.Services.AddSyncfusionBlazor();
 
+// 添加 Novex.Analyzer V2 服务
+builder.Services.AddNovexAnalyzerV2();
+
+// 添加 V2 规则引擎服务
+builder.Services.AddScoped<V2RuleEngineService>();
+
 // 添加服务
 builder.Services.AddScoped<IChatLogService, ChatLogService>();
 builder.Services.AddScoped<IBookService, BookService>();
@@ -32,6 +41,30 @@ builder.Services.AddScoped<IAiTitleGenerationService, AiTitleGenerationService>(
 builder.Services.AddScoped<IAITitlePromptService, AITitlePromptService>();
 
 WebApplication app = builder.Build();
+
+// 在应用启动时注册处理器
+var registry = app.Services.GetRequiredService<IProcessorRegistry>();
+
+// Text 处理器
+registry.Register("Text.Trim", typeof(Novex.Analyzer.V2.Processors.Text.TrimProcessor));
+registry.Register("Text.Truncate", typeof(Novex.Analyzer.V2.Processors.Text.TruncateProcessor));
+registry.Register("Text.Replace", typeof(Novex.Analyzer.V2.Processors.Text.ReplaceProcessor));
+registry.Register("Text.Cleanup", typeof(Novex.Analyzer.V2.Processors.Text.CleanupProcessor));
+
+// Regex 处理器
+registry.Register("Regex.Match", typeof(Novex.Analyzer.V2.Processors.Regex.MatchProcessor));
+registry.Register("Regex.Replace", typeof(Novex.Analyzer.V2.Processors.Regex.ReplaceProcessor));
+
+// Markup 处理器
+registry.Register("Markup.ExtractText", typeof(Novex.Analyzer.V2.Processors.Markup.ExtractTextProcessor));
+registry.Register("Markup.SelectNode", typeof(Novex.Analyzer.V2.Processors.Markup.SelectNodeProcessor));
+
+// Transform 处理器
+registry.Register("Transform.ToUpper", typeof(Novex.Analyzer.V2.Processors.Transform.ToUpperProcessor));
+registry.Register("Transform.ToLower", typeof(Novex.Analyzer.V2.Processors.Transform.ToLowerProcessor));
+
+// Extraction 处理器
+registry.Register("Extraction.ExtractStructuredData", typeof(Novex.Analyzer.V2.Processors.Extraction.ExtractStructuredDataProcessor));
 
 // 确保数据库创建
 using (IServiceScope scope = app.Services.CreateScope())
