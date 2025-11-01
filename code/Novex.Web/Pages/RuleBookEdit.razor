@@ -26,12 +26,7 @@
 </div>
 
 <div style="margin-bottom: 16px;">
-  <div style="display: flex; align-items: center;">
-    <Button Type="@ButtonType.Link" OnClick="@GoBack">
-      <Icon Type="arrow-left" /> 返回规则书列表
-    </Button>
-    <h3 style="margin: 0 0 0 16px;">@(IsEdit ? "编辑规则书" : "新建规则书")</h3>
-  </div>
+  <h3 style="margin: 0;">@(IsEdit ? "编辑规则书" : "新建规则书")</h3>
 </div>
 
 @if (loading)

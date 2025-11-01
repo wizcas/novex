@@ -40,6 +40,9 @@ builder.Services.AddScoped<ILLMSettingService, LLMSettingService>();
 builder.Services.AddScoped<IAiTitleGenerationService, AiTitleGenerationService>();
 builder.Services.AddScoped<IAITitlePromptService, AITitlePromptService>();
 
+// 添加导航辅助服务
+builder.Services.AddScoped<ChatLogsNavigationHelper>();
+
 WebApplication app = builder.Build();
 
 // 在应用启动时注册处理器

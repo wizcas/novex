@@ -13,6 +13,7 @@
 @inject NavigationManager Navigation
 @inject IMessageService MessageService
 @inject V2RuleEngineService V2RuleEngine
+@inject ChatLogsNavigationHelper NavHelper
 
 <div style="margin-bottom: 16px;">
   <Breadcrumb>
@@ -28,12 +29,12 @@
         @bookName
       </BreadcrumbItem>
     }
-    <BreadcrumbItem Href="@($"/chatlogs/{BookId}")">
+    <BreadcrumbItem Href="@GetChatLogsUrl()">
       <Icon Type="message" /> 聊天记录
     </BreadcrumbItem>
     @if (chatLog != null)
     {
-      <BreadcrumbItem Href="@($"/chatlogs/{BookId}/{ChatLogId}")">
+      <BreadcrumbItem Href="@GetChatLogDetailUrl()">
         第 @chatLog.Index 楼
       </BreadcrumbItem>
     }
@@ -58,11 +59,7 @@
 <div class="analyze-container">
   @if (chatLog != null)
   {
-    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-      <Button Type="@ButtonType.Link" OnClick="@GoBack">
-        <Icon Type="arrow-left" /> 返回对话记录
-      </Button>
-
+    <div style="margin-bottom: 16px; display: flex; justify-content: flex-end; align-items: center;">
       <Space Size="@SpaceSize.Large">
         <SpaceItem>
           <Space>
@@ -225,6 +222,9 @@
 @code {
   [Parameter] public int BookId { get; set; }
   [Parameter] public int ChatLogId { get; set; }
+
+  [SupplyParameterFromQuery(Name = "returnUrl")]
+  public string? ReturnUrl { get; set; }
 
   private string _viewMode = "source";
   private ChatLog? chatLog;
@@ -490,19 +490,25 @@
 
   private async Task GoBack()
   {
-    try
-    {
-      // 获取当前记录所在的页码
-      var pageNumber = await ChatLogService.GetPageNumberForChatLogAsync(ChatLogId);
-      Navigation.NavigateTo($"/chatlogs/{BookId}?page={pageNumber}");
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"获取页码时出错: {ex.Message}");
-      await MessageService.WarningAsync("无法获取准确页码，将返回第一页");
-      // 如果获取页码失败，则回到第一页
-      Navigation.NavigateTo($"/chatlogs/{BookId}");
-    }
+    NavHelper.NavigateBack();
+    await Task.CompletedTask;
+  }
+
+  private string GetChatLogsUrl()
+  {
+    return NavHelper.GetReturnUrl();
+  }
+
+  private string GetChatLogDetailUrl()
+  {
+    var targetUrl = $"/chatlogs/{BookId}/{ChatLogId}";
+    return NavHelper.GetBreadcrumbUrl(targetUrl);
+  }
+
+  private void GoToChatLogDetail()
+  {
+    var targetUrl = $"/chatlogs/{BookId}/{ChatLogId}";
+    NavHelper.NavigateWithReturnUrl(targetUrl);
   }
 
   // 规则书相关方法

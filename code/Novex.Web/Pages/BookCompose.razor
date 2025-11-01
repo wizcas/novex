@@ -38,20 +38,10 @@
 
     <!-- 标题栏 -->
     <div style="margin-bottom: 16px;">
-        <Row Justify="@RowJustify.SpaceBetween" Align="@RowAlign.Middle">
-            <AntDesign.Col>
-                <Title Level="2">
-                    <Icon Type="edit" style="margin-right: 8px; color: #1890ff;" />
-                    编纂书目: @(currentBook?.Name ?? "")
-                </Title>
-            </AntDesign.Col>
-            <AntDesign.Col>
-                <Button Type="@ButtonType.Default" Icon="@IconType.Outline.ArrowLeft"
-                    OnClick="@(() => Navigation.NavigateTo("/books"))">
-                    返回书目管理
-                </Button>
-            </AntDesign.Col>
-        </Row>
+        <Title Level="2">
+            <Icon Type="edit" style="margin-right: 8px; color: #1890ff;" />
+            编纂书目: @(currentBook?.Name ?? "")
+        </Title>
     </div>
 
     <!-- 工具栏 -->

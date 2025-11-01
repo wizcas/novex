@@ -4,9 +4,11 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject IMessageService MessageService
+@inject ChatLogsNavigationHelper NavHelper
 @using Novex.Data.Models
 @using Novex.Data.Services
 @using Novex.Web.Shared.Components
+@using Novex.Web.Services
 @implements IAsyncDisposable
 
 <PageTitle>聊天记录</PageTitle>
@@ -58,33 +60,23 @@
   </div>
 
   <div style="margin-bottom: 24px;">
-    <Row Justify="@RowJustify.SpaceBetween" Align="@RowAlign.Middle">
-      <AntDesign.Col>
-        <Title Level="2">
-          <Icon Type="message" style="margin-right: 8px; color: #1890ff;" />
-          聊天记录列表
-        </Title>
-        @if (currentBook != null)
-        {
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div>
-              <Text Type="@TextElementType.Secondary">书目：</Text>
-              <Text Strong="true">@currentBook.Name</Text>
-            </div>
-            <a href="/import/@BookId" style="color: #1890ff; text-decoration: none; font-size: 14px;">
-              <Icon Type="upload" style="margin-right: 4px;" />
-              导入记录
-            </a>
-          </div>
-        }
-      </AntDesign.Col>
-      <AntDesign.Col>
-        <Button Type="@ButtonType.Default" Icon="@IconType.Outline.ArrowLeft"
-                OnClick="@(() => Navigation.NavigateTo("/books"))">
-          返回书目管理
-        </Button>
-      </AntDesign.Col>
-    </Row>
+    <Title Level="2">
+      <Icon Type="message" style="margin-right: 8px; color: #1890ff;" />
+      聊天记录列表
+    </Title>
+    @if (currentBook != null)
+    {
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div>
+          <Text Type="@TextElementType.Secondary">书目：</Text>
+          <Text Strong="true">@currentBook.Name</Text>
+        </div>
+        <a href="/import/@BookId" style="color: #1890ff; text-decoration: none; font-size: 14px;">
+          <Icon Type="upload" style="margin-right: 4px;" />
+          导入记录
+        </a>
+      </div>
+    }
   </div>
 
   <div style="margin-bottom: 24px;">
@@ -680,12 +672,27 @@
 
   private void ViewDetail(int id)
   {
-    Navigation.NavigateTo($"/chatlogs/{BookId}/{id}");
+    var returnUrl = BuildCurrentUrl();
+    var targetUrl = $"/chatlogs/{BookId}/{id}";
+    var url = NavHelper.BuildUrlWithReturn(targetUrl, returnUrl);
+    Navigation.NavigateTo(url);
   }
 
   private void AnalyzeContent(int id)
   {
-    Navigation.NavigateTo($"/chatlogs/{BookId}/{id}/analyze");
+    var returnUrl = BuildCurrentUrl();
+    var targetUrl = $"/chatlogs/{BookId}/{id}/analyze";
+    var url = NavHelper.BuildUrlWithReturn(targetUrl, returnUrl);
+    Navigation.NavigateTo(url);
+  }
+
+  private string BuildCurrentUrl()
+  {
+    var charFilter = string.IsNullOrEmpty(currentNameFilter) ? null : currentNameFilter;
+    var rangeFilter = (currentStartIndex.HasValue || currentEndIndex.HasValue)
+                      ? BuildRangeParameter(currentStartIndex, currentEndIndex)
+                      : null;
+    return BuildUrl(currentPage, pageSize, charFilter, rangeFilter);
   }
 
 
