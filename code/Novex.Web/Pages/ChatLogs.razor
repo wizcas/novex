@@ -242,63 +242,6 @@
     </Empty>
   }
 
-  <!-- 详情模态框 -->
-  @if (selectedChatLog != null)
-  {
-    RenderFragment detailFooter = @<Template>
-      <div style="display: flex; justify-content: space-between; width: 100%;">
-        <div>
-          <Button Icon="@IconType.Outline.Left" OnClick="GoToPreviousRecord"
-                  Disabled="@(isNavigating || !hasPreviousRecord)" Loading="@isNavigating" @key="@("prev")">
-            上一条
-          </Button>
-          <Button Icon="@IconType.Outline.Right" OnClick="GoToNextRecord" Disabled="@(isNavigating || !hasNextRecord)"
-                  Loading="@isNavigating" Style="margin-left: 8px;" @key="@("next")">
-            下一条
-          </Button>
-        </div>
-        <Button OnClick="CloseDetail" @key="@("close")">关闭</Button>
-      </div>
-    </Template>;
-
-    <Modal Title="@($"聊天记录详情 - ID: {selectedChatLog.Id}")" Visible="true" OnCancel="CloseDetail"
-           Footer="@detailFooter"
-           Width="800" Keyboard="true">
-      <div>
-        <Alert Type="@AlertType.Info" Message="键盘操作提示"
-               Description="使用左右方向键切换上一条/下一条记录，ESC键关闭详情窗口。" ShowIcon="true"
-               Style="margin-bottom: 16px;"/>
-        <Row Style="margin-bottom: 16px;">
-          <AntDesign.Col Span="4">
-            <Text Strong="true">角色名:</Text>
-          </AntDesign.Col>
-          <AntDesign.Col Span="20">
-            <Text>@selectedChatLog.Name</Text>
-          </AntDesign.Col>
-        </Row>
-        <Row Style="margin-bottom: 16px;">
-          <AntDesign.Col Span="4">
-            <Text Strong="true">发送时间:</Text>
-          </AntDesign.Col>
-          <AntDesign.Col Span="20">
-            <Text>@selectedChatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")</Text>
-          </AntDesign.Col>
-        </Row>
-        <Row>
-          <AntDesign.Col Span="4">
-            <Text Strong="true">内容:</Text>
-          </AntDesign.Col>
-          <AntDesign.Col Span="20">
-            <div
-              style="border: 1px solid #d9d9d9; padding: 12px; border-radius: 6px; background: #fafafa; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace;">
-              @selectedChatLog.Mes
-            </div>
-          </AntDesign.Col>
-        </Row>
-      </div>
-    </Modal>
-  }
-
   <!-- 批量分析模态框 -->
   <BatchAnalysisModal IsVisible="@showBatchAnalysisModal"
                       IsVisibleChanged="@((visible) => showBatchAnalysisModal = visible)"
@@ -326,19 +269,15 @@
 
   private List<ChatLogSummary> chatLogs = new();
   private bool isLoading;
-  private bool isNavigating;
   private int currentPage = 1;
   private int totalCount;
   private int totalPages;
   private int pageSize = 20;
   private string nameFilter = string.Empty;
   private string currentNameFilter = string.Empty;
-  private ChatLog? selectedChatLog;
   private Book? currentBook;
   private IJSObjectReference? jsModule;
   private DotNetObjectReference<ChatLogs>? objRef;
-  private bool hasPreviousRecord;
-  private bool hasNextRecord;
   private int _startIndex;
   private int _endIndex;
   private int? currentStartIndex;
@@ -719,22 +658,9 @@
     await RestoreScrollPosition();
   }
 
-  private async Task ViewDetail(int id)
+  private void ViewDetail(int id)
   {
-    selectedChatLog = await ChatLogService.GetChatLogByIdAsync(id);
-
-    // 检查是否有上一条/下一条记录
-    hasPreviousRecord = await HasPreviousRecord();
-    hasNextRecord = await HasNextRecord();
-
-    StateHasChanged();
-
-    // 添加键盘事件监听
-    await EnsureJSModule();
-    if (jsModule != null && objRef != null)
-    {
-      await jsModule.InvokeVoidAsync("addKeyboardListener", objRef);
-    }
+    Navigation.NavigateTo($"/chatlogs/{BookId}/{id}");
   }
 
   private void AnalyzeContent(int id)
@@ -742,81 +668,7 @@
     Navigation.NavigateTo($"/chatlogs/{BookId}/{id}/analyze");
   }
 
-  private async Task CloseDetail()
-  {
-    // 移除键盘事件监听
-    if (jsModule != null)
-    {
-      await jsModule.InvokeVoidAsync("removeKeyboardListener");
-    }
 
-    selectedChatLog = null;
-    StateHasChanged();
-  }
-
-  private async Task GoToPreviousRecord()
-  {
-    if (selectedChatLog == null || isNavigating) return;
-
-    isNavigating = true;
-    StateHasChanged();
-
-    try
-    {
-      var previousId = await ChatLogService.GetPreviousChatLogIdAsync(selectedChatLog.Id);
-      if (previousId.HasValue)
-      {
-        selectedChatLog = await ChatLogService.GetChatLogByIdAsync(previousId.Value);
-        // 更新导航状态
-        hasPreviousRecord = await HasPreviousRecord();
-        hasNextRecord = await HasNextRecord();
-      }
-    }
-    finally
-    {
-      isNavigating = false;
-      StateHasChanged();
-    }
-  }
-
-  private async Task GoToNextRecord()
-  {
-    if (selectedChatLog == null || isNavigating) return;
-
-    isNavigating = true;
-    StateHasChanged();
-
-    try
-    {
-      var nextId = await ChatLogService.GetNextChatLogIdAsync(selectedChatLog.Id);
-      if (nextId.HasValue)
-      {
-        selectedChatLog = await ChatLogService.GetChatLogByIdAsync(nextId.Value);
-        // 更新导航状态
-        hasPreviousRecord = await HasPreviousRecord();
-        hasNextRecord = await HasNextRecord();
-      }
-    }
-    finally
-    {
-      isNavigating = false;
-      StateHasChanged();
-    }
-  }
-
-  private async Task<bool> HasPreviousRecord()
-  {
-    if (selectedChatLog == null) return false;
-    var previousId = await ChatLogService.GetPreviousChatLogIdAsync(selectedChatLog.Id);
-    return previousId.HasValue;
-  }
-
-  private async Task<bool> HasNextRecord()
-  {
-    if (selectedChatLog == null) return false;
-    var nextId = await ChatLogService.GetNextChatLogIdAsync(selectedChatLog.Id);
-    return nextId.HasValue;
-  }
 
   private string GetCharacterColor(string characterName)
   {
@@ -852,24 +704,7 @@
 
 
 
-  [JSInvokable]
-  public async Task OnKeyDown(string key)
-  {
-    if (selectedChatLog == null || isNavigating) return;
 
-    switch (key)
-    {
-      case "ArrowLeft":
-        await GoToPreviousRecord();
-        break;
-      case "ArrowRight":
-        await GoToNextRecord();
-        break;
-      case "Escape":
-        await CloseDetail();
-        break;
-    }
-  }
 
   private async Task EnsureJSModule()
   {

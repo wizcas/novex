@@ -71,37 +71,11 @@
 
     <Row Gutter="16">
       <AntDesign.Col Span="12">
-        <Card Title="原文内容" Bordered="true">
-          <Extra>
-            <RadioGroup @bind-Value="_viewMode" ButtonStyle="RadioButtonStyle.Solid" Size="InputSize.Small">
-              <AntDesign.Radio RadioButton Value="@("source")">原文</AntDesign.Radio>
-              <AntDesign.Radio RadioButton Value="@("rendered")">渲染</AntDesign.Radio>
-            </RadioGroup>
-          </Extra>
-
-          <Body>
-            <div class="original-content">
-              <div class="chat-info">
-                <strong>角色：</strong>@chatLog.Name<br />
-                <strong>时间：</strong>@chatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")<br />
-                <strong>楼层：</strong>@chatLog.Index
-              </div>
-              <Divider />
-              @if (_viewMode == "rendered")
-              {
-                <div class="chat-message">
-                  @((MarkupString)chatLog.Mes.Replace("\n", "<br />"))
-                </div>
-              }
-              else
-              {
-                <CodeMirrorEditor Value="@chatLog.Mes" IsReadOnly="true" Language="markdown" Height="600px"
-                LineNumbers="false"
-                  Style="flex:1" />
-              }
-            </div>
-          </Body>
-        </Card>
+        <ChatLogViewer ChatLog="@chatLog"
+                       Title="原文内容"
+                       ShowExtra="true"
+                       ContentMaxHeight="600px"
+                       @bind-ViewMode="_viewMode" />
       </AntDesign.Col>
 
       <AntDesign.Col Span="12">

@@ -1,0 +1,144 @@
+﻿@using Novex.Data.Models
+@using Novex.Web.Components
+
+@if (ChatLog != null)
+{
+  <Card Title="@Title" Bordered="true" Style="@Style">
+    <Extra>
+      @if (ShowExtra)
+      {
+        <RadioGroup Value="@_viewMode"
+                    ValueChanged="@_viewModeChangedCallback"
+                    ButtonStyle="RadioButtonStyle.Solid"
+                    Size="InputSize.Small">
+          <AntDesign.Radio RadioButton Value="@("source")">原文</AntDesign.Radio>
+          <AntDesign.Radio RadioButton Value="@("rendered")">渲染</AntDesign.Radio>
+        </RadioGroup>
+      }
+    </Extra>
+
+    <Body>
+      <div style="padding: 16px;">
+        <!-- 元数据行 -->
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px;">楼层</AntDesign.Text>
+            <Badge Count="@ChatLog.Index" ShowZero="true" Style="background-color: #1890ff;" />
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px;">角色</AntDesign.Text>
+            <AntDesign.Text Strong="true">@ChatLog.Name</AntDesign.Text>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <AntDesign.Text Type="@TextElementType.Secondary" Style="font-size: 12px;">时间</AntDesign.Text>
+            <AntDesign.Text>@ChatLog.SendDate.ToString("yyyy-MM-dd HH:mm:ss")</AntDesign.Text>
+          </div>
+        </div>
+
+        <!-- 内容区域 -->
+        @if (_viewMode == "rendered")
+        {
+          <div style="border: 1px solid #d9d9d9; padding: 16px; border-radius: 6px; background: #fafafa; max-height: @ContentMaxHeight; overflow-y: auto; white-space: pre-wrap; line-height: 1.6;">
+            @((MarkupString)ChatLog.Mes.Replace("\n", "<br />"))
+          </div>
+        }
+        else
+        {
+          <div style="border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden;">
+            <CodeMirrorEditor @ref="_codeMirrorEditor"
+                             Value="@ChatLog.Mes"
+                             IsReadOnly="true"
+                             Language="markdown"
+                             Height="@ContentMaxHeight"
+                             LineNumbers="false" />
+          </div>
+        }
+      </div>
+    </Body>
+  </Card>
+}
+
+@code {
+  /// <summary>
+  /// 聊天记录对象
+  /// </summary>
+  [Parameter]
+  public ChatLog? ChatLog { get; set; }
+
+  /// <summary>
+  /// 卡片标题
+  /// </summary>
+  [Parameter]
+  public string Title { get; set; } = "聊天记录";
+
+  /// <summary>
+  /// 卡片样式
+  /// </summary>
+  [Parameter]
+  public string? Style { get; set; }
+
+  /// <summary>
+  /// 是否显示视图模式切换按钮（原文/渲染）
+  /// </summary>
+  [Parameter]
+  public bool ShowExtra { get; set; } = true;
+
+  /// <summary>
+  /// 内容区域最大高度
+  /// </summary>
+  [Parameter]
+  public string ContentMaxHeight { get; set; } = "600px";
+
+  /// <summary>
+  /// 视图模式（source/rendered）
+  /// </summary>
+  [Parameter]
+  public string ViewMode { get; set; } = "source";
+
+  /// <summary>
+  /// 视图模式变化回调
+  /// </summary>
+  [Parameter]
+  public EventCallback<string> ViewModeChanged { get; set; }
+
+  private string _viewMode = "source";
+  private EventCallback<string> _viewModeChangedCallback;
+  private CodeMirrorEditor? _codeMirrorEditor;
+
+  protected override void OnInitialized()
+  {
+    _viewMode = ViewMode;
+    _viewModeChangedCallback = EventCallback.Factory.Create<string>(this, OnViewModeChange);
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (_viewMode != ViewMode)
+    {
+      _viewMode = ViewMode;
+    }
+  }
+
+  private async Task OnViewModeChange(string newMode)
+  {
+    _viewMode = newMode;
+    await ViewModeChanged.InvokeAsync(newMode);
+  }
+
+  /// <summary>
+  /// 检查 CodeMirror 编辑器是否有焦点
+  /// </summary>
+  public bool IsCodeMirrorFocused()
+  {
+    // 当视图模式为 rendered 时，CodeMirror 不存在，返回 false
+    if (_viewMode == "rendered" || _codeMirrorEditor == null)
+    {
+      return false;
+    }
+
+    // TODO: 需要在 CodeMirrorEditor 组件中添加 IsFocused 方法
+    // 目前暂时返回 false，表示允许键盘导航
+    return false;
+  }
+}
+

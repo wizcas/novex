@@ -1,0 +1,343 @@
+﻿@page "/chatlogs/{bookId:int}/{chatLogId:int}"
+@using Novex.Data.Models
+@using Novex.Data.Services
+@using Novex.Web.Shared.Components
+@using Microsoft.JSInterop
+@inject IChatLogService ChatLogService
+@inject IBookService BookService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<PageTitle>聊天记录详情</PageTitle>
+
+<div class="chatlog-detail-page">
+  @if (isLoading)
+  {
+    <div style="text-align: center; padding: 100px 0;">
+      <Spin Size="@SpinSize.Large" />
+    </div>
+  }
+  else if (chatLog == null)
+  {
+    <Result Status="@ResultStatus.Error" Title="404" SubTitle="聊天记录不存在">
+      <Extra>
+        <Button Type="@ButtonType.Primary" OnClick="@GoBack">返回</Button>
+      </Extra>
+    </Result>
+  }
+  else
+  {
+    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+      <Button Type="@ButtonType.Link" OnClick="@GoBack">
+        <Icon Type="arrow-left" /> 返回聊天记录列表
+      </Button>
+
+      <Space Size="@SpaceSize.Large">
+        <SpaceItem>
+          <Space>
+            <SpaceItem>
+              <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoPrevious"
+                Disabled="@(!hasPrevious || isNavigating)" Loading="@isNavigating">
+                <Icon Type="left" /> 上一条
+              </Button>
+            </SpaceItem>
+            <SpaceItem>
+              <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoNext"
+                Disabled="@(!hasNext || isNavigating)" Loading="@isNavigating">
+                下一条
+                <Icon Type="right" />
+              </Button>
+            </SpaceItem>
+          </Space>
+        </SpaceItem>
+        <SpaceItem>
+          <FloorJumpSelector BookId="@BookId"
+                            CurrentFloor="@(chatLog?.Index ?? 0)"
+                            MinFloor="@minFloor"
+                            MaxFloor="@maxFloor"
+                            ShowCurrentFloor="true"
+                            Mode="@FloorJumpSelector.JumpMode.ChatLogId"
+                            OnJump="@JumpToFloor" />
+        </SpaceItem>
+        <SpaceItem>
+          <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" OnClick="@GoToAnalyze">
+            <Icon Type="bar-chart" /> 分析此记录
+          </Button>
+        </SpaceItem>
+      </Space>
+    </div>
+
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <Alert Type="@AlertType.Info" Message="键盘操作提示"
+             Description="使用左右方向键切换上一条/下一条记录。" ShowIcon="true"
+             Style="margin-bottom: 16px;" />
+
+      <ChatLogViewer @ref="_chatLogViewer"
+                     ChatLog="@chatLog"
+                     Title="@($"聊天记录详情 - {book?.Name ?? "加载中..."}")"
+                     ShowExtra="true"
+                     ContentMaxHeight="600px" />
+    </div>
+  }
+</div>
+
+<style>
+  .chatlog-detail-page {
+    padding: 24px;
+    min-height: 100vh;
+    background: #f0f2f5;
+  }
+</style>
+
+@code {
+  [Parameter] public int BookId { get; set; }
+  [Parameter] public int ChatLogId { get; set; }
+
+  private ChatLog? chatLog;
+  private Book? book;
+  private bool isLoading = true;
+  private bool isNavigating = false;
+  private bool hasPrevious = false;
+  private bool hasNext = false;
+  private int minFloor = 1;
+  private int maxFloor = 100;
+  private DotNetObjectReference<ChatLogDetail>? objRef;
+  private ChatLogViewer? _chatLogViewer;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await LoadData();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (ChatLogId > 0)
+    {
+      await LoadData();
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      objRef = DotNetObjectReference.Create(this);
+
+      // 创建一个辅助函数来存储 .NET 对象引用
+      await JSRuntime.InvokeVoidAsync("eval", @"
+        window.setChatLogDetailObjRef = function(objRef) {
+          window.chatLogDetailObjRef = objRef;
+        };
+      ");
+
+      // 存储 .NET 对象引用
+      await JSRuntime.InvokeVoidAsync("setChatLogDetailObjRef", objRef);
+
+      // 创建键盘事件处理函数
+      await JSRuntime.InvokeVoidAsync("eval", @"
+        window.chatLogDetailKeyHandler = function(e) {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            // 检查是否有 CodeMirror 编辑器获得焦点
+            var activeElement = document.activeElement;
+            var isCodeMirrorFocused = activeElement &&
+                                     (activeElement.classList.contains('cm-content') ||
+                                      activeElement.closest('.cm-editor'));
+
+            // 只有在 CodeMirror 没有焦点时才处理键盘导航
+            if (!isCodeMirrorFocused) {
+              e.preventDefault();
+              window.chatLogDetailObjRef.invokeMethodAsync('OnKeyDown', e.key);
+            }
+          }
+        };
+        document.addEventListener('keydown', window.chatLogDetailKeyHandler);
+      ");
+    }
+  }
+
+  private async Task LoadData()
+  {
+    isLoading = true;
+    StateHasChanged();
+
+    try
+    {
+      // 加载聊天记录
+      chatLog = await ChatLogService.GetChatLogByIdAsync(ChatLogId);
+
+      if (chatLog != null)
+      {
+        // 加载书目信息
+        book = await BookService.GetBookByIdAsync(BookId);
+
+        // 检查上一条/下一条
+        await CheckNavigation();
+
+        // 加载楼层范围
+        var range = await ChatLogService.GetIndexRangeAsync(BookId);
+        minFloor = range.MinIndex;
+        maxFloor = range.MaxIndex;
+      }
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"加载聊天记录失败: {ex.Message}");
+      chatLog = null;
+    }
+    finally
+    {
+      isLoading = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task CheckNavigation()
+  {
+    if (chatLog == null) return;
+
+    try
+    {
+      // 检查上一条
+      var previousLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+        BookId,
+        null,
+        null,
+        chatLog.Index - 1,
+        1,
+        1);
+      hasPrevious = previousLogs.Any();
+
+      // 检查下一条
+      var nextLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+        BookId,
+        null,
+        chatLog.Index + 1,
+        null,
+        1,
+        1);
+      hasNext = nextLogs.Any();
+    }
+    catch
+    {
+      hasPrevious = false;
+      hasNext = false;
+    }
+  }
+
+  private async Task GoPrevious()
+  {
+    if (!hasPrevious || isNavigating || chatLog == null) return;
+
+    isNavigating = true;
+    StateHasChanged();
+
+    try
+    {
+      var previousLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+        BookId,
+        null,
+        null,
+        chatLog.Index - 1,
+        1,
+        1);
+
+      if (previousLogs.Any())
+      {
+        var previousLog = previousLogs.First();
+        Navigation.NavigateTo($"/chatlogs/{BookId}/{previousLog.Id}");
+      }
+    }
+    finally
+    {
+      isNavigating = false;
+      StateHasChanged();
+    }
+  }
+
+  private async Task GoNext()
+  {
+    if (!hasNext || isNavigating || chatLog == null) return;
+
+    isNavigating = true;
+    StateHasChanged();
+
+    try
+    {
+      var nextLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+        BookId,
+        null,
+        chatLog.Index + 1,
+        null,
+        1,
+        1);
+
+      if (nextLogs.Any())
+      {
+        var nextLog = nextLogs.First();
+        Navigation.NavigateTo($"/chatlogs/{BookId}/{nextLog.Id}");
+      }
+    }
+    finally
+    {
+      isNavigating = false;
+      StateHasChanged();
+    }
+  }
+
+  private void JumpToFloor(int targetChatLogId)
+  {
+    Navigation.NavigateTo($"/chatlogs/{BookId}/{targetChatLogId}");
+  }
+
+  private void GoToAnalyze()
+  {
+    Navigation.NavigateTo($"/chatlogs/{BookId}/{ChatLogId}/analyze");
+  }
+
+  private void GoBack()
+  {
+    Navigation.NavigateTo($"/chatlogs/{BookId}");
+  }
+
+  [JSInvokable]
+  public async Task OnKeyDown(string key)
+  {
+    if (isNavigating) return;
+
+    switch (key)
+    {
+      case "ArrowLeft":
+        await GoPrevious();
+        break;
+      case "ArrowRight":
+        await GoNext();
+        break;
+    }
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    try
+    {
+      await JSRuntime.InvokeVoidAsync("eval", @"
+        if (window.chatLogDetailKeyHandler) {
+          document.removeEventListener('keydown', window.chatLogDetailKeyHandler);
+          delete window.chatLogDetailKeyHandler;
+        }
+        if (window.chatLogDetailObjRef) {
+          delete window.chatLogDetailObjRef;
+        }
+        if (window.setChatLogDetailObjRef) {
+          delete window.setChatLogDetailObjRef;
+        }
+      ");
+    }
+    catch (JSDisconnectedException)
+    {
+      // Circuit已断开，忽略JS互操作错误
+    }
+    objRef?.Dispose();
+  }
+}
+
