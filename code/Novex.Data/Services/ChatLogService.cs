@@ -20,6 +20,7 @@ public interface IChatLogService
   Task<(int MinIndex, int MaxIndex)> GetIndexRangeAsync(int bookId);
   Task<List<string>> GetCharacterNamesAsync(int bookId);
   Task<int> GetPageNumberForChatLogAsync(int chatLogId, int pageSize = 50);
+  Task<int?> GetFirstChatLogIdAsync(int bookId);
 }
 public class ImportResult
 {
@@ -336,5 +337,15 @@ public class ChatLogService : IChatLogService
 
     // 计算页码（从1开始）
     return (countBefore / pageSize) + 1;
+  }
+
+  public async Task<int?> GetFirstChatLogIdAsync(int bookId)
+  {
+    var firstLog = await _context.ChatLogs
+        .Where(c => c.BookId == bookId)
+        .OrderBy(c => c.Index)
+        .FirstOrDefaultAsync();
+
+    return firstLog?.Id;
   }
 }

@@ -1,15 +1,17 @@
 ﻿@using Novex.Data.Models
+@using Novex.Web.Shared.Components
 @using AntDesign
 
 <Card Title="聊天记录" Size="@CardSize.Small" Style="height: 100%;">
     <Extra>
         <Space>
             <SpaceItem>
-                <AntDesign.InputNumber @bind-Value="CurrentChatLogIndex" Min="1" Max="@TotalChatLogs"
-                                     Style="width: 100px;" Placeholder="楼层"/>
-            </SpaceItem>
-            <SpaceItem>
-                <Button OnClick="@(() => OnJumpToChatLog.InvokeAsync(CurrentChatLogIndex))">跳转</Button>
+                <FloorJumpSelector BookId="@BookId"
+                                  CurrentFloor="@CurrentChatLogIndex"
+                                  MinFloor="1"
+                                  MaxFloor="@TotalChatLogs"
+                                  Mode="@FloorJumpSelector.JumpMode.Index"
+                                  OnJump="@OnJumpToChatLog" />
             </SpaceItem>
             <SpaceItem>
                 <Button Icon="@IconType.Outline.Left" OnClick="@OnPreviousChatLog"

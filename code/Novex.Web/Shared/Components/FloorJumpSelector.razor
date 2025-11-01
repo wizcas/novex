@@ -1,0 +1,117 @@
+﻿@using Novex.Data.Services
+@using AntDesign
+@inject IChatLogService ChatLogService
+
+<div style="display: flex; align-items: center; gap: 8px;">
+  @if (ShowCurrentFloor && CurrentFloor > 0)
+  {
+    <AntDesign.Text Strong="true" Style="color: #666;">第 @CurrentFloor 楼</AntDesign.Text>
+  }
+  <AntDesign.InputNumber @bind-Value="targetFloor"
+                         Min="@MinFloor"
+                         Max="@MaxFloor"
+                         Style="width: 100px;"
+                         Placeholder="跳转到"
+                         OnPressEnter="OnJumpClick" />
+  <Button Type="@ButtonType.Primary"
+          Size="@ButtonSize.Small"
+          OnClick="OnJumpClick"
+          Loading="@isJumping"
+          Disabled="@(!targetFloor.HasValue || isJumping)">
+    跳转
+  </Button>
+</div>
+
+@code {
+  [Parameter] public int BookId { get; set; }
+  [Parameter] public int CurrentFloor { get; set; }
+  [Parameter] public int MinFloor { get; set; } = 0;
+  [Parameter] public int MaxFloor { get; set; } = 100;
+
+  /// <summary>
+  /// 是否显示当前楼层
+  /// </summary>
+  [Parameter] public bool ShowCurrentFloor { get; set; } = true;
+
+  /// <summary>
+  /// 跳转模式：Index = 直接传递楼层号，ChatLogId = 查询后传递 ChatLog ID
+  /// </summary>
+  [Parameter] public JumpMode Mode { get; set; } = JumpMode.ChatLogId;
+
+  /// <summary>
+  /// 跳转回调，根据 Mode 参数传递楼层号（Index）或 ChatLog ID
+  /// </summary>
+  [Parameter] public EventCallback<int> OnJump { get; set; }
+
+  private int? targetFloor;
+  private bool isJumping = false;
+
+  protected override void OnParametersSet()
+  {
+    // 当前楼层改变时，清空输入框
+    if (CurrentFloor > 0)
+    {
+      targetFloor = null;
+    }
+  }
+
+  private async Task OnJumpClick()
+  {
+    if (!targetFloor.HasValue || isJumping)
+      return;
+
+    if (targetFloor.Value < MinFloor || targetFloor.Value > MaxFloor)
+    {
+      // 可以添加错误提示
+      return;
+    }
+
+    try
+    {
+      isJumping = true;
+      StateHasChanged();
+
+      if (Mode == JumpMode.Index)
+      {
+        // 直接传递楼层号
+        await OnJump.InvokeAsync(targetFloor.Value);
+      }
+      else // Mode == JumpMode.ChatLogId
+      {
+        // 根据楼层号（Index）查找对应的 ChatLog ID
+        var chatLogs = await ChatLogService.GetChatLogsWithFiltersAsync(
+          BookId,
+          null,
+          targetFloor.Value,
+          targetFloor.Value,
+          1,
+          1);
+
+        if (chatLogs.Any())
+        {
+          var chatLogId = chatLogs.First().Id;
+          await OnJump.InvokeAsync(chatLogId);
+        }
+      }
+    }
+    finally
+    {
+      isJumping = false;
+      StateHasChanged();
+    }
+  }
+
+  public enum JumpMode
+  {
+    /// <summary>
+    /// 回调传递楼层号（Index）
+    /// </summary>
+    Index,
+
+    /// <summary>
+    /// 回调传递 ChatLog ID（需要查询数据库）
+    /// </summary>
+    ChatLogId
+  }
+}
+

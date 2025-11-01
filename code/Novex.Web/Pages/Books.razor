@@ -2,6 +2,7 @@
 @using Novex.Data.Models
 @using Novex.Data.Services
 @inject IBookService BookService
+@inject IChatLogService ChatLogService
 @inject NavigationManager Navigation
 
 <PageTitle>书目管理</PageTitle>
@@ -75,45 +76,45 @@
                     @context.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")
                 </Template>
             </Column>
-            <ActionColumn Title="操作" Width="400px">
+            <ActionColumn Title="操作" Width="120px">
                 <Template>
-                    <Space Size="@SpaceSize.Small">
-                        <SpaceItem>
-                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small"
-                                OnClick="() => ViewChatLogs(context.Id)">
-                                <Icon Type="eye" />
-                                查看聊天记录
+                    <Dropdown Trigger="@(new Trigger[] { Trigger.Click })">
+                        <Overlay>
+                            <Menu>
+                                <MenuItem OnClick="() => ViewChatLogs(context.Id)">
+                                    <Icon Type="eye" style="margin-right: 8px;" />
+                                    查看聊天记录
+                                </MenuItem>
+                                <MenuItem OnClick="() => AnalyzeChatLogs(context.Id)">
+                                    <Icon Type="bar-chart" style="margin-right: 8px;" />
+                                    分析聊天记录
+                                </MenuItem>
+                                <MenuItem OnClick="() => ImportChatLogs(context.Id)">
+                                    <Icon Type="upload" style="margin-right: 8px;" />
+                                    导入记录
+                                </MenuItem>
+                                <MenuItem OnClick="() => ComposeBook(context.Id)">
+                                    <Icon Type="edit" style="margin-right: 8px;" />
+                                    编纂书目
+                                </MenuItem>
+                                <MenuDivider />
+                                <MenuItem OnClick="() => ShowClearConfirm(context)" Disabled="@isOperating">
+                                    <Icon Type="clear" style="margin-right: 8px;" />
+                                    清空记录
+                                </MenuItem>
+                                <MenuItem OnClick="() => ShowDeleteConfirm(context)" Disabled="@isOperating" Style="color: #ff4d4f;">
+                                    <Icon Type="delete" style="margin-right: 8px;" />
+                                    删除书目
+                                </MenuItem>
+                            </Menu>
+                        </Overlay>
+                        <ChildContent>
+                            <Button Size="@ButtonSize.Small">
+                                操作
+                                <Icon Type="down" />
                             </Button>
-                        </SpaceItem>
-                        <SpaceItem>
-                            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small"
-                                OnClick="() => ImportChatLogs(context.Id)">
-                                <Icon Type="upload" />
-                                导入记录
-                            </Button>
-                        </SpaceItem>
-                        <SpaceItem>
-                            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" 
-                                OnClick="() => ComposeBook(context.Id)">
-                                <Icon Type="edit" />
-                                编纂书目
-                            </Button>
-                        </SpaceItem>
-                        <SpaceItem>
-                            <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" Danger="false"
-                                Disabled="@isOperating" OnClick="() => ShowClearConfirm(context)">
-                                <Icon Type="clear" />
-                                清空记录
-                            </Button>
-                        </SpaceItem>
-                        <SpaceItem>
-                            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Danger="true"
-                                Disabled="@isOperating" OnClick="() => ShowDeleteConfirm(context)">
-                                <Icon Type="delete" />
-                                删除书目
-                            </Button>
-                        </SpaceItem>
-                    </Space>
+                        </ChildContent>
+                    </Dropdown>
                 </Template>
             </ActionColumn>
         </Table>
@@ -247,6 +248,19 @@
     private void ViewChatLogs(int bookId)
     {
         Navigation.NavigateTo($"/chatlogs/{bookId}");
+    }
+
+    private async Task AnalyzeChatLogs(int bookId)
+    {
+        var firstChatLogId = await ChatLogService.GetFirstChatLogIdAsync(bookId);
+        if (firstChatLogId.HasValue)
+        {
+            Navigation.NavigateTo($"/chatlogs/{bookId}/{firstChatLogId.Value}/analyze");
+        }
+        else
+        {
+            ShowMessage("该书目暂无聊天记录", true);
+        }
     }
 
     private void ImportChatLogs(int bookId)

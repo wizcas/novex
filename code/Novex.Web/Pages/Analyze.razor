@@ -34,23 +34,36 @@
         <Icon Type="arrow-left" /> 返回对话记录
       </Button>
 
-      <Space>
+      <Space Size="@SpaceSize.Large">
         <SpaceItem>
-          <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoPrevious"
-            Disabled="@(!hasPrevious || isNavigating)" Loading="@isNavigating">
-            <Icon Type="left" /> 上一条
-          </Button>
+          <Space>
+            <SpaceItem>
+              <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoPrevious"
+                Disabled="@(!hasPrevious || isNavigating)" Loading="@isNavigating">
+                <Icon Type="left" /> 上一条
+              </Button>
+            </SpaceItem>
+            <SpaceItem>
+              <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoNext"
+                Disabled="@(!hasNext || isNavigating)" Loading="@isNavigating">
+                下一条
+                <Icon Type="right" />
+              </Button>
+            </SpaceItem>
+          </Space>
         </SpaceItem>
         <SpaceItem>
-          <Text Strong="true" style="padding: 0 12px; color: #666;">
-            第 @(chatLog?.Index.ToString() ?? "--") 楼
-          </Text>
+          <FloorJumpSelector BookId="@BookId"
+                            CurrentFloor="@(chatLog?.Index ?? 0)"
+                            MinFloor="@minFloor"
+                            MaxFloor="@maxFloor"
+                            ShowCurrentFloor="true"
+                            Mode="@FloorJumpSelector.JumpMode.ChatLogId"
+                            OnJump="@JumpToFloor" />
         </SpaceItem>
         <SpaceItem>
-          <Button Type="@ButtonType.Default" Size="@ButtonSize.Small" OnClick="@GoNext"
-            Disabled="@(!hasNext || isNavigating)" Loading="@isNavigating">
-            下一条
-            <Icon Type="right" />
+          <Button Type="@ButtonType.Dashed" Size="@ButtonSize.Small" OnClick="@(() => showBatchAnalysisModal = true)">
+            <Icon Type="experiment" /> 批量分析
           </Button>
         </SpaceItem>
       </Space>
@@ -168,6 +181,13 @@
       </Extra>
     </Result>
   }
+
+  <!-- 批量分析模态框 -->
+  <BatchAnalysisModal IsVisible="@showBatchAnalysisModal"
+                      IsVisibleChanged="@((visible) => showBatchAnalysisModal = visible)"
+                      OnCancel="@(() => showBatchAnalysisModal = false)"
+                      OnCompleted="OnBatchAnalysisCompleted"
+                      BookId="@BookId" />
 </div>
 
 <style>
@@ -218,6 +238,13 @@
   // 规则书相关变量
   private int? selectedRuleBookId;
   private ChatLogAnalysisRuleBook? selectedRuleBook;
+
+  // 批量分析相关变量
+  private bool showBatchAnalysisModal = false;
+
+  // 楼层范围
+  private int minFloor = 0;
+  private int maxFloor = 100;
 
   protected override async Task OnInitializedAsync()
   {
@@ -271,7 +298,10 @@
       hasPrevious = previousId.HasValue;
       hasNext = nextId.HasValue;
 
-      // 加载规则书列表
+      // 加载楼层范围
+      var range = await ChatLogService.GetIndexRangeAsync(BookId);
+      minFloor = range.MinIndex;
+      maxFloor = range.MaxIndex;
 
     }
     catch (Exception ex)
@@ -486,5 +516,27 @@
     StateHasChanged();
   }
 
+  // 楼层跳转方法
+  private void JumpToFloor(int chatLogId)
+  {
+    Navigation.NavigateTo($"/chatlogs/{BookId}/{chatLogId}/analyze");
+  }
+
+  // 批量分析完成回调
+  private async Task OnBatchAnalysisCompleted(BatchAnalysisModal.BatchAnalysisResult result)
+  {
+    // 重新加载当前记录的分析结果
+    await LoadData();
+
+    // 显示完成消息
+    if (result.ErrorCount > 0)
+    {
+      await MessageService.WarningAsync($"批量分析完成！成功处理 {result.SuccessCount}/{result.ProcessedCount} 条记录，{result.ErrorCount} 个错误");
+    }
+    else
+    {
+      await MessageService.SuccessAsync($"批量分析完成！成功处理 {result.SuccessCount} 条记录");
+    }
+  }
 
 }
