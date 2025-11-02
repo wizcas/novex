@@ -14,7 +14,7 @@
 <Card Title="章节列表" Size="@CardSize.Small" Style="height: 100%;">
     <Extra>
         <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Plus"
-            OnClick="ShowAddChapterModal">
+            OnClick="AddChapterDirectly">
             新增章节
         </Button>
     </Extra>
@@ -55,7 +55,7 @@
             {
                 <Empty Description="@("暂无章节")">
                     <ChildContent>
-                        <Button Type="@ButtonType.Primary" OnClick="ShowAddChapterModal">
+                        <Button Type="@ButtonType.Primary" OnClick="AddChapterDirectly">
                             创建第一个章节
                         </Button>
                     </ChildContent>
@@ -224,6 +224,15 @@
     public class EditChapterForm
     {
         public string Title { get; set; } = string.Empty;
+    }
+
+    private async Task AddChapterDirectly()
+    {
+        var nextOrder = await BookChapterService.GetNextOrderAsync(BookId);
+        var newChapter = await BookChapterService.CreateChapterAsync(BookId, "无标题", nextOrder);
+
+        await OnChapterAdded.InvokeAsync(newChapter);
+        MessageService.Success("章节创建成功");
     }
 
     private void ShowAddChapterModal()

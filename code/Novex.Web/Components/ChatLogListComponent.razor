@@ -1,6 +1,7 @@
 ﻿@using AntDesign
 
-<Card Title="聊天记录列表" Size="@CardSize.Small" Style="height: 100%;" class="chatlog-card">
+<Card Title="聊天记录列表" Size="@CardSize.Small" Style="height: 100%;flex: 1;min-height: 0" class="chatlog-card"
+      BodyStyle="height: calc(100% - 36px); overflow-y: hidden;">
     <ChildContent>
         <div style="height: 100%; overflow-y: auto;">
             @if (ChatLogs != null && ChatLogs.Any())
@@ -9,7 +10,7 @@
                     @foreach (var item in ChatLogs)
                     {
                         <div class="chatlog-item @(SelectedChatLogId == item.ChatLogId ? "selected" : "")"
-                            @onclick="() => OnSelectChatLog.InvokeAsync(item)">
+                             @onclick="() => OnSelectChatLog.InvokeAsync(item)">
                             <div class="chatlog-content">
                                 <div>
                                     <span class="index-badge">#@item.Index</span>
@@ -25,7 +26,7 @@
             }
             else
             {
-                <Empty Description="@("正在加载或暂无记录")" />
+                <Empty Description="@("正在加载或暂无记录")"/>
             }
         </div>
     </ChildContent>
@@ -59,7 +60,7 @@
         border-left-color: #1890ff;
     }
 
-    .chatlog-content>div {
+    .chatlog-content > div {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

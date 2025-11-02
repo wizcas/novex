@@ -80,9 +80,9 @@
     </div>
 
     <!-- 主要内容区域 -->
-    <Row Gutter="16" Style="height: calc(100vh - 240px);">
+    <Row Gutter="16" >
         <!-- 上半区域 -->
-        <AntDesign.Col Span="24" Style="height: 60%;">
+        <AntDesign.Col Span="24" Style="height: 460px;">
             <Row Gutter="16" Style="height: 100%;">
                 <!-- 章节列表区域 -->
                 <AntDesign.Col Span="6" Style="height: 100%;">
@@ -99,9 +99,9 @@
         </AntDesign.Col>
 
         <!-- 下半区域：聊天记录区域 -->
-        <AntDesign.Col Span="24" Style="height: 40%; margin-top: 16px;">
+        <AntDesign.Col Span="24" Style="height: 60vh; margin-top: 16px;">
             <Row Gutter="16" Style="height: 100%;">
-                <AntDesign.Col Span="6" Style="height: 100%;">
+                <AntDesign.Col Span="6" Style="height: 100%; display: flex; flex-direction: column;">
                     <Card Size="@CardSize.Small" Style="margin-bottom: 16px;">
                         <Select TItem="string" TItemValue="string" DataSource="@_characterNames"
                             @bind-Value="@_selectedCharacter"
@@ -129,7 +129,6 @@
 <style>
     .compose-page {
         padding: 24px;
-        height: 100vh;
         overflow: hidden;
     }
 </style>

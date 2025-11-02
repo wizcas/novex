@@ -2,7 +2,7 @@
 @using Novex.Web.Shared.Components
 @using AntDesign
 
-<Card Title="聊天记录" Size="@CardSize.Small" Style="height: 100%;">
+<Card Title="聊天记录" Size="@CardSize.Small" Style="height: 100%;" BodyStyle="height: calc(100% - 36px); overflow:hidden">
     <Extra>
         <Space>
             <SpaceItem>
@@ -32,10 +32,10 @@
     <ChildContent>
         @if (CurrentChatLog != null)
         {
-            <div style="height: calc(100% - 80px); overflow-y: auto; padding: 16px;">
+            <div style="height: 100%; padding: 16px; display:flex;flex-direction: column; min-height: 0;">
                 @if (!string.IsNullOrEmpty(CurrentAnalysisResult?.Title))
                 {
-                    <div style="margin-bottom: 16px;">
+                    <div style="margin-bottom: 16px; flex: none;">
                         <Text Strong="true" Style="font-size: 16px; color: #1890ff;">📝 标题：</Text>
                         <div style="background: #f6f8ff; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #1890ff;">
                             <Text Strong="true" Style="font-size: 15px; color: #1890ff;">@CurrentAnalysisResult.Title</Text>
@@ -45,7 +45,7 @@
 
                 @if (!string.IsNullOrEmpty(CurrentAnalysisResult?.Summary))
                 {
-                    <div style="margin-bottom: 16px;">
+                    <div style="margin-bottom: 16px; flex: none;">
                         <Text Strong="true" Style="font-size: 16px; color: #52c41a;">📋 摘要：</Text>
                         <div style="background: #f6ffed; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #52c41a;">
                             <Text Style="font-size: 14px; line-height: 1.6;">@CurrentAnalysisResult.Summary</Text>
@@ -55,9 +55,9 @@
 
                 @if (!string.IsNullOrEmpty(CurrentAnalysisResult?.MainBody))
                 {
-                    <div style="margin-bottom: 16px;">
+                    <div style="margin-bottom: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column;">
                         <Text Strong="true" Style="font-size: 16px; color: #fa8c16;">📄 正文内容：</Text>
-                        <div style="background: #fff7e6; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #fa8c16; white-space: pre-wrap; overflow-y:auto; height: 130px;">
+                        <div style="background: #fff7e6; padding: 12px; border-radius: 6px; margin-top: 6px; border-left: 4px solid #fa8c16; white-space: pre-wrap; overflow-y:auto; flex: 1; min-height: 0;">
                                 <Text Style="font-size: 14px; line-height: 1.8;">@CurrentAnalysisResult.MainBody</Text>
                         </div>
                     </div>
