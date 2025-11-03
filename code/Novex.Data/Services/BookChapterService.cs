@@ -71,29 +71,7 @@ public class BookChapterService : IBookChapterService
     return true;
   }
 
-  public async Task<bool> ReorderChaptersAsync(int bookId, List<int> chapterIds)
-  {
-    var chapters = await _context.BookChapters
-        .Where(c => c.BookId == bookId && chapterIds.Contains(c.Id))
-        .ToListAsync();
 
-    if (chapters.Count != chapterIds.Count)
-    {
-      return false;
-    }
-
-    for (int i = 0; i < chapterIds.Count; i++)
-    {
-      var chapter = chapters.First(c => c.Id == chapterIds[i]);
-      chapter.Order = i + 1;
-      chapter.UpdatedAt = DateTime.Now;
-    }
-
-    await _context.SaveChangesAsync();
-
-    _logger.LogInformation("Reordered chapters for book {BookId}", bookId);
-    return true;
-  }
 
   public async Task<int> GetNextOrderAsync(int bookId)
   {

@@ -88,7 +88,8 @@
                 <AntDesign.Col Span="6" Style="height: 100%;">
                     <ChapterListComponent BookId="@BookId" Chapters="@chapters" SelectedChapter="@selectedChapter"
                         OnSelectChapter="@SelectChapter" OnChapterAdded="HandleChapterAdded"
-                        OnChapterUpdated="HandleChapterUpdated" OnDeleteChapter="@DeleteChapter" />
+                        OnChapterUpdated="HandleChapterUpdated" OnDeleteChapter="@DeleteChapter"
+                        OnChaptersReordered="@HandleChaptersReordered" />
                 </AntDesign.Col>
 
                 <!-- 章节内容区域 -->
@@ -335,6 +336,13 @@
     {
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private async Task HandleChaptersReordered()
+    {
+        // 重新加载章节列表以确保顺序正确
+        await LoadChapters();
+        StateHasChanged();
     }
 
     private async Task DeleteChapter(BookChapter chapter)
