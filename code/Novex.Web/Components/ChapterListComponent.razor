@@ -12,7 +12,7 @@
 
 <!-- 章节列表卡片 -->
 
-<Card Title="章节列表" Size="@CardSize.Small" Style="height: 100%;">
+<Card Title="章节列表" Size="@CardSize.Small" Style="height: 100%;" BodyStyle="height: 100%;">
     <Extra>
         <Button Type="@ButtonType.Primary" Size="@ButtonSize.Small" Icon="@IconType.Outline.Plus"
             OnClick="AddChapterDirectly">
@@ -20,7 +20,7 @@
         </Button>
     </Extra>
     <ChildContent>
-        <div style="height: calc(100% - 80px); overflow-y: auto;">
+        <div style="height: calc(100% - 36px); min-height: 0; overflow-y: auto;">
             @if (Chapters.Any())
             {
                 <div id="chapter-list">
@@ -420,15 +420,10 @@
             _dotNetHelper = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("chapterDragDrop.initializeDragDrop", _dotNetHelper);
         }
-        else if (Chapters.Any())
-        {
-            // 重新初始化拖放功能（当章节列表更新时）
-            await JSRuntime.InvokeVoidAsync("chapterDragDrop.initializeDragDrop", _dotNetHelper);
-        }
     }
 
     [JSInvokable]
-    public void HandleChapterReorder(int draggedChapterId, int targetChapterId, bool insertBefore)
+    public async Task HandleChapterReorder(int draggedChapterId, int targetChapterId, bool insertBefore)
     {
         var draggedChapter = Chapters.FirstOrDefault(c => c.Id == draggedChapterId);
         var targetChapter = Chapters.FirstOrDefault(c => c.Id == targetChapterId);
@@ -438,23 +433,71 @@
             return;
         }
 
-        // 从列表中移除被拖动的章节
-        Chapters.Remove(draggedChapter);
+        // 保存原始章节顺序用于失败回滚
+        var originalChapters = new List<BookChapter>(Chapters);
 
-        // 找到目标位置
-        var targetIndex = Chapters.IndexOf(targetChapter);
-        if (!insertBefore)
+        try
         {
-            targetIndex++;
+            // 从列表中移除被拖动的章节
+            Chapters.Remove(draggedChapter);
+
+            // 找到目标位置
+            var targetIndex = Chapters.IndexOf(targetChapter);
+            if (!insertBefore)
+            {
+                targetIndex++;
+            }
+
+            // 插入到新位置
+            Chapters.Insert(targetIndex, draggedChapter);
+
+            // 立即更新 UI（乐观更新）
+            StateHasChanged();
+
+            // 获取新的章节顺序（仅获取 ID）
+            var chapterIds = Chapters.Select(c => c.Id).ToList();
+
+            // 调用服务保存到数据库
+            var (success, updatedChapters) = await BookChapterService.ReorderChaptersAsync(BookId, chapterIds);
+
+            if (success)
+            {
+                // 用返回的数据更新本地列表，确保 Order 值与数据库同步
+                Chapters.Clear();
+                foreach (var chapter in updatedChapters)
+                {
+                    Chapters.Add(chapter);
+                }
+
+                MessageService.Success("章节顺序已更新");
+                await OnChaptersReordered.InvokeAsync();
+                StateHasChanged();
+            }
+            else
+            {
+                // 失败时恢复原始顺序
+                Chapters.Clear();
+                foreach (var chapter in originalChapters)
+                {
+                    Chapters.Add(chapter);
+                }
+
+                MessageService.Error("章节顺序更新失败，已恢复原始顺序");
+                StateHasChanged();
+            }
         }
+        catch (Exception ex)
+        {
+            // 异常时恢复原始顺序
+            Chapters.Clear();
+            foreach (var chapter in originalChapters)
+            {
+                Chapters.Add(chapter);
+            }
 
-        // 插入到新位置
-        Chapters.Insert(targetIndex, draggedChapter);
-
-        // TODO: 数据持久化处理待实现
-        // 这里需要保存新的章节顺序到数据库
-
-        StateHasChanged();
+            MessageService.Error($"章节顺序更新出错：{ex.Message}");
+            StateHasChanged();
+        }
     }
 
     public void Dispose()

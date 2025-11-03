@@ -9,5 +9,6 @@ public interface IBookChapterService
   Task<BookChapter> CreateChapterAsync(int bookId, string title, int order);
   Task<BookChapter> UpdateChapterAsync(BookChapter chapter);
   Task<bool> DeleteChapterAsync(int id);
+  Task<(bool Success, List<BookChapter> UpdatedChapters)> ReorderChaptersAsync(int bookId, List<int> chapterIds);
   Task<int> GetNextOrderAsync(int bookId);
 }

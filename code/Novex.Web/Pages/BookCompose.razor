@@ -100,7 +100,7 @@
         </AntDesign.Col>
 
         <!-- 下半区域：聊天记录区域 -->
-        <AntDesign.Col Span="24" Style="height: 60vh; margin-top: 16px;">
+        <AntDesign.Col Span="24" Style="height: 80vh; margin-top: 16px;">
             <Row Gutter="16" Style="height: 100%;">
                 <AntDesign.Col Span="6" Style="height: 100%; display: flex; flex-direction: column;">
                     <Card Size="@CardSize.Small" Style="margin-bottom: 16px;">
@@ -340,8 +340,19 @@
 
     private async Task HandleChaptersReordered()
     {
+        // 保存当前选中章节的 ID
+        var selectedChapterId = selectedChapter?.Id;
+
         // 重新加载章节列表以确保顺序正确
         await LoadChapters();
+
+        // 如果之前有选中的章节，用新加载的实例替换
+        // 这样可以避免 EF Core 的实体跟踪冲突
+        if (selectedChapterId.HasValue)
+        {
+            selectedChapter = chapters.FirstOrDefault(c => c.Id == selectedChapterId.Value);
+        }
+
         StateHasChanged();
     }
 
